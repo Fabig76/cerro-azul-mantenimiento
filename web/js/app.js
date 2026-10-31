@@ -177,6 +177,27 @@
     if (bs) bs.addEventListener('click', salir);
 
     const g = document.getElementById('btnGoogle');
+    const caja = document.getElementById('cajaGoogle');
+    const alEntrarGoogle = function (ok, data) {
+      if (!ok) return;
+      if (data && data.estado === 'PENDIENTE') return procesarIngreso(data);
+      if (data && data.sessionToken) {
+        Sesion.guardar({ token: data.sessionToken, expira_en: data.expira_en, usuario: data.usuario }, false);
+        ver('pantallaLogin', false);
+        entrar();
+      }
+    };
+    // El script de Google carga con async: se reintenta hasta que esté disponible.
+    let intentos = 0;
+    const montarGoogle = function () {
+      if (!window.CFG.GOOGLE_CLIENT_ID) return;
+      if (window.Google && Google.montar(caja, alEntrarGoogle)) {
+        if (g) g.style.display = 'none';
+        return;
+      }
+      if (++intentos < 25) setTimeout(montarGoogle, 400);
+    };
+    montarGoogle();
     if (g && !window.CFG.GOOGLE_CLIENT_ID) {
       g.disabled = true;
       g.title = 'Pendiente configurar el Client ID de Google';
