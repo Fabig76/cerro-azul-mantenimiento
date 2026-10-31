@@ -158,3 +158,52 @@
 
 [data-theme="dark"] .kpi { background: linear-gradient(180deg, var(--acento-suave, transparent) 0%, var(--card) 85%); }
 [data-theme="dark"] .seccion-card { background: linear-gradient(100deg, var(--acento-suave, transparent) 0%, var(--card) 55%); }
+
+/* Franja de alertas */
+.franja-alertas {
+  position: relative;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 22px;
+  font-size: 14px;
+  color: #fff;
+  background: var(--brand);
+}
+.franja-alertas.info { background: #1d4ed8; }
+.franja-alertas.aviso { background: #b45309; }
+.franja-alertas.urgente { background: #c2410c; }
+.franja-alertas.critica { background: #b91c1c; }
+.franja-icono {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .22);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 13px;
+}
+.franja-texto { flex: 1; line-height: 1.35; }
+.franja-texto strong { font-weight: 800; }
+.franja-cuenta {
+  order: 2;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, .22);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.franja-cerrar {
+  background: none;
+  border: 0;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: .8;
+}
+.franja-cerrar:hover { opacity: 1; }

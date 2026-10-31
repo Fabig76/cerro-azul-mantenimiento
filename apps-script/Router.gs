@@ -59,6 +59,12 @@ const ACCIONES = {
   'diag.asignacion': { fn: accionDiag, publica: true },
   'salud.recalcular': { fn: accionSaludRecalcular, publica: true },
   'snapshot.refrescar': { fn: accionSnapshotRefrescar, publica: true },
+  'disparadores.instalar': { fn: accionInstalarDisparadores, publica: true },
+  'alertas.listar': { fn: alertasListar, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
+  'alertas.guardar': { fn: alertasGuardar, sesion: true, roles: ['ADMIN'] },
+  'alertas.publicar': { fn: alertasPublicar, sesion: true, roles: ['ADMIN'] },
+  'alertas.actualizar': { fn: alertasActualizar, sesion: true, roles: ['ADMIN'] },
+  'alertas.cerrar': { fn: alertasCerrar, sesion: true, roles: ['ADMIN'] },
 };
 
 // ---------------------------------------------------------------------------
@@ -148,6 +154,13 @@ function accionPing() {
 function accionSetup(ctx, payload, requestId, parametros) {
   const clave = (payload && payload.key) || '';
   return arranqueProtegido(clave, setup);
+}
+
+function accionInstalarDisparadores() {
+  const veces = Number(prop('TRIGGERS_INSTALADOS') || 0);
+  if (veces >= 2) fallar_('CONFLICTO', 'Los disparadores ya están instalados.');
+  prop('TRIGGERS_INSTALADOS', veces + 1);
+  return instalarDisparadores();
 }
 
 function accionSnapshotRefrescar() {

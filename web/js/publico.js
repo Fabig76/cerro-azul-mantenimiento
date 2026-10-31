@@ -32,6 +32,7 @@
     pintarMeses(snap);
     pintarProximos(snap);
     pintarRecientes(snap);
+    pintarAlertas(snap);
     pintarNovedades(snap);
     pintarNormativo(snap);
     const sello = document.getElementById('actualizado');
@@ -218,6 +219,43 @@
       const d = await r.json();
       if (d.base64) img.src = 'data:' + d.mime + ';base64,' + d.base64;
     } catch (e) { /* sin foto */ }
+  }
+
+  const NIVEL_ALERTA = {
+    CRITICA: { clase: 'critica', icono: '!' },
+    URGENTE: { clase: 'urgente', icono: '!' },
+    AVISO: { clase: 'aviso', icono: 'i' },
+    INFO: { clase: 'info', icono: 'i' },
+  };
+
+  function pintarAlertas(snap) {
+    const franja = document.getElementById('franjaAlertas');
+    if (!franja) return;
+    const lista = snap.alertas || [];
+    franja.textContent = '';
+    if (!lista.length) {
+      franja.classList.add('oculto');
+      return;
+    }
+    const a = lista[0];
+    const nivel = NIVEL_ALERTA[a.nivel] || NIVEL_ALERTA.INFO;
+    franja.className = 'franja-alertas ' + nivel.clase;
+    if (lista.length > 1) franja.appendChild(el('span', 'franja-cuenta', '+' + (lista.length - 1)));
+
+    const icono = el('span', 'franja-icono', nivel.icono);
+    const texto = el('span', 'franja-texto');
+    texto.appendChild(el('strong', null, a.titulo));
+    if (a.mensaje) texto.appendChild(document.createTextNode(' · ' + a.mensaje));
+    franja.appendChild(icono);
+    franja.appendChild(texto);
+
+    if (a.nivel !== 'CRITICA') {
+      const cerrar = el('button', 'franja-cerrar', '×');
+      cerrar.type = 'button';
+      cerrar.setAttribute('aria-label', 'Ocultar alerta');
+      cerrar.addEventListener('click', function () { franja.classList.add('oculto'); });
+      franja.appendChild(cerrar);
+    }
   }
 
   function pintarNovedades(snap) {

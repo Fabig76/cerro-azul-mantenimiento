@@ -309,6 +309,7 @@ function autorizar() {
     carpetas: DriveApp.getFolderById(prop('ROOT_FOLDER_ID')).getName(),
     correos_disponibles: MailApp.getRemainingDailyQuota(),
     red: UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=x', { muteHttpExceptions: true }).getResponseCode(),
+    disparadores: ScriptApp.getProjectTriggers().length,
   };
   console.log(JSON.stringify(r));
   return r;

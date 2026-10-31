@@ -204,8 +204,33 @@ function construirSnapshot() {
     };
   });
 
+  // --- Alertas vigentes ---
+  const alertas = filtrar('alertas', function (a) {
+    return bool(a.activo) && ['PUBLICADA', 'ACTUALIZADA'].indexOf(String(a.estado)) >= 0;
+  }).sort(function (a, b) {
+    const orden = { CRITICA: 0, URGENTE: 1, AVISO: 2, INFO: 3 };
+    if (bool(a.fijada) !== bool(b.fijada)) return bool(a.fijada) ? -1 : 1;
+    return (orden[a.nivel] || 9) - (orden[b.nivel] || 9);
+  }).map(function (a) {
+    const nodo = a.nodo_id ? porId[a.nodo_id] : null;
+    const sensible = nodo ? esSensible(nodo) : false;
+    return {
+      id: a.id,
+      nivel: a.nivel,
+      categoria: a.categoria,
+      titulo: a.titulo,
+      mensaje: a.mensaje_publico || '',
+      nodo_codigo: sensible ? '' : (nodo ? nodo.codigo : ''),
+      inicio: fechaIso_(a.inicio),
+      fin: fechaIso_(a.fin),
+      fijada: bool(a.fijada),
+      actualizaciones: fromJson(a.actualizaciones_json, []),
+    };
+  });
+
   return {
     generado_en: ahoraIso(),
+    alertas: alertas,
     resumen: {
       salud: { puntaje: saludPuntaje, estado: distribucion.CRITICO > 0 ? 'CRITICO' : (distribucion.ATENCION > 0 ? 'ATENCION' : 'AL_DIA'), distribucion: distribucion },
       mes: { etiqueta: mesActual, programadas: programadas, ejecutadas: ejecutadas, cumplimiento_pct: programadas ? Math.round((ejecutadas / programadas) * 100) : null },
