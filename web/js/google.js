@@ -37,7 +37,7 @@
         ux_mode: 'popup',
       });
       google.accounts.id.renderButton(contenedor, {
-        type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', locale: 'es', width: 300,
+        type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', locale: 'es', width: 320,
       });
       return true;
     },
