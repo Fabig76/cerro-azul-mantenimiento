@@ -2,7 +2,7 @@
 
 .acceso {
   max-width: 460px;
-  margin: clamp(24px, 7vh, 76px) auto 0;
+  margin: clamp(26px, 9vh, 96px) auto 60px;
   padding: 0 22px;
 }
 

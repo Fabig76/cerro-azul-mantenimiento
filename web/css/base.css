@@ -100,7 +100,7 @@ p { margin: 0 0 1em; }
 }
 
 /* ---------- Contenedores ---------- */
-main { position: relative; z-index: 1; }
+main { position: relative; z-index: 1; padding-bottom: 40px; }
 
 .ancho { max-width: 1000px; margin: 0 auto; padding: 0 22px; }
 
