@@ -7,13 +7,14 @@ controla a las empresas contratistas; cada actividad queda con fotos antes y des
 - **Sitio:** https://fabig76.github.io/cerro-azul-mantenimiento/
 - **Backend:** Google Apps Script (`apps-script/`), datos en Google Sheets y fotos en Drive.
 - **Especificación:** `docs/SPEC.md` (v1.2).
+- **Sistema visual:** `docs/UI.md` · guía viva en `/estilo.html`.
 
 ## Estructura
 
 ```
-web/            sitio estático que publica GitHub Pages
+web/            sitio estático que publica GitHub Pages (incluye /estilo.html)
 apps-script/    API (Router, Auth, Db, Nodos, Setup, Seed)
-docs/           especificación y decisiones
+docs/           especificación (SPEC.md), diseño (UI.md) y decisiones
 ```
 
 ## Cómo se publica

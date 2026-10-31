@@ -1,0 +1,43 @@
+/* Guía de estilo: solo lo específico de la página de demostración. */
+
+.muestras { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.muestra {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 12px;
+  box-shadow: var(--shadow);
+  font-size: 13px;
+}
+.muestra b { display: block; font-size: 12.5px; letter-spacing: -.01em; }
+.muestra small { color: var(--muted); font-size: 11.5px; }
+.sw {
+  display: block;
+  height: 42px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+}
+.sw-ink { background: var(--ink); }
+.sw-muted { background: var(--muted); }
+.sw-line { background: var(--line); }
+.sw-bg { background: var(--bg); }
+.sw-brand { background: var(--brand); }
+.sw-brand2 { background: var(--brand2); }
+.sw-ok { background: var(--ok); }
+.sw-warn { background: var(--warn); }
+.sw-danger { background: var(--danger); }
+
+.demo-h3 { font-size: 16.5px; margin: 14px 0 6px; letter-spacing: -.01em; }
+.demo-p { font-size: 15px; margin: 0 0 10px; }
+.demo-muted { color: var(--muted); font-size: 13.8px; margin: 0 0 10px; }
+.demo-dato { font-size: 30px; font-weight: 800; letter-spacing: -.03em; margin: 0 0 2px; color: var(--ink); }
+
+.fila-demo { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+
+.stats-claro { margin-top: 16px; }
+.stats-claro .stat { background: var(--card); border-color: var(--line); }
+.stats-claro .stat .n { color: var(--ink); }
+.stats-claro .stat .l { color: var(--muted); }
+
+.msg + .msg { margin-top: 10px; }

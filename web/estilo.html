@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es-CO" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1120">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>Guía de estilo — Portal Cerro Azul</title>
+<link rel="stylesheet" href="./css/tokens.css">
+<link rel="stylesheet" href="./css/base.css">
+<link rel="stylesheet" href="./css/home.css">
+<link rel="stylesheet" href="./css/app.css">
+<link rel="stylesheet" href="./css/estilo.css">
+<script src="./js/tema.js"></script>
+</head>
+<body>
+
+<header class="hero hero-compacta">
+  <div class="wrap">
+    <div class="topbar"><span class="mark">CA</span> Guía de estilo · construcción interna</div>
+    <h1>Los componentes del <span class="grad">portal</span></h1>
+    <p class="lead">Todo lo que se construya de aquí en adelante sale de estos bloques. Si algo no existe, se agrega aquí primero.</p>
+  </div>
+</header>
+
+<div class="navwrap">
+  <div class="wrap">
+    <nav class="barra">
+      <span class="marca"><span class="mark">CA</span> Cerro Azul</span>
+      <a href="#color">Color</a>
+      <a href="#tipo">Tipografía</a>
+      <a href="#botones">Botones</a>
+      <a href="#tarjetas">Tarjetas</a>
+      <a href="#formularios">Formularios</a>
+      <a href="#arbol">Árbol</a>
+      <span class="sp"></span>
+      <button id="btnTema" type="button">Claro / Oscuro</button>
+      <a href="./index.html">Portal</a>
+    </nav>
+  </div>
+</div>
+
+<main>
+
+  <section id="color">
+    <div class="wrap">
+      <div class="sec-head"><div>
+        <div class="kicker">Fundamento</div>
+        <h2>Color</h2>
+        <p>Cada muestra es una variable de <code class="codigo">tokens.css</code>. Ningún color se escribe suelto en el código.</p>
+      </div></div>
+      <div class="muestras">
+        <div class="muestra"><span class="sw sw-ink"></span><b>--ink</b><small>Texto principal</small></div>
+        <div class="muestra"><span class="sw sw-muted"></span><b>--muted</b><small>Texto secundario</small></div>
+        <div class="muestra"><span class="sw sw-line"></span><b>--line</b><small>Bordes</small></div>
+        <div class="muestra"><span class="sw sw-bg"></span><b>--bg</b><small>Fondo</small></div>
+        <div class="muestra"><span class="sw sw-brand"></span><b>--brand</b><small>Índigo</small></div>
+        <div class="muestra"><span class="sw sw-brand2"></span><b>--brand2</b><small>Cian</small></div>
+        <div class="muestra"><span class="sw sw-ok"></span><b>--ok</b><small>Cumple</small></div>
+        <div class="muestra"><span class="sw sw-warn"></span><b>--warn</b><small>Atención</small></div>
+        <div class="muestra"><span class="sw sw-danger"></span><b>--danger</b><small>Crítico</small></div>
+      </div>
+      <p class="nota">El degradado de marca va de <b>#6366f1</b> a <b>#06b6d4</b>; el del hero, de <b>#a5b4fc</b> a <b>#67e8f9</b>.</p>
+    </div>
+  </section>
+
+  <section id="tipo">
+    <div class="wrap">
+      <div class="sec-head"><div>
+        <div class="kicker">Fundamento</div>
+        <h2>Tipografía</h2>
+        <p>Fuente del sistema, sin descargas. El <b>kicker</b> en versalitas sobre el título es la firma del portal.</p>
+      </div></div>
+      <div class="card">
+        <div class="kicker">Kicker de sección</div>
+        <h2>Título de sección, 800</h2>
+        <h3 class="demo-h3">Título de tarjeta, 750</h3>
+        <p class="demo-p">Párrafo de cuerpo a 15 px con line-height 1.6. Sirve para explicar el contexto de una pantalla sin competir con el título.</p>
+        <p class="demo-muted">Texto secundario en <code class="codigo">--muted</code> para descripciones y ayudas.</p>
+        <p><span class="codigo">CA-AC-PIS</span> <span class="pill sensible">sensible</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="botones">
+    <div class="wrap">
+      <div class="sec-head"><div>
+        <div class="kicker">Componente</div>
+        <h2>Botones e insignias</h2>
+        <p>Un solo botón primario por pantalla. El primario lleva el degradado de marca.</p>
+      </div></div>
+      <div class="card">
+        <div class="fila-demo">
+          <button class="btn primary" type="button">Acción principal</button>
+          <button class="btn" type="button">Secundaria</button>
+          <button class="btn ghost" type="button">Terciaria</button>
+          <button class="btn" type="button" disabled>Deshabilitada</button>
+        </div>
+        <div class="fila-demo">
+          <span class="badge">Interno</span>
+          <span class="badge ok">Al día</span>
+          <span class="badge warn">Atención</span>
+          <span class="badge danger">Crítico</span>
+          <span class="badge gray">Sin datos</span>
+        </div>
+        <button class="btn primary bloque" type="button">Botón de ancho completo</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tarjetas">
+    <div class="wrap">
+      <div class="sec-head"><div>
+        <div class="kicker">Componente</div>
+        <h2>Tarjetas y cifras</h2>
+        <p>Radio 18 px, borde de un píxel y sombra en dos capas. Se agrupan en rejilla de 2, 3 o 4 columnas.</p>
+      </div></div>
+      <div class="grid g3">
+        <article class="card">
+          <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2"></rect></svg></div>
+          <h3>Tarjeta con icono</h3>
+          <p>Para presentar un frente de mantenimiento o una categoría.</p>
+        </article>
+        <article class="card">
+          <h3>Tarjeta de datos</h3>
+          <p class="demo-dato">76 %</p>
+          <p>Cumplimiento del mes</p>
+        </article>
+        <article class="card">
+          <h3>Tarjeta de estado</h3>
+          <p><span class="badge warn">En revisión</span></p>
+          <p>Algo pendiente de aprobación de la administración.</p>
+        </article>
+      </div>
+      <div class="stats stats-claro">
+        <div class="stat"><div class="n">5</div><div class="l">secciones</div></div>
+        <div class="stat"><div class="n">40</div><div class="l">nodos</div></div>
+        <div class="stat"><div class="n">15</div><div class="l">tipos de elemento</div></div>
+        <div class="stat"><div class="n">4</div><div class="l">plantillas activas</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="formularios">
+    <div class="wrap">
+      <div class="sec-head"><div>
+        <div class="kicker">Componente</div>
+        <h2>Formularios y avisos</h2>
+        <p>Etiqueta en mayúsculas de 12 px; el foco pinta borde índigo y halo. Los mensajes siempre explican qué pasó.</p>
+      </div></div>
+      <div class="grid g2">
+        <div class="card">
+          <div class="campo">
+            <label for="demo1">Correo electrónico</label>
+            <input id="demo1" type="email" placeholder="nombre@correo.com">
+          </div>
+          <div class="campo">
+            <label for="demo2">Nombre de la actividad</label>
+            <input id="demo2" type="text" placeholder="Lavado de tanque alto">
+          </div>
+          <button class="btn primary bloque" type="button">Guardar</button>
+        </div>
+        <div class="card">
+          <div class="msg ok mostrar">El trabajo quedó aprobado y el avance ya cuenta.</div>
+          <div class="msg info mostrar">Tu sesión terminó. Ingresa de nuevo para continuar.</div>
+          <div class="msg error mostrar">Falta la foto de después: no se puede enviar el reporte.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="arbol">
+    <div class="wrap">
+      <div class="sec-head"><div>
+        <div class="kicker">Componente</div>
+        <h2>Árbol de secciones</h2>
+        <p>Una fila por nodo, con su código y, si aplica, la marca de sensible.</p>
+      </div></div>
+      <div class="card">
+        <ul class="arbol">
+          <li>
+            <div class="fila-nodo"><span class="nombre">Cerro Azul</span><span class="codigo">CA</span></div>
+            <ul>
+              <li>
+                <div class="fila-nodo"><span class="nombre">Áreas comunes</span><span class="codigo">CA-AC</span></div>
+                <ul>
+                  <li><div class="fila-nodo"><span class="nombre">Cámaras</span><span class="codigo">CA-AC-CAM</span><span class="pill sensible">sensible</span></div></li>
+                  <li><div class="fila-nodo"><span class="nombre">Piscinas</span><span class="codigo">CA-AC-PIS</span></div></li>
+                </ul>
+              </li>
+              <li><div class="fila-nodo"><span class="nombre">Torre 2</span><span class="codigo">CA-T2</span></div></li>
+            </ul>
+          </li>
+        </ul>
+        <div class="vacio">Todavía no tienes secciones asignadas.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <div class="wrap">
+    <span><b>Guía de estilo</b> · Portal de Control de Mantenimientos Cerro Azul</span>
+    <span>·</span>
+    <a href="./index.html">Volver al portal</a>
+  </div>
+</footer>
+
+<script src="./js/index.js"></script>
+</body>
+</html>
