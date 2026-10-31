@@ -10,7 +10,10 @@
 const ACCIONES = {
   ping: { fn: accionPing, publica: true },
   'setup.run': { fn: accionSetup, publica: true },
-  'public.snapshot': { fn: accionSnapshotPendiente, publica: true },
+  'snapshot.regenerar': { fn: accionRegenerarSnapshot, sesion: true, roles: ['ADMIN'] },
+  'snapshot.ver': { fn: accionVerSnapshot, publica: true },
+  'public.snapshot': { fn: publicSnapshot, publica: true, crudo: true },
+  'public.foto': { fn: publicFoto, publica: true, crudo: true },
 
   'auth.google': { fn: authGoogle, publica: true },
   'auth.enlace.solicitar': { fn: authEnlaceSolicitar, publica: true },
@@ -67,6 +70,8 @@ function doGet(e) {
   if (!def) return responder(err('NO_ENCONTRADO', 'Acción no reconocida: ' + accion));
   if (!def.publica) return responder(err('NO_AUTENTICADO', 'Esta acción requiere sesión (POST).'));
   try {
+    // Las acciones "crudas" ya devuelven su propio ContentService (JSON público).
+    if (def.crudo) return def.fn(p);
     return responder(ok(def.fn({}, p)));
   } catch (ex) {
     return responder(aError_(ex));
@@ -168,8 +173,12 @@ function accionDemo() {
   return crearDemo();
 }
 
-function accionSnapshotPendiente() {
-  fallar_('NO_ENCONTRADO', 'El portal público se construye en la fase 2.');
+function accionVerSnapshot() {
+  return { bytes: snapshotPublico_().length, generado_en: JSON.parse(snapshotPublico_()).generado_en };
+}
+
+function accionRegenerarSnapshot(ctx) {
+  return regenerarSnapshot();
 }
 
 // ---------------------------------------------------------------------------
