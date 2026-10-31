@@ -138,13 +138,15 @@ function construirSnapshot() {
     .slice(0, 20)
     .map(function (a) {
       const n = porId[a.nodo_id];
+      const sensible = n ? esSensible(n) : false;
       return {
         fecha: fechaIso_(a.fecha_inicio_plan),
-        nodo_codigo: n ? n.codigo : '',
-        nodo_nombre: n ? n.nombre : '',
-        titulo: a.titulo,
+        nodo_codigo: sensible ? '' : (n ? n.codigo : ''),
+        nodo_nombre: sensible ? '' : (n ? n.nombre : ''),
+        // Un nodo sensible nunca publica el título: diría qué equipo es y cuándo queda solo.
+        titulo: sensible ? 'Mantenimiento programado en sistema sensible' : a.titulo,
         afecta_uso: bool(a.afecta_uso),
-        sensible: n ? esSensible(n) : false,
+        sensible: sensible,
       };
     });
 
@@ -168,8 +170,8 @@ function construirSnapshot() {
       }).map(function (e) { return { id: e.id, momento: e.momento }; });
       return {
         fecha: fechaIso_(a.fecha_aprobacion || a.fecha_reporte_final),
-        nodo_codigo: n ? n.codigo : '',
-        titulo: a.titulo,
+        nodo_codigo: sensible ? '' : (n ? n.codigo : ''),
+        titulo: sensible ? 'Trabajo terminado en sistema sensible' : a.titulo,
         empresa: empresas[a.empresa_id] || '',
         sensible: sensible,
         fotos: fotos,

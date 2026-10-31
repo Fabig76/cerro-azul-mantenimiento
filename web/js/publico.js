@@ -46,18 +46,29 @@
     const salud = r.salud || {};
     const mes = r.mes || {};
 
+    const acentoSalud = { AL_DIA: 'ok', ATENCION: 'warn', CRITICO: 'danger' }[salud.estado] || 'neutro';
     const tarjetas = [
-      { n: salud.puntaje === null || salud.puntaje === undefined ? '—' : salud.puntaje, l: 'Salud general', s: (ESTADOS[salud.estado] || ['', 'gray'])[0] },
-      { n: (mes.cumplimiento_pct === null ? '—' : mes.cumplimiento_pct + '%'), l: 'Cumplimiento del mes' },
-      { n: (mes.ejecutadas || 0) + ' / ' + (mes.programadas || 0), l: 'Ejecutadas de programadas' },
-      { n: r.novedades_abiertas || 0, l: 'Novedades abiertas' },
-      { n: r.proximos_7d || 0, l: 'En los próximos 7 días' },
+      {
+        n: salud.puntaje === null || salud.puntaje === undefined ? '—' : salud.puntaje,
+        l: 'Salud general',
+        acento: acentoSalud,
+        etiqueta: (ESTADOS[salud.estado] || ['', 'gray'])[0],
+        claseEtiqueta: (ESTADOS[salud.estado] || ['', 'gray'])[1],
+      },
+      { n: (mes.cumplimiento_pct === null ? '—' : mes.cumplimiento_pct + '%'), l: 'Cumplimiento del mes', acento: 'indigo' },
+      { n: (mes.ejecutadas || 0) + ' / ' + (mes.programadas || 0), l: 'Ejecutadas de programadas', acento: 'cian' },
+      {
+        n: r.novedades_abiertas || 0,
+        l: 'Novedades abiertas',
+        acento: (r.novedades_abiertas || 0) > 0 ? 'danger' : 'ok',
+      },
+      { n: r.proximos_7d || 0, l: 'En los próximos 7 días', acento: 'violeta' },
     ];
     tarjetas.forEach(function (t) {
-      const caja = el('div', 'kpi');
+      const caja = el('div', 'kpi acento-' + t.acento);
       caja.appendChild(el('div', 'kpi-n', String(t.n)));
       caja.appendChild(el('div', 'kpi-l', t.l));
-      if (t.s) caja.appendChild(el('span', 'badge ' + (ESTADOS[salud.estado] || ['', 'gray'])[1], t.s));
+      if (t.etiqueta) caja.appendChild(el('span', 'badge ' + t.claseEtiqueta, t.etiqueta));
       cont.appendChild(caja);
     });
   }
@@ -89,7 +100,8 @@
       return;
     }
     snap.arbol.forEach(function (s) {
-      const card = el('article', 'card seccion-card');
+      const acentoSeccion = { AL_DIA: 'ok', ATENCION: 'warn', CRITICO: 'danger' }[s.salud.estado] || 'neutro';
+      const card = el('article', 'card seccion-card acento-' + acentoSeccion);
       const cab = el('div', 'seccion-card-cab');
       const titulo = el('h3', null, s.nombre);
       const estado = ESTADOS[s.salud.estado] || ['', 'gray'];
