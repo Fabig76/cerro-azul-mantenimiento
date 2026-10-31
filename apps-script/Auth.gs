@@ -7,6 +7,9 @@
 
 const ORIGEN_POR_DEFECTO = 'https://fabig76.github.io/cerro-azul-mantenimiento';
 
+/** Identificador público del cliente OAuth (viaja en la página: no es un secreto). */
+const OAUTH_CLIENT_ID_PUBLICO = '37422559984-nm58njlvomjhlsfiajvjibl6b636snk9.apps.googleusercontent.com';
+
 function origenPortal() {
   return prop('ORIGEN') || config('origen_portal') || ORIGEN_POR_DEFECTO;
 }
@@ -139,7 +142,7 @@ function requireNodo_(ctx, nodo) {
 /** Ingreso con Google Identity Services: valida el ID token una sola vez. */
 function authGoogle(ctx, payload) {
   const idToken = exigirTexto(payload.idToken, 'idToken');
-  const clientId = prop('OAUTH_CLIENT_ID') || config('oauth_client_id');
+  const clientId = prop('OAUTH_CLIENT_ID') || config('oauth_client_id') || OAUTH_CLIENT_ID_PUBLICO;
   if (!clientId) fallar_('VALIDACION', 'Falta configurar el Client ID de Google (SECRETO: OAUTH_CLIENT_ID).');
 
   const url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken);
