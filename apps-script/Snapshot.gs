@@ -258,18 +258,43 @@ function regenerarSnapshot() {
   return { generado_en: snap.generado_en, bytes: texto.length };
 }
 
-/** Snapshot para el público: de caché o de la hoja. */
+/**
+ * Snapshot para el público. Se refresca solo cuando el visitante lo pide y el guardado
+ * está viejo, así no hace falta un disparador ni permisos adicionales.
+ */
 function snapshotPublico_() {
-  const enCache = cacheGet('snap');
-  if (enCache) return enCache;
-  const filas_ = filas('public_snapshot');
-  if (filas_.length && filas_[0].json) {
-    cachePut('snap', filas_[0].json, 600);
-    return filas_[0].json;
+  const minutos = configNumero('snapshot_minutos', 60);
+  let texto = cacheGet('snap');
+
+  if (!texto) {
+    const guardado = filas('public_snapshot');
+    if (guardado.length && guardado[0].json) texto = String(guardado[0].json);
   }
-  const recien = JSON.stringify(construirSnapshot());
-  cachePut('snap', recien, 600);
-  return recien;
+
+  let edadMin = Infinity;
+  if (texto) {
+    try {
+      const generado = JSON.parse(texto).generado_en;
+      edadMin = (Date.now() - new Date(generado).getTime()) / 60000;
+    } catch (e) { edadMin = Infinity; }
+  }
+
+  if (texto && edadMin <= minutos) {
+    if (!cacheGet('snap')) cachePut('snap', texto, 600);
+    return texto;
+  }
+
+  try {
+    const nuevo = JSON.stringify(construirSnapshot());
+    const hoja_ = hoja('public_snapshot');
+    hoja_.clearContents();
+    hoja_.appendRow(['snapshot', nuevo, ahoraIso()]);
+    cachePut('snap', nuevo, 3600);
+    return nuevo;
+  } catch (e) {
+    console.error('snapshot: ' + e.message);
+    return texto || JSON.stringify({ generado_en: ahoraIso(), resumen: { salud: { puntaje: null, estado: 'SIN_DATOS', distribucion: {} } }, arbol: [], meses: [], proximos: [], recientes: [], novedades: [], alertas: [], normativo: [] });
+  }
 }
 
 /** GET ?action=public.snapshot — devuelve el JSON tal cual, sin envoltura de la API. */

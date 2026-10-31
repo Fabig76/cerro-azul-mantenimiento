@@ -60,6 +60,11 @@ const ACCIONES = {
   'salud.recalcular': { fn: accionSaludRecalcular, publica: true },
   'snapshot.refrescar': { fn: accionSnapshotRefrescar, publica: true },
   'disparadores.instalar': { fn: accionInstalarDisparadores, publica: true },
+  'recurrencias.listar': { fn: recurrenciasListar, sesion: true },
+  'recurrencias.guardar': { fn: recurrenciasGuardar, sesion: true, roles: ['ADMIN'] },
+  'recurrencias.pausar': { fn: recurrenciasPausar, sesion: true, roles: ['ADMIN'] },
+  'recurrencias.desde_tipo': { fn: recurrenciasDesdeTipo, sesion: true, roles: ['ADMIN'] },
+  'recurrencias.generar': { fn: accionGenerar, sesion: true, roles: ['ADMIN'] },
   'alertas.listar': { fn: alertasListar, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'alertas.guardar': { fn: alertasGuardar, sesion: true, roles: ['ADMIN'] },
   'alertas.publicar': { fn: alertasPublicar, sesion: true, roles: ['ADMIN'] },
@@ -156,11 +161,23 @@ function accionSetup(ctx, payload, requestId, parametros) {
   return arranqueProtegido(clave, setup);
 }
 
+function accionGenerar(ctx) {
+  const r = generarActividadesPendientes(ctx.usuario.email);
+  regenerarSnapshot();
+  auditar(ctx.usuario.email, 'PLAN_GENERADO', 'actividades', '', null, { creadas: r.creadas });
+  return r;
+}
+
 function accionInstalarDisparadores() {
   const veces = Number(prop('TRIGGERS_INSTALADOS') || 0);
   if (veces >= 2) fallar_('CONFLICTO', 'Los disparadores ya están instalados.');
   prop('TRIGGERS_INSTALADOS', veces + 1);
-  return instalarDisparadores();
+  try {
+    return instalarDisparadores();
+  } catch (e) {
+    // Se devuelve el mensaje real para poder diagnosticar (permisos, cuota, etc.).
+    fallar_('ERROR_INTERNO', String(e && e.message ? e.message : e));
+  }
 }
 
 function accionSnapshotRefrescar() {

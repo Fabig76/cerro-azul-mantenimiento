@@ -120,6 +120,9 @@
         formElemento.classList.remove('oculto');
         if (window.Elementos) { Elementos.cargar(); Elementos.preparar(); }
       }
+      const tarjetaPlan = document.getElementById('tarjetaPlan');
+      if (tarjetaPlan) tarjetaPlan.classList.remove('oculto');
+      if (window.Plan) { Plan.cargar(); Plan.preparar(); }
       const tarjetaAlertas = document.getElementById('tarjetaAlertas');
       if (tarjetaAlertas) tarjetaAlertas.classList.remove('oculto');
       if (window.Alertas) { Alertas.cargar(); Alertas.preparar(); }
