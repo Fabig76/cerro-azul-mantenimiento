@@ -322,3 +322,5 @@ footer.pie b { color: #334155; }
   .topbar { font-size: 11px; letter-spacing: .08em; }
   section { padding: 32px 0 6px; }
 }
+
+.hero-compacta::after { display: none; }
