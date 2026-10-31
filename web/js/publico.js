@@ -81,7 +81,7 @@
   }
 
   function pintarArbol(snap) {
-    const cont = document.getElementById('secciones');
+    const cont = document.getElementById('secciones-lista');
     if (!cont || !snap.arbol) return;
     cont.textContent = '';
     if (!snap.arbol.length) {

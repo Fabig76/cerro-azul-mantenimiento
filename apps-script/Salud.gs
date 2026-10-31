@@ -71,10 +71,10 @@ function calcularSalud_(nodo) {
   let legalVencido = false;
   let planVencido = false;
   let planMuyVencido = false;
-  if (planes.length) {
+  if (planes.length && nodo.ultimo_mant_en) {
     const valores = planes.map(function (p) {
       const intervalo = intervaloDias_(p.frecuencia);
-      const dias = nodo.ultimo_mant_en ? diasEntre(fechaIso_(nodo.ultimo_mant_en), hoyIso()) : intervalo * 2;
+      const dias = diasEntre(fechaIso_(nodo.ultimo_mant_en), hoyIso());
       if (intervalo && dias > intervalo + Number(p.dias_tolerancia || tolerancia)) {
         planVencido = true;
         if (dias > intervalo * 2) planMuyVencido = true;
@@ -90,7 +90,9 @@ function calcularSalud_(nodo) {
   const condiciones = tipo ? fromJson(tipo.condiciones_json, []) : [];
   const lecturas = filtrar('lecturas_estado', function (l) { return String(l.nodo_id) === String(nodo.id); });
   const ultima = lecturas.length ? lecturas[lecturas.length - 1] : null;
-  const nivel = ultima ? nivelCondicion_(ultima.condicion_operativa, condiciones) : null;
+  // Si no hay lecturas, se usa la condición guardada en el propio nodo.
+  const condicionActual = ultima ? ultima.condicion_operativa : (nodo.condicion_operativa || '');
+  const nivel = condicionActual ? nivelCondicion_(condicionActual, condiciones) : null;
   const cCond = valorCondicion_(nivel);
 
   // 3) Novedades abiertas
