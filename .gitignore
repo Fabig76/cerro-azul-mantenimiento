@@ -1,0 +1,18 @@
+# Credenciales y configuración local de clasp
+.clasp.json
+.clasprc.json
+.venv/
+node_modules/
+
+# Datos de la copropiedad: nunca al repositorio
+*.csv
+*.xlsx
+*.pdf
+.env
+secrets*
+SPEC-original.md
+SPEC-v1.1.md
+SPEC-v1.2.md
+REVISION-SPEC.md
+REVISION-v1.1.md
+ESTADO.md

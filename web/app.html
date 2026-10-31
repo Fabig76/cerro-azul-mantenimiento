@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es-CO" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://accounts.google.com; form-action 'none'; base-uri 'none'">
+<title>Ingreso — Portal de Mantenimientos Cerro Azul</title>
+<link rel="stylesheet" href="./css/tokens.css">
+<link rel="stylesheet" href="./css/base.css">
+<script src="./js/tema.js"></script>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Portal de Control de Mantenimientos</h1>
+    <div class="sub">Urbanización Cerro Azul</div>
+  </div>
+  <div class="sp"></div>
+  <button class="btn ghost" id="btnTema" type="button" aria-label="Cambiar tema">Claro / Oscuro</button>
+  <a class="btn ghost" href="./index.html">Portal público</a>
+</header>
+
+<main>
+  <!-- Ingreso -->
+  <section id="pantallaLogin" class="card">
+    <h2>Ingresar</h2>
+    <p class="lead">Entra con tu correo y te enviamos un enlace de un solo uso. También puedes usar tu cuenta de Google.</p>
+
+    <form id="formLogin" novalidate>
+      <label for="correo">Correo electrónico</label>
+      <input id="correo" type="email" name="correo" autocomplete="email" placeholder="nombre@correo.com" required>
+      <div style="margin-top:16px">
+        <button class="btn primary" id="btnEnlace" type="submit" style="width:100%">Enviarme el enlace</button>
+      </div>
+    </form>
+
+    <div class="divider">o</div>
+    <button class="btn" id="btnGoogle" type="button" style="width:100%">Ingresar con Google</button>
+
+    <div class="msg" id="avisoLogin" role="status"></div>
+  </section>
+
+  <!-- Cuenta en revisión -->
+  <section id="pantallaPendiente" class="card oculto">
+    <h2>Tu cuenta está en revisión</h2>
+    <p class="lead">La administración debe activar tu acceso y asignarte las secciones que puedes atender.</p>
+    <p class="msg info show">Correo registrado: <strong id="pendienteNombre"></strong></p>
+  </section>
+
+  <!-- Panel -->
+  <section id="pantallaPanel" class="oculto">
+    <div class="card" style="margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div>
+          <h2 style="margin:0">Hola, <span id="nombreUsuario"></span></h2>
+          <p class="lead" style="margin:2px 0 0">Rol: <strong id="rolUsuario"></strong></p>
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn" id="btnSalir" type="button">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Secciones</h2>
+      <p class="lead">Árbol de mantenimiento del conjunto. Los nodos marcados como sensibles nunca muestran detalle en el portal público.</p>
+      <div id="arbol"></div>
+      <p id="sinAsignacion" class="msg info oculto">Todavía no tienes secciones asignadas.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="pie">
+  Administración — Urbanización Cerro Azul · <a href="./index.html">Portal público</a>
+</footer>
+
+<script src="./config.js"></script>
+<script src="./js/api.js"></script>
+<script src="./js/sesion.js"></script>
+<script src="./js/app.js"></script>
+</body>
+</html>
