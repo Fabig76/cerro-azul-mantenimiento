@@ -28,7 +28,7 @@ a:hover { text-decoration: underline; }
     radial-gradient(1200px 500px at 15% -10%, var(--hero-glow-1) 0%, transparent 60%),
     radial-gradient(900px 500px at 95% 0%, var(--hero-glow-2) 0%, transparent 55%),
     linear-gradient(160deg, var(--hero-1) 0%, var(--hero-2) 55%, var(--hero-3) 100%);
-  padding: 34px 0 86px;
+  padding: 34px 0 42px;
 }
 .hero-compacta { padding: 30px 0 54px; }
 
@@ -59,7 +59,7 @@ a:hover { text-decoration: underline; }
 }
 
 .hero h1 {
-  margin: 22px 0 12px;
+  margin: 20px 0 12px;
   font-size: clamp(30px, 5vw, 52px);
   line-height: 1.06;
   letter-spacing: -.02em;
@@ -80,6 +80,7 @@ a:hover { text-decoration: underline; }
 }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+.chips { margin-bottom: 22px; }
 .chip {
   display: inline-flex;
   align-items: center;
