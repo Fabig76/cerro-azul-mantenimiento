@@ -111,8 +111,8 @@ function nodosAsignados_(usuarioId) {
   const hoy = hoyIso();
   const asignaciones = filtrar('asignaciones', function (a) {
     if (String(a.usuario_id) !== String(usuarioId)) return false;
-    if (a.desde && String(a.desde) > hoy) return false;
-    if (a.hasta && String(a.hasta) < hoy) return false;
+    if (a.desde && fechaIso_(a.desde) > hoy) return false;
+    if (a.hasta && fechaIso_(a.hasta) < hoy) return false;
     return bool(a.activo);
   });
   return asignaciones.map(function (a) { return buscarPorId('nodos', a.nodo_id); })

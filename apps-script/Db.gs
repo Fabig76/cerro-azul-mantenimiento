@@ -63,7 +63,7 @@ function filas(nombre) {
     if (fila.join('').trim() === '') continue;
     const obj = { _fila: r + 1 };
     for (let c = 0; c < cab.length; c++) {
-      if (cab[c]) obj[cab[c]] = fila[c];
+      if (cab[c]) obj[cab[c]] = normalizarCelda_(fila[c]);
     }
     salida.push(obj);
   }
@@ -77,6 +77,27 @@ function limpiarCache(nombre) {
   if (nombre) delete filas._c[nombre];
   else filas._c = {};
   cabeceras._c = {};
+}
+
+/**
+ * Devuelve siempre texto ISO para las fechas. Sheets convierte por su cuenta los textos
+ * "AAAA-MM-DD" en objetos Date, y comparar String(fecha) contra un ISO falla en silencio.
+ */
+function normalizarCelda_(valor) {
+  if (Object.prototype.toString.call(valor) === '[object Date]') {
+    const horas = valor.getHours() + valor.getMinutes() + valor.getSeconds();
+    return Utilities.formatDate(valor, TZ, horas === 0 ? 'yyyy-MM-dd' : "yyyy-MM-dd'T'HH:mm:ssXXX");
+  }
+  return valor;
+}
+
+/** Convierte a ISO corta cualquier fecha que venga de la hoja. */
+function fechaIso_(valor) {
+  if (!valor) return '';
+  if (Object.prototype.toString.call(valor) === '[object Date]') {
+    return Utilities.formatDate(valor, TZ, 'yyyy-MM-dd');
+  }
+  return String(valor).slice(0, 10);
 }
 
 function buscarPorId(nombre, id) {

@@ -167,9 +167,13 @@
       return;
     }
 
+    // Un contratista solo recibe su rama: el padre de la raíz de esa rama no viene.
+    // Sin esto, el árbol salía vacío aunque hubiera nodos.
+    const ids = {};
+    nodos.forEach(function (n) { ids[n.id] = true; });
     const porPadre = {};
     nodos.forEach(function (n) {
-      const p = n.parent_id || 'RAIZ';
+      const p = (n.parent_id && ids[n.parent_id]) ? n.parent_id : 'RAIZ';
       (porPadre[p] = porPadre[p] || []).push(n);
     });
 

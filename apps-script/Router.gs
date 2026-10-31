@@ -45,6 +45,10 @@ const ACCIONES = {
 
   // Solo para cargar la demostración una vez; se cierra sola.
   'demo.crear': { fn: accionDemo, publica: true },
+  'empresa.inicial': { fn: accionEmpresaInicial, publica: true },
+  'empresa.datos': { fn: accionEmpresaDatos, publica: true },
+  'usuario.inicial': { fn: accionUsuarioInicial, publica: true },
+  'diag.asignacion': { fn: accionDiag, publica: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -132,6 +136,26 @@ function accionPing() {
 function accionSetup(ctx, payload, requestId, parametros) {
   const clave = (payload && payload.key) || '';
   return arranqueProtegido(clave, setup);
+}
+
+function accionDiag() {
+  if (prop('DIAG_HECHO') === 'si') fallar_('CONFLICTO', 'El diagnóstico ya se ejecutó.');
+  return diagnosticoAsignacion();
+}
+
+function accionUsuarioInicial() {
+  if (prop('USUARIO_INICIAL') === 'si') fallar_('CONFLICTO', 'El usuario inicial ya fue creado.');
+  return crearUsuarioInicial();
+}
+
+function accionEmpresaDatos() {
+  if (prop('EMPRESA_DATOS') === 'si') fallar_('CONFLICTO', 'Los datos de la empresa ya fueron completados.');
+  return completarEmpresaInicial();
+}
+
+function accionEmpresaInicial() {
+  if (prop('EMPRESA_INICIAL') === 'si') fallar_('CONFLICTO', 'La empresa inicial ya fue creada.');
+  return crearEmpresaInicial();
 }
 
 function accionDemo() {

@@ -74,7 +74,7 @@ function calcularSalud_(nodo) {
   if (planes.length) {
     const valores = planes.map(function (p) {
       const intervalo = intervaloDias_(p.frecuencia);
-      const dias = nodo.ultimo_mant_en ? diasEntre(String(nodo.ultimo_mant_en).slice(0, 10), hoyIso()) : intervalo * 2;
+      const dias = nodo.ultimo_mant_en ? diasEntre(fechaIso_(nodo.ultimo_mant_en), hoyIso()) : intervalo * 2;
       if (intervalo && dias > intervalo + Number(p.dias_tolerancia || tolerancia)) {
         planVencido = true;
         if (dias > intervalo * 2) planMuyVencido = true;

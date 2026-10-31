@@ -55,7 +55,7 @@ function actividadesCrear(ctx, payload) {
   const inicio = exigirTexto(payload.fecha_inicio_plan, 'fecha_inicio_plan');
   const fin = payload.fecha_fin_plan ? String(payload.fecha_fin_plan) : inicio;
   if (fin < inicio) fallar_('VALIDACION', 'La fecha final no puede ser anterior a la inicial.');
-  const dias = diasEntre(inicio, fin) + 1;
+  const dias = diasEntre(fechaIso_(inicio), fechaIso_(fin)) + 1;
 
   if (payload.empresa_id) {
     const empresa = buscarPorId('empresas', payload.empresa_id);
@@ -133,8 +133,8 @@ function actividadesListar(ctx, payload) {
     if (!bool(a.activo)) return false;
     if (estado && String(a.estado) !== estado) return false;
     if (empresaId && String(a.empresa_id) !== String(empresaId)) return false;
-    if (desde && String(a.fecha_fin_plan) < String(desde)) return false;
-    if (hasta && String(a.fecha_inicio_plan) > String(hasta)) return false;
+    if (desde && fechaIso_(a.fecha_fin_plan) < fechaIso_(desde)) return false;
+    if (hasta && fechaIso_(a.fecha_inicio_plan) > fechaIso_(hasta)) return false;
     if (nodoId) {
       const nodo = buscarPorId('nodos', nodoId);
       if (!nodo) return false;
