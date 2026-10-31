@@ -2,7 +2,7 @@
 
 .acceso {
   max-width: 460px;
-  margin: -58px auto 0;
+  margin: 30px auto 0;
   padding: 0 20px;
   position: relative;
   z-index: 2;
@@ -15,7 +15,7 @@
 .caja-google > div { display: inline-block; }
 
 /* Panel */
-.panel { max-width: 1000px; margin: -58px auto 0; padding: 0 20px; position: relative; z-index: 2; }
+.panel { max-width: 1000px; margin: 30px auto 0; padding: 0 20px; position: relative; z-index: 2; }
 
 .perfil { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 20px 24px; }
 .avatar {
@@ -97,7 +97,7 @@ ul.arbol li > .fila-nodo:hover { background: var(--card-2); }
 .vacio { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
 
 @media (max-width: 640px) {
-  .acceso, .panel { margin-top: -44px; }
+  .acceso, .panel { margin-top: 22px; }
   .perfil { padding: 18px; }
   .perfil .acciones { margin-left: 0; width: 100%; }
   .perfil .acciones .btn { width: 100%; }
