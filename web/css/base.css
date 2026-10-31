@@ -77,6 +77,7 @@ a:hover { text-decoration: underline; }
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 .hero p.lead {
   max-width: 720px;
@@ -324,3 +325,4 @@ footer.pie b { color: #334155; }
 }
 
 .hero-compacta::after { display: none; }
+[data-theme="dark"] .hero::after { display: none; }

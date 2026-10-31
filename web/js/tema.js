@@ -14,8 +14,9 @@
     } catch (e) { return null; }
   })();
   if (deUrl) { try { localStorage.setItem(CLAVE, deUrl); } catch (e) { /* nada */ } }
+  // Por defecto claro: la identidad del portal está pensada sobre fondo claro.
   const guardado = deUrl || (function () {
-    try { return localStorage.getItem(CLAVE) || 'auto'; } catch (e) { return 'auto'; }
+    try { return localStorage.getItem(CLAVE) || 'light'; } catch (e) { return 'light'; }
   })();
   aplicar(guardado);
   window.Tema = {
