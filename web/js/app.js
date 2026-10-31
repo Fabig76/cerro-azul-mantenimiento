@@ -376,10 +376,7 @@
     let intentos = 0;
     const montarGoogle = function () {
       if (!window.CFG || !window.CFG.GOOGLE_CLIENT_ID) return;
-      if (window.Google && Google.montar(caja, alEntrarGoogle)) {
-        if (g) g.classList.add('oculto');
-        return;
-      }
+      if (window.Google && Google.montar(caja, alEntrarGoogle)) return;
       if (++intentos < 25) setTimeout(montarGoogle, 400);
     };
     montarGoogle();
