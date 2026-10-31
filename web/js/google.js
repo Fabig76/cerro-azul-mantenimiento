@@ -39,17 +39,19 @@
       google.accounts.id.renderButton(contenedor, {
         type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', locale: 'es', width: 320,
       });
-      // El botón visible es el del sistema de diseño; este dispara el de Google.
-      const propio = document.getElementById('btnGoogle');
-      if (propio) {
-        propio.hidden = false;
-        propio.addEventListener('click', function () {
-          const nativo = contenedor.querySelector('div[role="button"]');
-          if (nativo) nativo.click();
-          else if (google.accounts.id.prompt) google.accounts.id.prompt();
-        });
-      }
+      google.__caja = contenedor;
+      google.__listo = true;
       return true;
+    },
+
+    /** Dispara el ingreso de Google desde el botón del portal. */
+    disparar: function () {
+      if (!window.google || !google.accounts || !google.accounts.id) return false;
+      const caja = google.__caja;
+      const nativo = caja ? caja.querySelector('div[role="button"]') : null;
+      if (nativo) { nativo.click(); return true; }
+      if (google.accounts.id.prompt) { google.accounts.id.prompt(); return true; }
+      return false;
     },
   };
 })();

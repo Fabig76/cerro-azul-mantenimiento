@@ -384,6 +384,14 @@
     };
     montarGoogle();
 
+    if (g && window.CFG && window.CFG.GOOGLE_CLIENT_ID) {
+      g.hidden = false;
+      g.addEventListener('click', function () {
+        if (window.Google && Google.disparar()) return;
+        aviso('El ingreso con Google está cargando. Intenta de nuevo en un segundo.', 'info');
+      });
+    }
+
     if (g && (!window.CFG || !window.CFG.GOOGLE_CLIENT_ID)) {
       g.disabled = true;
       g.title = 'Pendiente configurar el Client ID de Google';
