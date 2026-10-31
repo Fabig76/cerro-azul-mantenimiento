@@ -1,82 +1,62 @@
-/* Portada pública */
+/* Portada pública — Cerro Azul */
 
-.hero .sello {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 22px;
-  padding: 6px 14px 6px 8px;
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--sombra-1);
-  font-size: 13px;
-  color: var(--text-2);
-}
-.hero .sello .punto-vivo {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--ok);
-  margin-left: 6px;
-  box-shadow: 0 0 0 4px var(--ok-suave);
-}
-
-.hero .destacado {
-  background: linear-gradient(96deg, #0071e3 0%, #5e5ce6 55%, #bf5af2 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.franja {
+.icono {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  overflow: hidden;
-  margin-top: 44px;
+  place-items: center;
+  background: linear-gradient(135deg, #eef2ff, #e0f2fe);
+  color: #4338ca;
+  margin-bottom: 14px;
 }
-.franja .dato {
-  background: var(--surface);
-  padding: 24px 22px;
-  text-align: center;
-}
-.franja .dato strong {
-  display: block;
-  font-size: 34px;
-  line-height: 1.1;
-  letter-spacing: -.03em;
-  font-weight: 700;
-}
-.franja .dato span { font-size: 13px; color: var(--text-2); }
+[data-theme="dark"] .icono { background: linear-gradient(135deg, rgba(99,102,241,.22), rgba(14,165,233,.18)); color: #c7d2fe; }
+.icono svg { width: 21px; height: 21px; }
 
-.lista-limpia { margin: 14px 0 0; padding: 0; list-style: none; }
+.card h3 { margin: 0 0 6px; font-size: 16.5px; letter-spacing: -.01em; font-weight: 750; }
+.card p { margin: 0; color: var(--muted); font-size: 13.8px; }
+
+.lista-limpia { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; grid-template-columns: repeat(2, 1fr); }
 .lista-limpia li {
   display: flex;
   gap: 12px;
-  padding: 13px 0;
-  border-top: 1px solid var(--border);
-  font-size: 15px;
-  color: var(--text-2);
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--card-2);
+  font-size: 14px;
+  color: #334155;
 }
-.lista-limpia li:first-child { border-top: 0; }
-.lista-limpia li strong { color: var(--text); font-weight: 600; }
-.lista-limpia li .marca-ok {
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
+[data-theme="dark"] .lista-limpia li { color: var(--muted); }
+.lista-limpia li b { color: var(--ink); font-weight: 700; }
+.lista-limpia .tick {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: var(--ok-suave);
-  color: var(--ok);
   display: grid;
   place-items: center;
+  background: var(--ok-soft);
+  color: var(--ok-ink);
   font-size: 12px;
-  font-weight: 700;
-  margin-top: 2px;
+  font-weight: 800;
+  margin-top: 1px;
 }
 
-.titulo-tarjeta { margin: 0 0 6px; font-size: 24px; letter-spacing: -.022em; font-weight: 700; }
-.bajada-tarjeta { margin: 0 0 8px; color: var(--text-2); font-size: 16px; }
+.nota {
+  background: var(--brand-soft);
+  border-left: 3px solid #818cf8;
+  border-radius: 0 10px 10px 0;
+  padding: 12px 15px;
+  font-size: 13.6px;
+  color: #334155;
+  margin-top: 16px;
+}
+[data-theme="dark"] .nota { color: var(--muted); }
+
+@media (max-width: 720px) {
+  .lista-limpia { grid-template-columns: 1fr; }
+}
+
+.acciones-tarjeta { margin: 18px 0 0; }

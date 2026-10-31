@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#fbfbfd">
+<meta name="theme-color" content="#0b1120">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.googleusercontent.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://accounts.google.com; frame-src https://accounts.google.com; base-uri 'none'; form-action 'none'">
 <title>Ingresar — Portal de Mantenimientos Cerro Azul</title>
 <link rel="stylesheet" href="./css/tokens.css">
@@ -13,19 +13,29 @@
 </head>
 <body>
 
-<nav class="barra">
-  <div class="marca"><span class="punto"></span>Cerro Azul</div>
-  <div class="sub">Portal de mantenimientos</div>
-  <div class="nav">
-    <button id="btnTema" type="button">Claro / Oscuro</button>
-    <a href="./index.html">Portal público</a>
+<header class="hero">
+  <div class="wrap">
+    <div class="topbar"><span class="mark">CA</span> Urbanización Cerro Azul</div>
+    <h1>Portal de <span class="grad">mantenimientos</span></h1>
+    <p class="lead">Ingresa para gestionar actividades, reportar avances con fotos y aprobar los trabajos de las empresas.</p>
   </div>
-</nav>
+</header>
+
+<div class="navwrap">
+  <div class="wrap">
+    <nav class="barra">
+      <span class="marca"><span class="mark">CA</span> Cerro Azul</span>
+      <span class="sp"></span>
+      <button id="btnTema" type="button">Claro / Oscuro</button>
+      <a href="./index.html">Portal público</a>
+    </nav>
+  </div>
+</div>
 
 <main>
   <!-- Ingreso -->
   <section id="pantallaLogin" class="acceso">
-    <div class="tarjeta alta">
+    <div class="card">
       <h1>Bienvenido</h1>
       <p class="bajada">Ingresa con tu correo y te enviamos un enlace de un solo uso, o usa tu cuenta de Google.</p>
 
@@ -36,13 +46,13 @@
                  placeholder="nombre@correo.com" required>
         </div>
         <div class="campo">
-          <button class="btn primario bloque" id="btnEnlace" type="submit">Enviarme el enlace</button>
+          <button class="btn primary bloque" id="btnEnlace" type="submit">Enviarme el enlace</button>
         </div>
       </form>
 
       <div class="separador">o bien</div>
       <div class="caja-google" id="cajaGoogle"></div>
-      <button class="btn contorno bloque" id="btnGoogle" type="button">Ingresar con Google</button>
+      <button class="btn bloque" id="btnGoogle" type="button">Ingresar con Google</button>
 
       <div class="msg" id="avisoLogin" role="status" aria-live="polite"></div>
     </div>
@@ -50,7 +60,7 @@
 
   <!-- Cuenta en revisión -->
   <section id="pantallaPendiente" class="acceso oculto">
-    <div class="tarjeta alta">
+    <div class="card">
       <h1>Tu cuenta está en revisión</h1>
       <p class="bajada">La administración debe activar tu acceso y asignarte las secciones que puedes atender.</p>
       <p class="msg info mostrar">Correo registrado: <strong id="pendienteNombre"></strong></p>
@@ -59,33 +69,35 @@
 
   <!-- Panel -->
   <section id="pantallaPanel" class="panel oculto">
-    <div class="tarjeta perfil">
+    <div class="card perfil">
       <div class="avatar" id="avatar" aria-hidden="true">CA</div>
       <div class="quien">
         <h2>Hola, <span id="nombreUsuario"></span></h2>
         <p><span class="etiqueta-rol" id="rolUsuario"></span></p>
       </div>
       <div class="acciones">
-        <button class="btn contorno" id="btnSalir" type="button">Cerrar sesión</button>
+        <button class="btn" id="btnSalir" type="button">Cerrar sesión</button>
       </div>
     </div>
 
-    <div class="tarjeta" id="tarjetaArbol">
+    <div class="card seccion-panel">
       <div class="cabecera-seccion">
         <h2>Secciones</h2>
         <span class="codigo" id="conteoNodos"></span>
       </div>
       <p class="bajada-tarjeta">Árbol de mantenimiento del conjunto. Los nodos marcados como sensibles nunca muestran detalle en el portal público.</p>
       <div id="arbol"></div>
-      <div id="sinAsignacion" class="vacio oculto">
-        <p>Todavía no tienes secciones asignadas.</p>
-      </div>
+      <div id="sinAsignacion" class="vacio oculto">Todavía no tienes secciones asignadas.</div>
     </div>
   </section>
 </main>
 
 <footer class="pie">
-  Administración — Urbanización Cerro Azul · <a href="./index.html">Portal público</a>
+  <div class="wrap">
+    <span><b>Urbanización Cerro Azul</b> · Portal de Control de Mantenimientos</span>
+    <span>·</span>
+    <a href="./index.html">Portal público</a>
+  </div>
 </footer>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>

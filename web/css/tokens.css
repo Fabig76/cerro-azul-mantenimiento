@@ -1,62 +1,73 @@
-/* Sistema de diseño — Cerro Azul
-   Lenguaje visual tipo Apple: superficies claras, vidrio, radios amplios y tipografía del sistema. */
+/* Cerro Azul — sistema visual
+   Base tomada del plan del Consultorio Jurídico: índigo y cian, superficies claras y sombras suaves. */
 
 :root {
-  --bg: #fbfbfd;
-  --bg-degradado-1: rgba(0, 113, 227, .10);
-  --bg-degradado-2: rgba(120, 90, 255, .10);
-  --surface: #ffffff;
-  --surface-2: #f5f5f7;
-  --surface-3: #ececef;
-  --border: rgba(0, 0, 0, .08);
-  --border-fuerte: rgba(0, 0, 0, .14);
-  --text: #1d1d1f;
-  --text-2: #6e6e73;
-  --text-3: #86868b;
-  --brand: #0071e3;
-  --brand-hover: #0077ed;
-  --brand-suave: rgba(0, 113, 227, .10);
-  --ok: #1d8f4e;
-  --ok-suave: rgba(29, 143, 78, .12);
-  --warn: #b26a00;
-  --warn-suave: rgba(178, 106, 0, .12);
-  --crit: #d70015;
-  --crit-suave: rgba(215, 0, 21, .10);
-  --vidrio: rgba(255, 255, 255, .72);
-  --sombra-1: 0 1px 2px rgba(0, 0, 0, .04);
-  --sombra-2: 0 12px 40px -12px rgba(0, 0, 0, .18);
-  --sombra-3: 0 24px 70px -20px rgba(0, 0, 0, .25);
-  --r-pill: 980px;
-  --r-xl: 22px;
-  --r-l: 18px;
-  --r-m: 12px;
-  --r-s: 8px;
-  --t: .25s cubic-bezier(.4, 0, .2, 1);
+  --ink: #0f172a;
+  --muted: #5b6b84;
+  --line: #e3e8f0;
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --card-2: #f8fafc;
+
+  --brand: #4f46e5;
+  --brand2: #0ea5e9;
+  --brand-soft: #eef2ff;
+  --brand-line: #c7d2fe;
+  --brand-ink: #4338ca;
+
+  --ok: #0ea371;
+  --ok-soft: #e7f8f1;
+  --ok-ink: #047857;
+  --warn: #d97706;
+  --warn-soft: #fef3e2;
+  --warn-ink: #b45309;
+  --danger: #dc2626;
+  --danger-soft: #fdeaea;
+  --danger-ink: #b91c1c;
+
+  --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 12px 32px -18px rgba(15, 23, 42, .35);
+  --shadow-alto: 0 2px 4px rgba(15, 23, 42, .05), 0 24px 60px -24px rgba(15, 23, 42, .45);
+  --radius: 18px;
+  --radius-m: 14px;
+  --radius-s: 11px;
+
+  --hero-1: #0b1120;
+  --hero-2: #131a33;
+  --hero-3: #0b1120;
+  --hero-glow-1: #4338ca;
+  --hero-glow-2: #0e7490;
+  --hero-text: #eef2ff;
+  --hero-muted: #c7d2fe;
+  --hero-chip: rgba(255, 255, 255, .08);
+  --hero-chip-line: rgba(255, 255, 255, .16);
+  --hero-grad-1: #a5b4fc;
+  --hero-grad-2: #67e8f9;
 }
 
 [data-theme="dark"] {
-  --bg: #000000;
-  --bg-degradado-1: rgba(10, 132, 255, .16);
-  --bg-degradado-2: rgba(120, 90, 255, .14);
-  --surface: #1c1c1e;
-  --surface-2: #2c2c2e;
-  --surface-3: #3a3a3c;
-  --border: rgba(255, 255, 255, .12);
-  --border-fuerte: rgba(255, 255, 255, .20);
-  --text: #f5f5f7;
-  --text-2: #a1a1a6;
-  --text-3: #8e8e93;
-  --brand: #0a84ff;
-  --brand-hover: #409cff;
-  --brand-suave: rgba(10, 132, 255, .16);
-  --ok: #30d158;
-  --ok-suave: rgba(48, 209, 88, .14);
-  --warn: #ffd60a;
-  --warn-suave: rgba(255, 214, 10, .14);
-  --crit: #ff453a;
-  --crit-suave: rgba(255, 69, 58, .14);
-  --vidrio: rgba(28, 28, 30, .72);
-  --sombra-1: 0 1px 2px rgba(0, 0, 0, .5);
-  --sombra-2: 0 12px 40px -12px rgba(0, 0, 0, .8);
-  --sombra-3: 0 24px 70px -20px rgba(0, 0, 0, .9);
+  --ink: #e8eefc;
+  --muted: #93a3bd;
+  --line: #22304a;
+  --bg: #0a0f1c;
+  --card: #131a2b;
+  --card-2: #1a2237;
+
+  --brand: #818cf8;
+  --brand2: #38bdf8;
+  --brand-soft: rgba(129, 140, 248, .16);
+  --brand-line: rgba(129, 140, 248, .38);
+  --brand-ink: #c7d2fe;
+
+  --ok: #34d399;
+  --ok-soft: rgba(52, 211, 153, .14);
+  --ok-ink: #6ee7b7;
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, .14);
+  --warn-ink: #fcd34d;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, .14);
+  --danger-ink: #fca5a5;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 12px 32px -18px rgba(0, 0, 0, .8);
+  --shadow-alto: 0 2px 4px rgba(0, 0, 0, .5), 0 24px 60px -24px rgba(0, 0, 0, .9);
 }

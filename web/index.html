@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#fbfbfd">
+<meta name="theme-color" content="#0b1120">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Portal de Control de Mantenimientos de la Urbanización Cerro Azul: avance del mantenimiento por sección y por mes.">
 <title>Portal de Control de Mantenimientos — Cerro Azul</title>
@@ -14,89 +14,127 @@
 </head>
 <body>
 
-<nav class="barra">
-  <div class="marca"><span class="punto"></span>Cerro Azul</div>
-  <div class="sub">Control de mantenimientos</div>
-  <div class="nav">
-    <button id="btnTema" type="button">Claro / Oscuro</button>
-    <a href="./app.html">Ingresar</a>
-  </div>
-</nav>
-
-<main>
-  <header class="hero ancho">
-    <span class="sello">Portal de mantenimiento <span class="punto-vivo"></span></span>
-    <h1>El mantenimiento del conjunto,<br><span class="destacado">a la vista de todos.</span></h1>
-    <p class="bajada">
+<header class="hero">
+  <div class="wrap">
+    <div class="topbar"><span class="mark">CA</span> Urbanización Cerro Azul · Administración</div>
+    <h1>El mantenimiento del conjunto,<br><span class="grad">verificado y a la vista.</span></h1>
+    <p class="lead">
       Cada trabajo queda con su foto de antes y de después, su checklist y su aprobación.
       Los propietarios ven el avance por sección y por mes, sin pedir informes.
     </p>
-    <div class="acciones">
-      <a class="btn primario" href="./app.html">Ingresar al portal</a>
-      <a class="btn contorno" href="#secciones">Ver secciones</a>
+    <div class="chips">
+      <span class="chip">🏢 5 secciones: <b>Áreas comunes y 4 torres</b></span>
+      <span class="chip">📸 <b>Antes y después</b> en cada actividad</span>
+      <span class="chip">✅ Aprobación de <b>la administración</b></span>
     </div>
-
-    <div class="franja">
-      <div class="dato"><strong>5</strong><span>secciones de primer nivel</span></div>
-      <div class="dato"><strong>10</strong><span>frentes en áreas comunes</span></div>
-      <div class="dato"><strong>4</strong><span>torres con 6 frentes cada una</span></div>
-      <div class="dato"><strong>1</strong><span>registro por cada trabajo</span></div>
+    <div class="stats">
+      <div class="stat"><div class="n">5</div><div class="l">secciones de primer nivel</div></div>
+      <div class="stat"><div class="n">10</div><div class="l">frentes en áreas comunes</div></div>
+      <div class="stat"><div class="n">4</div><div class="l">torres con 6 frentes</div></div>
+      <div class="stat"><div class="n">1</div><div class="l">registro por cada trabajo</div></div>
     </div>
-  </header>
+  </div>
+</header>
 
-  <section class="seccion ancho" id="secciones">
-    <h2>Qué se controla</h2>
-    <p class="bajada">El conjunto se organiza como un árbol: cada rama agrupa los equipos que reciben mantenimiento.</p>
+<div class="navwrap">
+  <div class="wrap">
+    <nav class="barra">
+      <span class="marca"><span class="mark">CA</span> Cerro Azul</span>
+      <a href="#secciones">Qué se controla</a>
+      <a href="#verificacion">Cómo se verifica</a>
+      <a href="#estado">Estado del portal</a>
+      <span class="sp"></span>
+      <button id="btnTema" type="button">Claro / Oscuro</button>
+      <a class="btn primary" href="./app.html">Ingresar</a>
+    </nav>
+  </div>
+</div>
 
-    <div class="rejilla">
-      <article class="tarjeta">
-        <div class="icono-circulo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2"></rect>
-          </svg>
+<main>
+  <section id="secciones">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="kicker">Estructura</div>
+          <h2>Qué se controla</h2>
+          <p>El conjunto se organiza como un árbol: cada rama agrupa los equipos que reciben mantenimiento.</p>
         </div>
-        <h3>Seguridad y videovigilancia</h3>
-        <p>Cámaras, grabadores, portería y control de ingreso. Los datos técnicos sensibles nunca se publican: solo el estado agregado.</p>
-      </article>
-
-      <article class="tarjeta">
-        <div class="icono-circulo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2.7l5.5 4.1v6.4c0 4.2-2.9 7.6-5.5 8.4-2.6-.8-5.5-4.2-5.5-8.4V6.8L12 2.7z"></path>
-          </svg>
-        </div>
-        <h3>Áreas comunes</h3>
-        <p>Piscinas, salones sociales, tanques de agua, red contra incendios, jardines y pasillos, con sus planes y obligaciones normativas.</p>
-      </article>
-
-      <article class="tarjeta">
-        <div class="icono-circulo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M9 6h2M13 6h2M9 10h2M13 10h2M9 14h2M13 14h2"></path>
-          </svg>
-        </div>
-        <h3>Torres y parqueaderos</h3>
-        <p>Ascensores, equipos hidroneumáticos, sistema eléctrico, red contra incendios, fachada y zonas comunes de piso.</p>
-      </article>
+      </div>
+      <div class="grid g3">
+        <article class="card">
+          <div class="icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2"></rect>
+            </svg>
+          </div>
+          <h3>Seguridad y videovigilancia</h3>
+          <p>Cámaras, grabadores, portería y control de ingreso. Los datos técnicos sensibles nunca se publican: solo el estado agregado.</p>
+        </article>
+        <article class="card">
+          <div class="icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2.7l5.5 4.1v6.4c0 4.2-2.9 7.6-5.5 8.4-2.6-.8-5.5-4.2-5.5-8.4V6.8L12 2.7z"></path>
+            </svg>
+          </div>
+          <h3>Áreas comunes</h3>
+          <p>Piscinas, salones sociales, tanques de agua, red contra incendios, jardines y pasillos, con sus planes y obligaciones normativas.</p>
+        </article>
+        <article class="card">
+          <div class="icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+              <path d="M9 6h2M13 6h2M9 10h2M13 10h2M9 14h2M13 14h2"></path>
+            </svg>
+          </div>
+          <h3>Torres y parqueaderos</h3>
+          <p>Ascensores, equipos hidroneumáticos, sistema eléctrico, red contra incendios, fachada y zonas comunes de piso.</p>
+        </article>
+      </div>
     </div>
   </section>
 
-  <section class="seccion ancho">
-    <div class="tarjeta alta">
-      <h2 class="titulo-tarjeta">Cómo se verifica cada trabajo</h2>
-      <p class="bajada-tarjeta">No se acepta un reporte verbal: cada actividad deja rastro.</p>
+  <section id="verificacion">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="kicker">Verificación</div>
+          <h2>Cómo se comprueba cada trabajo</h2>
+          <p>No se acepta un reporte verbal: cada actividad deja rastro verificable.</p>
+        </div>
+      </div>
       <ul class="lista-limpia">
-        <li><span class="marca-ok">✓</span><span><strong>Fotos antes y después</strong> tomadas en sitio, con fecha y encuadre comparable.</span></li>
-        <li><span class="marca-ok">✓</span><span><strong>Checklist con criterio técnico</strong>: qué se espera de cada ítem y si se cumplió.</span></li>
-        <li><span class="marca-ok">✓</span><span><strong>Aprobación de la administración</strong> antes de que el avance cuente.</span></li>
-        <li><span class="marca-ok">✓</span><span><strong>Semáforo por equipo</strong> según su plan, su condición y sus novedades abiertas.</span></li>
+        <li><span class="tick">✓</span><span><b>Fotos antes y después</b> tomadas en sitio, con fecha y encuadre comparable.</span></li>
+        <li><span class="tick">✓</span><span><b>Checklist con criterio técnico</b>: qué se espera de cada ítem y si se cumplió.</span></li>
+        <li><span class="tick">✓</span><span><b>Aprobación de la administración</b> antes de que el avance cuente.</span></li>
+        <li><span class="tick">✓</span><span><b>Semáforo por equipo</b> según su plan, su condición y sus novedades abiertas.</span></li>
       </ul>
+    </div>
+  </section>
+
+  <section id="estado">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="kicker">Avance</div>
+          <h2>Estado del portal</h2>
+          <p>La estructura del conjunto y el registro de mantenimientos ya existen; las gráficas públicas se publican en la fase 2.</p>
+        </div>
+      </div>
+      <div class="card">
+        <span class="badge warn">En construcción</span>
+        <p class="nota">Mientras tanto, la administración ya puede ingresar, cargar actividades y aprobar reportes con evidencia fotográfica.</p>
+        <p class="acciones-tarjeta"><a class="btn primary" href="./app.html">Ingresar al portal</a></p>
+      </div>
     </div>
   </section>
 </main>
 
 <footer class="pie">
-  Administración — Urbanización Cerro Azul · <a href="./app.html">Ingresar al portal</a>
+  <div class="wrap">
+    <span><b>Urbanización Cerro Azul</b> · Portal de Control de Mantenimientos</span>
+    <span>·</span>
+    <a href="./app.html">Ingresar</a>
+  </div>
 </footer>
 
 <script src="./config.js"></script>

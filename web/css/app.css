@@ -1,114 +1,62 @@
-/* Pantalla de ingreso y panel */
+/* Ingreso y panel — Cerro Azul */
 
 .acceso {
   max-width: 460px;
-  margin: clamp(26px, 9vh, 96px) auto 60px;
-  padding: 0 22px;
+  margin: -58px auto 0;
+  padding: 0 20px;
+  position: relative;
+  z-index: 2;
 }
+.acceso .card { box-shadow: var(--shadow-alto); padding: 28px 26px 26px; }
+.acceso h1 { margin: 0 0 8px; font-size: 26px; letter-spacing: -.02em; font-weight: 800; text-align: center; }
+.acceso .bajada { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 
-.acceso .tarjeta { padding: 34px 30px 30px; }
-
-.acceso h1 {
-  margin: 0 0 8px;
-  font-size: 30px;
-  line-height: 1.15;
-  letter-spacing: -.025em;
-  font-weight: 700;
-  text-align: center;
-}
-
-.acceso .bajada {
-  margin: 0 0 6px;
-  text-align: center;
-  color: var(--text-2);
-  font-size: 15px;
-  line-height: 1.45;
-}
-
-.caja-google {
-  display: block;
-  text-align: center;
-  min-height: 48px;
-}
+.caja-google { display: block; text-align: center; min-height: 48px; }
 .caja-google > div { display: inline-block; }
 
 /* Panel */
-.panel { max-width: 1000px; margin: 34px auto 0; padding: 0 22px; }
+.panel { max-width: 1000px; margin: -58px auto 0; padding: 0 20px; position: relative; z-index: 2; }
 
-.perfil {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 22px 26px;
-}
-
+.perfil { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 20px 24px; }
 .avatar {
-  width: 54px;
-  height: 54px;
-  flex: 0 0 54px;
-  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 15px;
   display: grid;
   place-items: center;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -.02em;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0;
   color: #fff;
-  background: linear-gradient(145deg, #0a84ff, #5e5ce6);
-  box-shadow: 0 6px 18px -6px rgba(10, 132, 255, .6);
+  background: linear-gradient(135deg, #6366f1, #06b6d4);
+  box-shadow: 0 8px 22px -10px rgba(99, 102, 241, .9);
 }
-
 .perfil .quien { min-width: 0; }
-.perfil .quien h2 {
-  margin: 0;
-  font-size: 21px;
-  letter-spacing: -.022em;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.perfil .quien p { margin: 2px 0 0; font-size: 13.5px; color: var(--text-2); }
+.perfil .quien h2 { margin: 0; font-size: 19px; letter-spacing: -.02em; font-weight: 800; }
+.perfil .quien p { margin: 4px 0 0; }
 .perfil .acciones { margin-left: auto; display: flex; gap: 10px; }
 
 .etiqueta-rol {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   padding: 3px 10px;
-  border-radius: var(--r-pill);
-  background: var(--brand-suave);
-  color: var(--brand);
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: .02em;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
   text-transform: uppercase;
 }
 
 /* Árbol */
-.cabecera-seccion {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-.cabecera-seccion h2 { margin: 0; font-size: 22px; letter-spacing: -.022em; }
+.cabecera-seccion { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.cabecera-seccion h2 { font-size: 20px; }
 
-ul.arbol, ul.arbol ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-ul.arbol { margin-top: 14px; }
-
-ul.arbol ul {
-  margin-left: 13px;
-  padding-left: 16px;
-  border-left: 1px solid var(--border);
-}
-
+ul.arbol, ul.arbol ul { list-style: none; margin: 0; padding: 0; }
+ul.arbol { margin-top: 12px; }
+ul.arbol ul { margin-left: 12px; padding-left: 16px; border-left: 1px solid var(--line); }
 ul.arbol li { position: relative; }
 
 ul.arbol li > .fila-nodo {
@@ -116,45 +64,44 @@ ul.arbol li > .fila-nodo {
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border-radius: var(--r-m);
-  transition: background var(--t);
+  border-radius: var(--radius-s);
+  transition: .15s;
   flex-wrap: wrap;
 }
-ul.arbol li > .fila-nodo:hover { background: var(--surface-2); }
-
-.fila-nodo .nombre { font-size: 15px; font-weight: 500; letter-spacing: -.012em; }
+ul.arbol li > .fila-nodo:hover { background: var(--card-2); }
+.fila-nodo .nombre { font-size: 14.5px; font-weight: 650; letter-spacing: -.01em; }
 
 .codigo {
-  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  letter-spacing: .01em;
-  color: var(--text-3);
-  background: var(--surface-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+  background: var(--card-2);
+  border: 1px solid var(--line);
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: 7px;
 }
 
 .pill {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .01em;
-  padding: 2px 9px;
-  border-radius: var(--r-pill);
-  background: var(--surface-2);
-  color: var(--text-2);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef1f6;
+  color: #475569;
 }
-.pill.sensible { background: var(--warn-suave); color: var(--warn); }
+[data-theme="dark"] .pill { background: rgba(148,163,184,.16); color: #cbd5e1; }
+.pill.sensible { background: var(--warn-soft); color: var(--warn-ink); }
 
-.vacio {
-  text-align: center;
-  padding: 44px 20px;
-  color: var(--text-2);
-}
-.vacio svg { width: 40px; height: 40px; opacity: .5; margin-bottom: 12px; }
+.vacio { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
 
 @media (max-width: 640px) {
-  .acceso { margin-top: 28px; }
+  .acceso, .panel { margin-top: -44px; }
   .perfil { padding: 18px; }
   .perfil .acciones { margin-left: 0; width: 100%; }
   .perfil .acciones .btn { width: 100%; }
 }
+
+.seccion-panel { margin-top: 16px; }
+.bajada-tarjeta { margin: 0 0 4px; color: var(--muted); font-size: 13.8px; }
