@@ -26,12 +26,11 @@
 }
 
 .caja-google {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: block;
+  text-align: center;
   min-height: 48px;
 }
-.caja-google iframe { border-radius: var(--r-pill); }
+.caja-google > div { display: inline-block; }
 
 /* Panel */
 .panel { max-width: 1000px; margin: 34px auto 0; padding: 0 22px; }
