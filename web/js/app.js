@@ -109,8 +109,10 @@
     if (av) av.textContent = iniciales(me.usuario.nombre, me.usuario.email);
 
     rolActual = me.usuario.rol;
+    window.__rol = rolActual;
     cargarArbol(t, me);
     cargarActividades(t, me);
+    if (window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
     if (rolActual === 'ADMIN') {
       prepararFormulario(t);
       const formElemento = document.getElementById('formElemento');
@@ -141,6 +143,20 @@
 
     fila.appendChild(nombre);
     fila.appendChild(cod);
+
+    const estado = String(nodo.salud_estado || 'SIN_DATOS');
+    const punto = document.createElement('span');
+    punto.className = 'semaforo semaforo-' + estado.toLowerCase();
+    punto.title = 'Estado: ' + estado + (nodo.salud_puntaje !== '' ? ' · ' + nodo.salud_puntaje + '/100' : '');
+    punto.setAttribute('aria-label', punto.title);
+    fila.insertBefore(punto, fila.firstChild);
+
+    if (nodo.salud_puntaje !== '' && nodo.salud_puntaje !== null && nodo.salud_puntaje !== undefined) {
+      const puntaje = document.createElement('span');
+      puntaje.className = 'puntaje';
+      puntaje.textContent = nodo.salud_puntaje;
+      fila.appendChild(puntaje);
+    }
 
     if (String(nodo.sensible) === 'true') {
       const pill = document.createElement('span');
@@ -195,6 +211,21 @@
         });
       return lista;
     }
+
+    const resumen = document.createElement('div');
+    resumen.className = 'resumen-semaforo';
+    [['AL_DIA', 'Al día'], ['ATENCION', 'Atención'], ['CRITICO', 'Crítico'], ['SIN_DATOS', 'Sin datos']].forEach(function (par) {
+      const cuantos = nodos.filter(function (n) { return String(n.salud_estado) === par[0]; }).length;
+      if (!cuantos) return;
+      const chip = document.createElement('span');
+      chip.className = 'chip-estado';
+      const punto = document.createElement('span');
+      punto.className = 'semaforo semaforo-' + par[0].toLowerCase();
+      chip.appendChild(punto);
+      chip.appendChild(document.createTextNode(cuantos + ' ' + par[1].toLowerCase()));
+      resumen.appendChild(chip);
+    });
+    if (resumen.childNodes.length) cont.appendChild(resumen);
 
     cont.appendChild(pintar('RAIZ'));
   }

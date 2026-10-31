@@ -229,3 +229,56 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 }
 .opcion-nodo:hover { background: var(--brand-soft); }
 .opcion-nodo input { width: 17px; height: 17px; accent-color: var(--brand); }
+
+/* Semáforo de salud */
+.semaforo {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 9px;
+  display: inline-block;
+  background: var(--none, #8a97a6);
+}
+.semaforo-al_dia { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.semaforo-atencion { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+.semaforo-critico { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+.semaforo-sin_datos { background: #94a3b8; }
+
+.puntaje {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.resumen-semaforo { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.chip-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 11px;
+}
+
+/* Novedades */
+.lista-novedades { display: grid; gap: 10px; margin-top: 14px; }
+.novedad {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--warn);
+  border-radius: var(--radius-m);
+  background: var(--card-2);
+  padding: 13px 16px;
+}
+.novedad.critica { border-left-color: var(--danger); }
+.novedad.alta { border-left-color: var(--urgent, #d9590b); }
+.novedad.baja { border-left-color: var(--ok); }
+.novedad-cab { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.novedad-cab h3 { margin: 0; font-size: 14.5px; font-weight: 700; }
+.novedad p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }

@@ -93,6 +93,55 @@
       <div class="msg" id="avisoActividad" role="status" aria-live="polite"></div>
     </div>
 
+    <div class="card seccion-panel" id="tarjetaNovedades">
+      <div class="cabecera-seccion">
+        <h2>Novedades</h2>
+        <span class="codigo" id="conteoNovedades"></span>
+      </div>
+      <p class="bajada-tarjeta">Daños y fallas que se encuentran en campo. Mientras estén abiertas, bajan el semáforo del equipo.</p>
+      <div id="listaNovedades" class="lista-novedades"></div>
+
+      <form id="formNovedad" class="form-actividad" novalidate>
+        <div class="kicker">Reportar una novedad</div>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="novNodo">Sección</label>
+            <select id="novNodo" class="item-input"></select>
+          </div>
+          <div class="campo">
+            <label for="novTipo">Tipo</label>
+            <select id="novTipo" class="item-input">
+              <option value="DANO">Daño</option>
+              <option value="FALLA">Falla</option>
+              <option value="RIESGO">Riesgo</option>
+              <option value="OBSERVACION">Observación</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="novGravedad">Gravedad</label>
+            <select id="novGravedad" class="item-input">
+              <option value="BAJA">Baja</option>
+              <option value="MEDIA" selected>Media</option>
+              <option value="ALTA">Alta</option>
+              <option value="CRITICA">Crítica</option>
+            </select>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="novTitulo">Qué pasó</label>
+          <input id="novTitulo" type="text" maxlength="120" placeholder="Cámara del pasillo sin imagen" required>
+        </div>
+        <div class="campo">
+          <label for="novDescripcion">Detalle</label>
+          <input id="novDescripcion" type="text" maxlength="2000" placeholder="Desde cuándo, qué se observó">
+        </div>
+        <div class="acciones-form">
+          <button class="btn" id="btnCrearNovedad" type="submit">Reportar novedad</button>
+        </div>
+        <div class="msg" id="avisoNovedad" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+
     <div class="card seccion-panel oculto" id="tarjetaUsuarios">
       <div class="cabecera-seccion">
         <h2>Usuarios</h2>
@@ -232,6 +281,7 @@
 <script src="./js/actividad.js"></script>
 <script src="./js/usuarios.js"></script>
 <script src="./js/elemento.js"></script>
+<script src="./js/novedades.js"></script>
 <script src="./js/app.js"></script>
 </body>
 </html>

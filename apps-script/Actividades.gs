@@ -65,9 +65,18 @@ function actividadesCrear(ctx, payload) {
     }
   }
 
+  // Si no se indica plantilla y la sección es un elemento, se toma la del tipo (Anexo B).
+  let plantillaId = payload.plantilla_id || '';
+  if (!plantillaId && String(nodo.clase) === 'ELEMENTO' && nodo.tipo_elemento_id) {
+    const plan = filtrar('plan_tipo', function (p) {
+      return String(p.tipo_elemento_id) === String(nodo.tipo_elemento_id) && bool(p.activo);
+    })[0];
+    if (plan) plantillaId = plan.plantilla_id;
+  }
+
   let plantilla = null;
-  if (payload.plantilla_id) {
-    plantilla = plantillaConItems_(payload.plantilla_id, payload.plantilla_version);
+  if (plantillaId) {
+    plantilla = plantillaConItems_(plantillaId, payload.plantilla_version);
     if (!plantilla) fallar_('VALIDACION', 'La plantilla no existe.');
   }
 
@@ -93,7 +102,11 @@ function actividadesCrear(ctx, payload) {
     en_riesgo: false,
     avance_reportado_pct: 0,
     avance_aprobado_pct: 0,
-    obligatoria_legal: !!payload.obligatoria_legal,
+    obligatoria_legal: payload.obligatoria_legal !== undefined
+      ? !!payload.obligatoria_legal
+      : !!(plantilla && !!filtrar('plan_tipo', function (p) {
+        return String(p.plantilla_id) === String(plantilla.plantilla.id) && bool(p.obligatoria_legal);
+      }).length),
     afecta_uso: !!payload.afecta_uso,
     publicable: payload.publicable !== false,
     activo: true,
