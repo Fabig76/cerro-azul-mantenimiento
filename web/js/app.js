@@ -113,6 +113,11 @@
     cargarActividades(t, me);
     if (rolActual === 'ADMIN') {
       prepararFormulario(t);
+      const formElemento = document.getElementById('formElemento');
+      if (formElemento) {
+        formElemento.classList.remove('oculto');
+        if (window.Elementos) { Elementos.cargar(); Elementos.preparar(); }
+      }
       const tarjetaUsuarios = document.getElementById('tarjetaUsuarios');
       if (tarjetaUsuarios) tarjetaUsuarios.classList.remove('oculto');
       if (window.Usuarios) {

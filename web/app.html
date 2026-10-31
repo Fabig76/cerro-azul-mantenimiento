@@ -133,6 +133,34 @@
       <p class="bajada-tarjeta">Árbol de mantenimiento del conjunto. Los nodos marcados como sensibles nunca muestran detalle en el portal público.</p>
       <div id="arbol"></div>
       <div id="sinAsignacion" class="vacio oculto">Todavía no tienes secciones asignadas.</div>
+
+      <form id="formElemento" class="form-actividad oculto" novalidate>
+        <div class="kicker">Nuevo elemento</div>
+        <p class="bajada-tarjeta">Un elemento es lo que recibe mantenimiento: una cámara, una bomba, un ascensor, un extintor.</p>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="elePadre">Va dentro de</label>
+            <select id="elePadre" class="item-input"></select>
+          </div>
+          <div class="campo">
+            <label for="eleTipo">Tipo de elemento</label>
+            <select id="eleTipo" class="item-input"></select>
+          </div>
+          <div class="campo">
+            <label for="eleSegmento">Código corto</label>
+            <input id="eleSegmento" type="text" maxlength="5" placeholder="CAM01" class="item-input">
+          </div>
+        </div>
+        <div class="campo">
+          <label for="eleNombre">Nombre</label>
+          <input id="eleNombre" type="text" maxlength="120" placeholder="Cámara pasillo torre 2" required>
+        </div>
+        <div id="fichaElemento"></div>
+        <div class="acciones-form">
+          <button class="btn primary" id="btnCrearElemento" type="submit">Crear elemento</button>
+        </div>
+        <div class="msg" id="avisoElemento" role="status" aria-live="polite"></div>
+      </form>
     </div>
 
     <div class="card seccion-panel">
@@ -203,6 +231,7 @@
 <script src="./js/fotos.js"></script>
 <script src="./js/actividad.js"></script>
 <script src="./js/usuarios.js"></script>
+<script src="./js/elemento.js"></script>
 <script src="./js/app.js"></script>
 </body>
 </html>

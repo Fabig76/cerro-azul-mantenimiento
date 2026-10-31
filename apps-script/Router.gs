@@ -36,6 +36,8 @@ const ACCIONES = {
   'usuarios.editar': { fn: usuariosEditar, sesion: true, roles: ['ADMIN'] },
   'usuarios.asignar': { fn: usuariosAsignar, sesion: true, roles: ['ADMIN'] },
   'usuarios.desactivar': { fn: usuariosDesactivar, sesion: true, roles: ['ADMIN'] },
+  'tipos.listar': { fn: tiposListar, sesion: true },
+  'plantillas.listar': { fn: plantillasListar, sesion: true },
   'empresas.listar': { fn: empresasListar, sesion: true, roles: ['ADMIN'] },
   'empresas.guardar': { fn: empresasGuardar, sesion: true, roles: ['ADMIN'] },
   'evidencias.upload': { fn: evidenciasUpload, sesion: true },
