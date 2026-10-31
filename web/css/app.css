@@ -11,8 +11,15 @@
 .acceso h1 { margin: 0 0 8px; font-size: 26px; letter-spacing: -.02em; font-weight: 800; text-align: center; }
 .acceso .bajada { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 
-.caja-google { display: block; text-align: center; min-height: 48px; }
-.caja-google > div { display: inline-block; }
+.caja-google {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.btn-google { gap: 10px; }
 
 /* Panel */
 .panel { max-width: 1000px; margin: 30px auto 0; padding: 0 20px; position: relative; z-index: 2; }

@@ -39,6 +39,16 @@
       google.accounts.id.renderButton(contenedor, {
         type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', locale: 'es', width: 320,
       });
+      // El botón visible es el del sistema de diseño; este dispara el de Google.
+      const propio = document.getElementById('btnGoogle');
+      if (propio) {
+        propio.hidden = false;
+        propio.addEventListener('click', function () {
+          const nativo = contenedor.querySelector('div[role="button"]');
+          if (nativo) nativo.click();
+          else if (google.accounts.id.prompt) google.accounts.id.prompt();
+        });
+      }
       return true;
     },
   };
