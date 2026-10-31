@@ -28,6 +28,8 @@ const ACCIONES = {
   'actividades.listar': { fn: actividadesListar, sesion: true },
   'actividades.get': { fn: actividadesGet, sesion: true },
   'actividades.iniciar': { fn: actividadesIniciar, sesion: true },
+  'actividades.editar': { fn: actividadesEditar, sesion: true, roles: ['ADMIN'] },
+  'actividades.cancelar': { fn: actividadesCancelar, sesion: true, roles: ['ADMIN'] },
   'evidencias.upload': { fn: evidenciasUpload, sesion: true },
   'evidencias.get': { fn: evidenciasGet, sesion: true },
   'reportes.crear': { fn: reportesCrear, sesion: true },

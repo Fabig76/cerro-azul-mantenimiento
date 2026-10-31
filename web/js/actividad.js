@@ -268,6 +268,19 @@
       caja.appendChild(btn);
     }
 
+    if (rol === 'ADMIN' && ['CERRADA', 'CANCELADA'].indexOf(a.estado) < 0) {
+      const editar = el('button', 'btn', 'Editar');
+      editar.type = 'button';
+      editar.addEventListener('click', function () { formularioEdicion(); });
+
+      const cancelar = el('button', 'btn peligro', 'Cancelar actividad');
+      cancelar.type = 'button';
+      cancelar.addEventListener('click', function () { formularioCancelacion(); });
+
+      caja.appendChild(editar);
+      caja.appendChild(cancelar);
+    }
+
     if (a.estado === 'REPORTADA' && rol === 'ADMIN') {
       const nota = el('textarea', 'item-input');
       nota.id = 'comentarioRevision';
@@ -305,6 +318,126 @@
     }
 
     return caja;
+  }
+
+  function bloqueFormulario(titulo) {
+    const caja = el('div', 'bloque formulario-detalle');
+    caja.appendChild(el('div', 'kicker', titulo));
+    return caja;
+  }
+
+  function formularioEdicion() {
+    const a = datos.actividad;
+    const caja = bloqueFormulario('Editar actividad');
+
+    const cTitulo = el('div', 'campo');
+    const lTitulo = el('label', null, 'Título');
+    lTitulo.htmlFor = 'edTitulo';
+    const iTitulo = el('input', 'item-input');
+    iTitulo.id = 'edTitulo';
+    iTitulo.type = 'text';
+    iTitulo.maxLength = 120;
+    iTitulo.value = a.titulo;
+    cTitulo.appendChild(lTitulo);
+    cTitulo.appendChild(iTitulo);
+    caja.appendChild(cTitulo);
+
+    const fila = el('div', 'fila-campos');
+    [['edInicio', 'Inicio', 'date', a.fecha_inicio_plan], ['edFin', 'Fin', 'date', a.fecha_fin_plan]].forEach(function (f) {
+      const c = el('div', 'campo');
+      const l = el('label', null, f[1]);
+      l.htmlFor = f[0];
+      const i = el('input', 'item-input');
+      i.id = f[0];
+      i.type = f[2];
+      i.value = f[3] || '';
+      c.appendChild(l);
+      c.appendChild(i);
+      fila.appendChild(c);
+    });
+    const cPrioridad = el('div', 'campo');
+    const lPrioridad = el('label', null, 'Prioridad');
+    lPrioridad.htmlFor = 'edPrioridad';
+    const sPrioridad = el('select', 'item-input');
+    sPrioridad.id = 'edPrioridad';
+    ['BAJA', 'MEDIA', 'ALTA', 'URGENTE'].forEach(function (p) {
+      const op = el('option', null, p.charAt(0) + p.slice(1).toLowerCase());
+      op.value = p;
+      if (p === a.prioridad) op.selected = true;
+      sPrioridad.appendChild(op);
+    });
+    cPrioridad.appendChild(lPrioridad);
+    cPrioridad.appendChild(sPrioridad);
+    fila.appendChild(cPrioridad);
+    caja.appendChild(fila);
+
+    const acciones = el('div', 'acciones-form');
+    const guardar = el('button', 'btn primary', 'Guardar cambios');
+    guardar.type = 'button';
+    const volver = el('button', 'btn', 'Descartar');
+    volver.type = 'button';
+    volver.addEventListener('click', function () { pintar(); });
+    guardar.addEventListener('click', async function () {
+      guardar.disabled = true;
+      const r = await API.llamar('actividades.editar', {
+        id: a.id,
+        titulo: iTitulo.value.trim(),
+        fecha_inicio_plan: document.getElementById('edInicio').value,
+        fecha_fin_plan: document.getElementById('edFin').value || document.getElementById('edInicio').value,
+        prioridad: sPrioridad.value,
+      }, { token: Sesion.token(), idempotente: true });
+      guardar.disabled = false;
+      if (!r.ok) return aviso(r.message || 'No se pudo guardar.', 'error');
+      aviso('Actividad actualizada.', 'ok');
+      abrir(a.id, rol);
+    });
+    acciones.appendChild(guardar);
+    acciones.appendChild(volver);
+    caja.appendChild(acciones);
+
+    const cont = document.getElementById('contenidoActividad');
+    cont.appendChild(caja);
+    caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function formularioCancelacion() {
+    const a = datos.actividad;
+    const caja = bloqueFormulario('Cancelar actividad');
+    caja.appendChild(el('p', 'bajada-tarjeta',
+      'La actividad no se borra: queda cancelada con su motivo, para que en el historial se sepa por qué no se hizo.'));
+
+    const motivo = el('textarea', 'item-input');
+    motivo.id = 'motivoCancelacion';
+    motivo.placeholder = 'Motivo (por ejemplo: se programó por error, se cambió de empresa, se reprograma)';
+    caja.appendChild(motivo);
+
+    const acciones = el('div', 'acciones-form');
+    const confirmar = el('button', 'btn peligro', 'Cancelar la actividad');
+    confirmar.type = 'button';
+    const volver = el('button', 'btn', 'Volver');
+    volver.type = 'button';
+    volver.addEventListener('click', function () { pintar(); });
+    confirmar.addEventListener('click', async function () {
+      if (motivo.value.trim().length < 10) {
+        return aviso('Escribe el motivo (al menos 10 caracteres).', 'error');
+      }
+      confirmar.disabled = true;
+      const r = await API.llamar('actividades.cancelar', {
+        id: a.id,
+        motivo: motivo.value.trim(),
+      }, { token: Sesion.token(), idempotente: true });
+      confirmar.disabled = false;
+      if (!r.ok) return aviso(r.message || 'No se pudo cancelar.', 'error');
+      aviso('Actividad cancelada y registrada en auditoría.', 'ok');
+      abrir(a.id, rol);
+    });
+    acciones.appendChild(confirmar);
+    acciones.appendChild(volver);
+    caja.appendChild(acciones);
+
+    const cont = document.getElementById('contenidoActividad');
+    cont.appendChild(caja);
+    caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function condicionSelect() {

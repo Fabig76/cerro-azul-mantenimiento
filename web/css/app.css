@@ -190,3 +190,7 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 .comparador-despues figcaption { color: var(--ok-ink); }
 
 @media (max-width: 640px) { .comparador { grid-template-columns: 1fr; } }
+
+.btn.peligro { color: var(--danger-ink); border-color: var(--danger); }
+.btn.peligro:hover { background: var(--danger-soft); color: var(--danger-ink); border-color: var(--danger); }
+.formulario-detalle { background: var(--card-2); border-radius: var(--radius-m); padding: 16px; margin-top: 12px; }

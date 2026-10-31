@@ -221,3 +221,74 @@ function actividadesGet(ctx, payload) {
     evidencias: evidencias,
   };
 }
+
+/** Edita una actividad existente. Solo ADMIN. */
+function actividadesEditar(ctx, payload) {
+  const id = exigirTexto(payload.id, 'id');
+  const act = buscarPorId('actividades', id);
+  if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
+  if (['CERRADA', 'CANCELADA'].indexOf(String(act.estado)) >= 0) {
+    fallar_('ESTADO_INVALIDO', 'Una actividad cerrada o cancelada ya no se edita.');
+  }
+
+  const cambios = {};
+  if (payload.titulo !== undefined) cambios.titulo = exigirTexto(payload.titulo, 'titulo', 120);
+  if (payload.descripcion !== undefined) cambios.descripcion = String(payload.descripcion || '').slice(0, 2000);
+  if (payload.prioridad !== undefined) {
+    cambios.prioridad = exigirEnEnum(payload.prioridad, 'prioridad', ['BAJA', 'MEDIA', 'ALTA', 'URGENTE']);
+  }
+  if (payload.afecta_uso !== undefined) cambios.afecta_uso = !!payload.afecta_uso;
+  if (payload.publicable !== undefined) cambios.publicable = !!payload.publicable;
+  if (payload.obligatoria_legal !== undefined) cambios.obligatoria_legal = !!payload.obligatoria_legal;
+
+  const inicioNuevo = payload.fecha_inicio_plan ? String(payload.fecha_inicio_plan) : String(act.fecha_inicio_plan);
+  const finNuevo = payload.fecha_fin_plan ? String(payload.fecha_fin_plan) : String(act.fecha_fin_plan);
+  if (payload.fecha_inicio_plan !== undefined || payload.fecha_fin_plan !== undefined) {
+    if (finNuevo < inicioNuevo) fallar_('VALIDACION', 'La fecha final no puede ser anterior a la inicial.');
+    cambios.fecha_inicio_plan = inicioNuevo;
+    cambios.fecha_fin_plan = finNuevo;
+    cambios.dias_plan = diasEntre(inicioNuevo, finNuevo) + 1;
+    cambios.vencida = finNuevo < hoyIso() && ['APROBADA', 'CERRADA', 'CANCELADA'].indexOf(String(act.estado)) < 0;
+  }
+
+  if (payload.empresa_id !== undefined) {
+    const empresa = payload.empresa_id ? buscarPorId('empresas', payload.empresa_id) : null;
+    if (payload.empresa_id && !empresa) fallar_('VALIDACION', 'La empresa no existe.');
+    if (empresa && empresa.vigencia_hasta && String(empresa.vigencia_hasta) < hoyIso()) {
+      fallar_('CONFLICTO', 'La empresa tiene el contrato vencido (RN-18).');
+    }
+    cambios.empresa_id = payload.empresa_id || '';
+  }
+  if (payload.responsable_id !== undefined) cambios.responsable_id = payload.responsable_id || '';
+
+  if (!Object.keys(cambios).length) fallar_('VALIDACION', 'No hay cambios para guardar.');
+
+  const despues = actualizar('actividades', id, cambios, ctx.usuario.email);
+  auditar(ctx.usuario.email, 'ACTIVIDAD_EDITADA', 'actividad', id,
+    { titulo: act.titulo, inicio: act.fecha_inicio_plan, fin: act.fecha_fin_plan, prioridad: act.prioridad },
+    cambios);
+  return { actividad: actividadResumen_(despues) };
+}
+
+/** Cancela una actividad con motivo obligatorio. No borra: deja el registro (RN-13). */
+function actividadesCancelar(ctx, payload) {
+  const id = exigirTexto(payload.id, 'id');
+  const motivo = exigirTexto(payload.motivo, 'motivo', 500);
+  if (motivo.length < 10) fallar_('VALIDACION', 'Escribe el motivo de la cancelación (al menos 10 caracteres).');
+
+  const act = buscarPorId('actividades', id);
+  if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
+  if (String(act.estado) === 'CANCELADA') fallar_('ESTADO_INVALIDO', 'Ya está cancelada.');
+  if (String(act.estado) === 'CERRADA') fallar_('ESTADO_INVALIDO', 'Una actividad cerrada no se cancela.');
+
+  const despues = actualizar('actividades', id, {
+    estado: 'CANCELADA',
+    en_riesgo: false,
+    vencida: false,
+  }, ctx.usuario.email);
+
+  auditar(ctx.usuario.email, 'ACTIVIDAD_CANCELADA', 'actividad', id,
+    { estado: act.estado }, { estado: 'CANCELADA', motivo: motivo });
+
+  return { actividad: actividadResumen_(despues), motivo: motivo };
+}
