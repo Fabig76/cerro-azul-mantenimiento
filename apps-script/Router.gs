@@ -27,6 +27,11 @@ const ACCIONES = {
   'actividades.crear': { fn: actividadesCrear, sesion: true, roles: ['ADMIN'] },
   'actividades.listar': { fn: actividadesListar, sesion: true },
   'actividades.get': { fn: actividadesGet, sesion: true },
+  'actividades.iniciar': { fn: actividadesIniciar, sesion: true },
+  'evidencias.upload': { fn: evidenciasUpload, sesion: true },
+  'evidencias.get': { fn: evidenciasGet, sesion: true },
+  'reportes.crear': { fn: reportesCrear, sesion: true },
+  'reportes.revisar': { fn: reportesRevisar, sesion: true, roles: ['ADMIN'] },
 };
 
 // ---------------------------------------------------------------------------

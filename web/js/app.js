@@ -7,6 +7,9 @@
 
   function $(sel) { return document.querySelector(sel); }
 
+  let rolActual = 'CONTRATISTA';
+  let nodosActuales = [];
+
   function ver(id, visible) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('oculto', !visible);
@@ -105,8 +108,10 @@
     const av = document.getElementById('avatar');
     if (av) av.textContent = iniciales(me.usuario.nombre, me.usuario.email);
 
+    rolActual = me.usuario.rol;
     cargarArbol(t, me);
     cargarActividades(t, me);
+    if (rolActual === 'ADMIN') prepararFormulario(t);
   }
 
   function filaNodo(nodo) {
@@ -250,7 +255,18 @@
       ver('sinActividades', true);
       return;
     }
-    lista.forEach(function (a) { cont.appendChild(tarjetaActividad(a)); });
+    lista.forEach(function (a) {
+      const card = tarjetaActividad(a);
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      card.addEventListener('click', function () {
+        if (window.Actividad) Actividad.abrir(a.id, rolActual);
+      });
+      card.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' && window.Actividad) Actividad.abrir(a.id, rolActual);
+      });
+      cont.appendChild(card);
+    });
   }
 
   // --- Login ---------------------------------------------------------------
@@ -283,6 +299,61 @@
     ocultarAviso();
     aviso('Cerraste la sesión.', 'info');
   }
+
+  function prepararFormulario(t) {
+    const form = document.getElementById('formActividad');
+    if (!form) return;
+    form.classList.remove('oculto');
+    cargarNodosEnFormulario(t);
+    const cancelar = document.getElementById('btnCancelarActividad');
+    if (cancelar) cancelar.addEventListener('click', function () {
+      document.getElementById('actTitulo').value = '';
+      document.getElementById('actDescripcion').value = '';
+    });
+    form.addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      const avisoCrear = document.getElementById('avisoCrear');
+      const boton = document.getElementById('btnCrearActividad');
+      boton.disabled = true;
+      const r = await API.llamar('actividades.crear', {
+        titulo: document.getElementById('actTitulo').value.trim(),
+        nodo_id: document.getElementById('actNodo').value,
+        fecha_inicio_plan: document.getElementById('actInicio').value,
+        fecha_fin_plan: document.getElementById('actFin').value || document.getElementById('actInicio').value,
+        prioridad: document.getElementById('actPrioridad').value,
+        descripcion: document.getElementById('actDescripcion').value.trim(),
+      }, { token: Sesion.token(), idempotente: true });
+      boton.disabled = false;
+      if (!r.ok) {
+        avisoCrear.textContent = r.message || 'No se pudo crear.';
+        avisoCrear.className = 'msg mostrar error';
+        return;
+      }
+      avisoCrear.textContent = 'Actividad creada.';
+      avisoCrear.className = 'msg mostrar ok';
+      document.getElementById('actTitulo').value = '';
+      cargarActividades(Sesion.token());
+    });
+  }
+
+  async function cargarNodosEnFormulario(t) {
+    const sel = document.getElementById('actNodo');
+    if (!sel) return;
+    const r = await API.llamar('nodos.arbol', {}, { token: t });
+    if (!r.ok) return;
+    nodosActuales = (r.data.nodos || []).slice();
+    sel.textContent = '';
+    nodosActuales
+      .sort(function (a, b) { return String(a.codigo).localeCompare(String(b.codigo)); })
+      .forEach(function (n) {
+        const op = document.createElement('option');
+        op.value = n.id;
+        op.textContent = n.codigo + ' · ' + n.nombre;
+        sel.appendChild(op);
+      });
+  }
+
+  window.App = { refrescar: function () { cargarActividades(Sesion.token()); } };
 
   document.addEventListener('DOMContentLoaded', async function () {
     const bt = document.getElementById('btnTema');
