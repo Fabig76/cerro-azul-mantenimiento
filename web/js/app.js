@@ -106,6 +106,7 @@
     if (av) av.textContent = iniciales(me.usuario.nombre, me.usuario.email);
 
     cargarArbol(t, me);
+    cargarActividades(t, me);
   }
 
   function filaNodo(nodo) {
@@ -174,6 +175,82 @@
     }
 
     cont.appendChild(pintar('RAIZ'));
+  }
+
+  const ESTADOS = {
+    PROGRAMADA: { texto: 'Programada', clase: 'gray' },
+    EN_EJECUCION: { texto: 'En ejecución', clase: '' },
+    REPORTADA: { texto: 'Reportada', clase: 'warn' },
+    APROBADA: { texto: 'Aprobada', clase: 'ok' },
+    RECHAZADA: { texto: 'Rechazada', clase: 'danger' },
+    CERRADA: { texto: 'Cerrada', clase: 'ok' },
+    CANCELADA: { texto: 'Cancelada', clase: 'gray' },
+  };
+
+  function tarjetaActividad(a) {
+    const el = document.createElement('article');
+    el.className = 'actividad';
+
+    const cab = document.createElement('div');
+    cab.className = 'actividad-cab';
+
+    const titulo = document.createElement('h3');
+    titulo.textContent = a.titulo;
+
+    const est = ESTADOS[a.estado] || { texto: a.estado, clase: 'gray' };
+    const badge = document.createElement('span');
+    badge.className = 'badge ' + est.clase;
+    badge.textContent = est.texto;
+
+    cab.appendChild(titulo);
+    cab.appendChild(badge);
+
+    const meta = document.createElement('p');
+    meta.className = 'actividad-meta';
+    const fechas = a.fecha_inicio_plan === a.fecha_fin_plan
+      ? a.fecha_inicio_plan
+      : a.fecha_inicio_plan + ' → ' + a.fecha_fin_plan;
+    meta.textContent = fechas;
+
+    const avance = document.createElement('div');
+    avance.className = 'avance';
+    const barra = document.createElement('div');
+    barra.className = 'avance-barra';
+    const relleno = document.createElement('i');
+    relleno.style.width = Math.max(0, Math.min(100, a.avance_aprobado_pct)) + '%';
+    barra.appendChild(relleno);
+    const pct = document.createElement('b');
+    pct.textContent = a.avance_aprobado_pct + '%';
+    avance.appendChild(barra);
+    avance.appendChild(pct);
+
+    el.appendChild(cab);
+    el.appendChild(meta);
+    el.appendChild(avance);
+
+    if (a.vencida) {
+      const v = document.createElement('span');
+      v.className = 'badge danger';
+      v.textContent = 'Vencida';
+      el.appendChild(v);
+    }
+    return el;
+  }
+
+  async function cargarActividades(t) {
+    const cont = document.getElementById('listaActividades');
+    if (!cont) return;
+    cont.textContent = '';
+    const r = await API.llamar('actividades.listar', { tam: 20 }, { token: t });
+    if (!r.ok) return;
+    const lista = r.data.actividades || [];
+    const conteo = document.getElementById('conteoActividades');
+    if (conteo) conteo.textContent = r.data.total + (r.data.total === 1 ? ' trabajo' : ' trabajos');
+    if (!lista.length) {
+      ver('sinActividades', true);
+      return;
+    }
+    lista.forEach(function (a) { cont.appendChild(tarjetaActividad(a)); });
   }
 
   // --- Login ---------------------------------------------------------------

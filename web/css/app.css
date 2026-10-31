@@ -105,3 +105,19 @@ ul.arbol li > .fila-nodo:hover { background: var(--card-2); }
 
 .seccion-panel { margin-top: 16px; }
 .bajada-tarjeta { margin: 0 0 4px; color: var(--muted); font-size: 13.8px; }
+
+/* Lista de actividades */
+.lista-actividades { display: grid; gap: 10px; margin-top: 14px; }
+.actividad {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--card-2);
+  padding: 14px 16px;
+}
+.actividad-cab { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.actividad-cab h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; font-weight: 700; }
+.actividad-meta { margin: 4px 0 10px; font-size: 12.8px; color: var(--muted); }
+.avance { display: flex; align-items: center; gap: 10px; }
+.avance-barra { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-3, #eef1f6); overflow: hidden; }
+.avance-barra > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #10b981, #22d3ee); }
+.avance b { font-size: 12.5px; color: var(--muted); min-width: 40px; text-align: right; }

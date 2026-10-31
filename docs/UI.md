@@ -16,6 +16,9 @@ De ahí vienen la paleta índigo/cian, los halos del hero, los chips de vidrio y
    (`stroke-width` 1.8, `currentColor`) o nada.
 4. **Cero `innerHTML` con datos.** El texto se inserta con `textContent`.
 5. **Cero librerías nuevas** sin justificarlo: el sitio es HTML, CSS y JS sin compilación.
+   Excepción legítima: los valores dinámicos (ancho de una barra de avance) se fijan con
+   `elemento.style.width` desde JavaScript. Eso es CSSOM y la CSP no lo bloquea; lo prohibido es el
+   atributo `style=""` escrito en el HTML.
 6. **Todo color sale de un token.** Si un tono no existe en `tokens.css`, se agrega allí con nombre
    semántico; nunca un hexadecimal suelto en `base.css` o `app.css`.
 7. **Español de Colombia**, fechas en `America/Bogota`, cifras con separador de miles.

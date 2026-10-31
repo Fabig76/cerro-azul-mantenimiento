@@ -23,6 +23,10 @@ const ACCIONES = {
   'nodos.crear': { fn: nodosCrear, sesion: true, roles: ['ADMIN'] },
   'nodos.editar': { fn: nodosEditar, sesion: true, roles: ['ADMIN'] },
   'nodos.mover': { fn: nodosMover, sesion: true, roles: ['ADMIN'] },
+
+  'actividades.crear': { fn: actividadesCrear, sesion: true, roles: ['ADMIN'] },
+  'actividades.listar': { fn: actividadesListar, sesion: true },
+  'actividades.get': { fn: actividadesGet, sesion: true },
 };
 
 // ---------------------------------------------------------------------------
