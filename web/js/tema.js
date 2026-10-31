@@ -7,7 +7,14 @@
     const final = modo === 'auto' ? (sistemaOscuro ? 'dark' : 'light') : modo;
     document.documentElement.setAttribute('data-theme', final);
   }
-  const guardado = (function () {
+  const deUrl = (function () {
+    try {
+      const m = window.location.search.match(/[?&]tema=(light|dark|auto)\b/);
+      return m ? m[1] : null;
+    } catch (e) { return null; }
+  })();
+  if (deUrl) { try { localStorage.setItem(CLAVE, deUrl); } catch (e) { /* nada */ } }
+  const guardado = deUrl || (function () {
     try { return localStorage.getItem(CLAVE) || 'auto'; } catch (e) { return 'auto'; }
   })();
   aplicar(guardado);
