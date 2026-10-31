@@ -1,14 +1,62 @@
+/* Sistema de diseño — Cerro Azul
+   Lenguaje visual tipo Apple: superficies claras, vidrio, radios amplios y tipografía del sistema. */
+
 :root {
-  --bg: #F5F7FA; --surface: #FFFFFF; --surface-2: #EEF2F7; --border: #D9E0E8;
-  --text: #14202E; --text-muted: #5A6B7F;
-  --brand: #1F5FAF; --brand-strong: #174A8A;
-  --ok: #1E8E4E; --warn: #B7791F; --crit: #C62828; --urgent: #D9590B; --info: #2B6CB0; --none: #8A97A6;
-  --radio: 12px; --radio-sm: 8px; --sombra: 0 1px 3px rgba(20,32,46,.08), 0 8px 24px rgba(20,32,46,.06);
+  --bg: #fbfbfd;
+  --bg-degradado-1: rgba(0, 113, 227, .10);
+  --bg-degradado-2: rgba(120, 90, 255, .10);
+  --surface: #ffffff;
+  --surface-2: #f5f5f7;
+  --surface-3: #ececef;
+  --border: rgba(0, 0, 0, .08);
+  --border-fuerte: rgba(0, 0, 0, .14);
+  --text: #1d1d1f;
+  --text-2: #6e6e73;
+  --text-3: #86868b;
+  --brand: #0071e3;
+  --brand-hover: #0077ed;
+  --brand-suave: rgba(0, 113, 227, .10);
+  --ok: #1d8f4e;
+  --ok-suave: rgba(29, 143, 78, .12);
+  --warn: #b26a00;
+  --warn-suave: rgba(178, 106, 0, .12);
+  --crit: #d70015;
+  --crit-suave: rgba(215, 0, 21, .10);
+  --vidrio: rgba(255, 255, 255, .72);
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, .04);
+  --sombra-2: 0 12px 40px -12px rgba(0, 0, 0, .18);
+  --sombra-3: 0 24px 70px -20px rgba(0, 0, 0, .25);
+  --r-pill: 980px;
+  --r-xl: 22px;
+  --r-l: 18px;
+  --r-m: 12px;
+  --r-s: 8px;
+  --t: .25s cubic-bezier(.4, 0, .2, 1);
 }
+
 [data-theme="dark"] {
-  --bg: #0E1520; --surface: #16202E; --surface-2: #1E2A3B; --border: #2A3A50;
-  --text: #E8EEF5; --text-muted: #9AABBF;
-  --brand: #5B9BEA; --brand-strong: #82B4F0;
-  --ok: #3CC27A; --warn: #F0B54A; --crit: #FF6B6B; --urgent: #FF9A4D; --info: #6CB2F5; --none: #6B7A8C;
-  --sombra: none;
+  --bg: #000000;
+  --bg-degradado-1: rgba(10, 132, 255, .16);
+  --bg-degradado-2: rgba(120, 90, 255, .14);
+  --surface: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --surface-3: #3a3a3c;
+  --border: rgba(255, 255, 255, .12);
+  --border-fuerte: rgba(255, 255, 255, .20);
+  --text: #f5f5f7;
+  --text-2: #a1a1a6;
+  --text-3: #8e8e93;
+  --brand: #0a84ff;
+  --brand-hover: #409cff;
+  --brand-suave: rgba(10, 132, 255, .16);
+  --ok: #30d158;
+  --ok-suave: rgba(48, 209, 88, .14);
+  --warn: #ffd60a;
+  --warn-suave: rgba(255, 214, 10, .14);
+  --crit: #ff453a;
+  --crit-suave: rgba(255, 69, 58, .14);
+  --vidrio: rgba(28, 28, 30, .72);
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, .5);
+  --sombra-2: 0 12px 40px -12px rgba(0, 0, 0, .8);
+  --sombra-3: 0 24px 70px -20px rgba(0, 0, 0, .9);
 }

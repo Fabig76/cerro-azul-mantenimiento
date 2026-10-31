@@ -2,69 +2,84 @@
 <html lang="es-CO" data-theme="light">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://accounts.google.com; frame-src https://accounts.google.com; form-action 'none'; base-uri 'none'">
-<title>Ingreso — Portal de Mantenimientos Cerro Azul</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbfbfd">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self'; img-src 'self' data: https://*.googleusercontent.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://accounts.google.com; frame-src https://accounts.google.com; base-uri 'none'; form-action 'none'">
+<title>Ingresar — Portal de Mantenimientos Cerro Azul</title>
 <link rel="stylesheet" href="./css/tokens.css">
 <link rel="stylesheet" href="./css/base.css">
+<link rel="stylesheet" href="./css/app.css">
 <script src="./js/tema.js"></script>
 </head>
 <body>
-<header class="top">
-  <div>
-    <h1>Portal de Control de Mantenimientos</h1>
-    <div class="sub">Urbanización Cerro Azul</div>
+
+<nav class="barra">
+  <div class="marca"><span class="punto"></span>Cerro Azul</div>
+  <div class="sub">Portal de mantenimientos</div>
+  <div class="nav">
+    <button id="btnTema" type="button">Claro / Oscuro</button>
+    <a href="./index.html">Portal público</a>
   </div>
-  <div class="sp"></div>
-  <button class="btn ghost" id="btnTema" type="button" aria-label="Cambiar tema">Claro / Oscuro</button>
-  <a class="btn ghost" href="./index.html">Portal público</a>
-</header>
+</nav>
 
 <main>
   <!-- Ingreso -->
-  <section id="pantallaLogin" class="card">
-    <h2>Ingresar</h2>
-    <p class="lead">Entra con tu correo y te enviamos un enlace de un solo uso. También puedes usar tu cuenta de Google.</p>
+  <section id="pantallaLogin" class="acceso">
+    <div class="tarjeta alta">
+      <h1>Bienvenido</h1>
+      <p class="bajada">Ingresa con tu correo y te enviamos un enlace de un solo uso, o usa tu cuenta de Google.</p>
 
-    <form id="formLogin" novalidate>
-      <label for="correo">Correo electrónico</label>
-      <input id="correo" type="email" name="correo" autocomplete="email" placeholder="nombre@correo.com" required>
-      <div style="margin-top:16px">
-        <button class="btn primary" id="btnEnlace" type="submit" style="width:100%">Enviarme el enlace</button>
-      </div>
-    </form>
+      <form id="formLogin" novalidate>
+        <div class="campo">
+          <label for="correo">Correo electrónico</label>
+          <input id="correo" type="email" name="correo" autocomplete="email" inputmode="email"
+                 placeholder="nombre@correo.com" required>
+        </div>
+        <div class="campo">
+          <button class="btn primario bloque" id="btnEnlace" type="submit">Enviarme el enlace</button>
+        </div>
+      </form>
 
-    <div class="divider">o</div>
-    <div id="cajaGoogle" style="display:flex;justify-content:center"></div>
-    <button class="btn" id="btnGoogle" type="button" style="width:100%">Ingresar con Google</button>
+      <div class="separador">o</div>
+      <div class="caja-google" id="cajaGoogle"></div>
+      <button class="btn contorno bloque" id="btnGoogle" type="button">Ingresar con Google</button>
 
-    <div class="msg" id="avisoLogin" role="status"></div>
+      <div class="msg" id="avisoLogin" role="status" aria-live="polite"></div>
+    </div>
   </section>
 
   <!-- Cuenta en revisión -->
-  <section id="pantallaPendiente" class="card oculto">
-    <h2>Tu cuenta está en revisión</h2>
-    <p class="lead">La administración debe activar tu acceso y asignarte las secciones que puedes atender.</p>
-    <p class="msg info show">Correo registrado: <strong id="pendienteNombre"></strong></p>
+  <section id="pantallaPendiente" class="acceso oculto">
+    <div class="tarjeta alta">
+      <h1>Tu cuenta está en revisión</h1>
+      <p class="bajada">La administración debe activar tu acceso y asignarte las secciones que puedes atender.</p>
+      <p class="msg info mostrar">Correo registrado: <strong id="pendienteNombre"></strong></p>
+    </div>
   </section>
 
   <!-- Panel -->
-  <section id="pantallaPanel" class="oculto">
-    <div class="card" style="margin-bottom:18px">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <div>
-          <h2 style="margin:0">Hola, <span id="nombreUsuario"></span></h2>
-          <p class="lead" style="margin:2px 0 0">Rol: <strong id="rolUsuario"></strong></p>
-        </div>
-        <div style="flex:1"></div>
-        <button class="btn" id="btnSalir" type="button">Cerrar sesión</button>
+  <section id="pantallaPanel" class="panel oculto">
+    <div class="tarjeta perfil">
+      <div class="avatar" id="avatar" aria-hidden="true">CA</div>
+      <div class="quien">
+        <h2>Hola, <span id="nombreUsuario"></span></h2>
+        <p><span class="etiqueta-rol" id="rolUsuario"></span></p>
+      </div>
+      <div class="acciones">
+        <button class="btn contorno" id="btnSalir" type="button">Cerrar sesión</button>
       </div>
     </div>
-    <div class="card">
-      <h2>Secciones</h2>
-      <p class="lead">Árbol de mantenimiento del conjunto. Los nodos marcados como sensibles nunca muestran detalle en el portal público.</p>
+
+    <div class="tarjeta" id="tarjetaArbol">
+      <div class="cabecera-seccion">
+        <h2>Secciones</h2>
+        <span class="codigo" id="conteoNodos"></span>
+      </div>
+      <p class="bajada-tarjeta">Árbol de mantenimiento del conjunto. Los nodos marcados como sensibles nunca muestran detalle en el portal público.</p>
       <div id="arbol"></div>
-      <p id="sinAsignacion" class="msg info oculto">Todavía no tienes secciones asignadas.</p>
+      <div id="sinAsignacion" class="vacio oculto">
+        <p>Todavía no tienes secciones asignadas.</p>
+      </div>
     </div>
   </section>
 </main>

@@ -1,0 +1,159 @@
+/* Pantalla de ingreso y panel */
+
+.acceso {
+  max-width: 440px;
+  margin: 54px auto 0;
+  padding: 0 22px;
+}
+
+.acceso .tarjeta { padding: 34px 30px 30px; }
+
+.acceso h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  text-align: center;
+}
+
+.acceso .bajada {
+  margin: 0 0 6px;
+  text-align: center;
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.caja-google {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+/* Panel */
+.panel { max-width: 1000px; margin: 34px auto 0; padding: 0 22px; }
+
+.perfil {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 22px 26px;
+}
+
+.avatar {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: #fff;
+  background: linear-gradient(145deg, #0a84ff, #5e5ce6);
+  box-shadow: 0 6px 18px -6px rgba(10, 132, 255, .6);
+}
+
+.perfil .quien { min-width: 0; }
+.perfil .quien h2 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: -.022em;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.perfil .quien p { margin: 2px 0 0; font-size: 13.5px; color: var(--text-2); }
+.perfil .acciones { margin-left: auto; display: flex; gap: 10px; }
+
+.etiqueta-rol {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--brand-suave);
+  color: var(--brand);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+/* Árbol */
+.cabecera-seccion {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.cabecera-seccion h2 { margin: 0; font-size: 22px; letter-spacing: -.022em; }
+
+ul.arbol, ul.arbol ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+ul.arbol { margin-top: 14px; }
+
+ul.arbol ul {
+  margin-left: 13px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+ul.arbol li { position: relative; }
+
+ul.arbol li > .fila-nodo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--r-m);
+  transition: background var(--t);
+  flex-wrap: wrap;
+}
+ul.arbol li > .fila-nodo:hover { background: var(--surface-2); }
+
+.fila-nodo .nombre { font-size: 15px; font-weight: 500; letter-spacing: -.012em; }
+
+.codigo {
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: .01em;
+  color: var(--text-3);
+  background: var(--surface-2);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.pill {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+.pill.sensible { background: var(--warn-suave); color: var(--warn); }
+
+.vacio {
+  text-align: center;
+  padding: 44px 20px;
+  color: var(--text-2);
+}
+.vacio svg { width: 40px; height: 40px; opacity: .5; margin-bottom: 12px; }
+
+@media (max-width: 640px) {
+  .acceso { margin-top: 28px; }
+  .perfil { padding: 18px; }
+  .perfil .acciones { margin-left: 0; width: 100%; }
+  .perfil .acciones .btn { width: 100%; }
+}
