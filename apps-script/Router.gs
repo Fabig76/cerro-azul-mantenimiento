@@ -57,6 +57,8 @@ const ACCIONES = {
   'empresa.datos': { fn: accionEmpresaDatos, publica: true },
   'usuario.inicial': { fn: accionUsuarioInicial, publica: true },
   'diag.asignacion': { fn: accionDiag, publica: true },
+  'salud.recalcular': { fn: accionSaludRecalcular, publica: true },
+  'snapshot.refrescar': { fn: accionSnapshotRefrescar, publica: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -146,6 +148,21 @@ function accionPing() {
 function accionSetup(ctx, payload, requestId, parametros) {
   const clave = (payload && payload.key) || '';
   return arranqueProtegido(clave, setup);
+}
+
+function accionSnapshotRefrescar() {
+  const veces = Number(prop('SNAP_REFRESH') || 0);
+  if (veces >= 5) fallar_('CONFLICTO', 'El refresco manual ya está cerrado.');
+  prop('SNAP_REFRESH', veces + 1);
+  cacheDel('snap');
+  return regenerarSnapshot();
+}
+
+function accionSaludRecalcular() {
+  if (prop('RECALC_HECHO') === 'si') fallar_('CONFLICTO', 'El recálculo inicial ya se ejecutó.');
+  const r = recalcularTodo('sistema');
+  prop('RECALC_HECHO', 'si');
+  return r;
 }
 
 function accionDiag() {

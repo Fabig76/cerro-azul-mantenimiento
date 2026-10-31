@@ -168,3 +168,25 @@ function recalcularSalud_(nodoId, usuario) {
 
   return resultado;
 }
+
+/** Recalcula todos los elementos y sus ancestros. Lo usa el disparador diario y el admin. */
+function recalcularTodo(usuario) {
+  const elementos = filtrar('nodos', function (n) {
+    return String(n.clase) === 'ELEMENTO' && bool(n.activo);
+  });
+  elementos.forEach(function (e) {
+    recalcularSalud_(e.id, usuario || 'sistema');
+  });
+  // Los agrupadores sin elementos quedan en SIN_DATOS.
+  filtrar('nodos', function (n) {
+    return String(n.clase) === 'AGRUPADOR' && bool(n.activo);
+  }).forEach(function (g) {
+    const hijos = filtrar('nodos', function (n) {
+      return String(n.parent_id) === String(g.id) && bool(n.activo) && n.salud_puntaje !== '';
+    });
+    if (!hijos.length) {
+      actualizar('nodos', g.id, { salud_estado: 'SIN_DATOS', salud_puntaje: '', salud_calculada_en: ahoraIso() }, usuario || 'sistema');
+    }
+  });
+  return { elementos: elementos.length };
+}
