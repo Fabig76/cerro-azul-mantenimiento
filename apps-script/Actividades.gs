@@ -30,6 +30,11 @@ function puedeVerActividad_(ctx, act) {
 }
 
 function actividadResumen_(a) {
+  const porHitos = null;
+  return actividadResumenBase_(a);
+}
+
+function actividadResumenBase_(a) {
   return {
     id: a.id, titulo: a.titulo, nodo_id: a.nodo_id, empresa_id: a.empresa_id,
     responsable_id: a.responsable_id, tipo: a.tipo, estado: a.estado, prioridad: a.prioridad,
@@ -179,7 +184,12 @@ function actividadesListar(ctx, payload) {
     total: lista.length,
     pagina: pagina,
     tam: tam,
-    actividades: paginaLista.map(actividadResumen_),
+    actividades: paginaLista.map(function (a) {
+      const r = actividadResumenBase_(a);
+      const ritmo = calcularRitmo_(a);
+      if (ritmo) r.ritmo = ritmo;
+      return r;
+    }),
   };
 }
 
@@ -211,8 +221,14 @@ function actividadesGet(ctx, payload) {
     };
   });
 
+  const resumen = actividadResumenBase_(act);
+  const ritmo = calcularRitmo_(act);
+  if (ritmo) resumen.ritmo = ritmo;
+  const porHitos = avancePorHitos_(act.id);
+  if (porHitos) resumen.avance_por_hitos = porHitos;
+
   return {
-    actividad: actividadResumen_(Object.assign({}, act, { estado: act.estado })),
+    actividad: resumen,
     descripcion: act.descripcion || '',
     nodo: nodo ? { id: nodo.id, codigo: nodo.codigo, nombre: nodo.nombre, sensible: bool(nodo.sensible) } : null,
     plantilla: plantilla ? {

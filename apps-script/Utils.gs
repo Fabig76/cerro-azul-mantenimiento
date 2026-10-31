@@ -147,3 +147,13 @@ function cacheContar(clave, ventanaSegundos) {
   cachePut(clave, String(actual), ventanaSegundos || 3600);
   return actual;
 }
+
+/** Guarda o actualiza una clave de configuración (solo ADMIN). */
+function configGuardar(ctx, payload) {
+  const clave = exigirTexto(payload.clave, 'clave', 60);
+  const valor = payload.valor === undefined ? '' : String(payload.valor);
+  const existente = filtrar('config', function (c) { return String(c.clave) === clave; })[0];
+  configEscribir(clave, valor, existente ? existente.descripcion : '');
+  auditar(ctx.usuario.email, 'CONFIG_CAMBIADA', 'config', clave, existente ? existente.valor : null, valor);
+  return { clave: clave, valor: valor };
+}

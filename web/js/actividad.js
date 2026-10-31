@@ -218,6 +218,117 @@
     return caja;
   }
 
+  function bloqueHitos() {
+    const a = datos.actividad;
+    const hitos = datos.hitos || [];
+    if (!hitos.length && rol !== 'ADMIN') return null;
+
+    const caja = el('div', 'bloque');
+    caja.appendChild(el('div', 'kicker', 'Etapas del trabajo'));
+
+    if (a.ritmo) {
+      const ritmo = el('div', 'ritmo');
+      const esperado = el('span', 'ritmo-marca');
+      esperado.style.left = Math.max(0, Math.min(100, a.ritmo.esperado)) + '%';
+      esperado.title = 'Debería ir en ' + a.ritmo.esperado + '%';
+      const barra = el('div', 'ritmo-barra');
+      const relleno = el('i');
+      relleno.style.width = Math.max(0, Math.min(100, a.avance_aprobado_pct)) + '%';
+      barra.appendChild(relleno);
+      barra.appendChild(esperado);
+      ritmo.appendChild(barra);
+      const txt = el('p', 'bajada-tarjeta');
+      txt.textContent = 'Aprobado ' + a.avance_aprobado_pct + '% · esperado a hoy ' + a.ritmo.esperado +
+        '% · día ' + a.ritmo.dias_transcurridos + ' de ' + a.ritmo.dias_plan +
+        (a.ritmo.en_riesgo ? ' · va con retraso' : ' · al ritmo previsto');
+      ritmo.appendChild(txt);
+      if (a.ritmo.en_riesgo) ritmo.appendChild(el('span', 'badge danger', 'En riesgo'));
+      caja.appendChild(ritmo);
+    }
+
+    if (!hitos.length) {
+      caja.appendChild(el('p', 'bajada-tarjeta', 'Esta actividad no tiene etapas definidas.'));
+    } else {
+      hitos.forEach(function (h) {
+        const fila = el('div', 'item-check');
+        const cab = el('div', 'hito-cab');
+        cab.appendChild(el('span', 'item-pregunta', h.orden + '. ' + h.nombre));
+        const estado = { PENDIENTE: ['Pendiente', 'gray'], REPORTADO: ['Reportado', 'warn'], APROBADO: ['Aprobado', 'ok'], RECHAZADO: ['Rechazado', 'danger'], CANCELADO: ['Cancelado', 'gray'] }[h.estado] || [h.estado, 'gray'];
+        cab.appendChild(el('span', 'badge ' + estado[1], estado[0]));
+        fila.appendChild(cab);
+        const meta = el('span', 'item-criterio', 'Peso ' + h.peso + (h.fecha_plan ? ' · ' + h.fecha_plan : ''));
+        fila.appendChild(meta);
+
+        if (rol !== 'ADMIN' && (h.estado === 'PENDIENTE' || h.estado === 'RECHAZADO') && a.estado === 'EN_EJECUCION') {
+          const btn = el('button', 'btn sm', 'Reportar esta etapa');
+          btn.type = 'button';
+          btn.addEventListener('click', async function () {
+            btn.disabled = true;
+            const r = await API.llamar('reportes.crear', {
+              actividad_id: a.id,
+              tipo: 'AVANCE',
+              hito_id: h.id,
+              pct_declarado: h.peso,
+              descripcion: 'Etapa reportada: ' + h.nombre,
+            }, { token: Sesion.token(), idempotente: true });
+            btn.disabled = false;
+            if (!r.ok) return aviso(r.message || 'No se pudo reportar.', 'error');
+            aviso('Etapa reportada. La administración debe aprobarla.', 'ok');
+            abrir(a.id, rol);
+          });
+          fila.appendChild(btn);
+        }
+        caja.appendChild(fila);
+      });
+    }
+
+    if (rol === 'ADMIN' && a.estado !== 'CERRADA' && a.estado !== 'CANCELADA') {
+      const btn = el('button', 'btn sm', hitos.length ? 'Reemplazar etapas' : 'Definir etapas');
+      btn.type = 'button';
+      btn.addEventListener('click', function () { formularioHitos(); });
+      caja.appendChild(btn);
+    }
+    return caja;
+  }
+
+  function formularioHitos() {
+    const caja = bloqueFormulario('Etapas del trabajo');
+    caja.appendChild(el('p', 'bajada-tarjeta', 'Una línea por etapa: nombre | peso | fecha. El peso define cuánto aporta al avance.'));
+    const area = el('textarea', 'item-input');
+    area.id = 'hitosTexto';
+    area.placeholder = 'Desmontaje | 2 | 2026-11-03\nImpermeabilización | 5 | 2026-11-06\nRemate y limpieza | 1 | 2026-11-08';
+    const actuales = (datos.hitos || []).filter(function (h) { return h.estado !== 'APROBADO'; });
+    area.value = actuales.map(function (h) { return h.nombre + ' | ' + h.peso + ' | ' + (h.fecha_plan || ''); }).join('\n');
+    caja.appendChild(area);
+
+    const acciones = el('div', 'acciones-form');
+    const guardar = el('button', 'btn primary', 'Guardar etapas');
+    guardar.type = 'button';
+    guardar.addEventListener('click', async function () {
+      const lineas = area.value.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+      const hitos = lineas.map(function (l) {
+        const p = l.split('|').map(function (x) { return x.trim(); });
+        return { nombre: p[0], peso: Number(p[1]) || 1, fecha_plan: p[2] || '' };
+      });
+      if (!hitos.length) return aviso('Escribe al menos una etapa.', 'error');
+      guardar.disabled = true;
+      const r = await API.llamar('hitos.guardar', {
+        actividad_id: datos.actividad.id, hitos: hitos,
+      }, { token: Sesion.token(), idempotente: true });
+      guardar.disabled = false;
+      if (!r.ok) return aviso(r.message || 'No se pudieron guardar.', 'error');
+      aviso('Etapas guardadas: ' + r.data.hitos + ' con peso total ' + r.data.peso_total + '.', 'ok');
+      abrir(datos.actividad.id, rol);
+    });
+    const volver = el('button', 'btn', 'Volver');
+    volver.type = 'button';
+    volver.addEventListener('click', function () { pintar(); });
+    acciones.appendChild(guardar);
+    acciones.appendChild(volver);
+    caja.appendChild(acciones);
+    document.getElementById('contenidoActividad').appendChild(caja);
+  }
+
   function acciones() {
     const caja = el('div', 'bloque acciones-detalle');
     const a = datos.actividad;
@@ -461,6 +572,8 @@
     cont.textContent = '';
     cont.appendChild(cabecera());
     cont.appendChild(bloqueEvidencias());
+    const hitos = bloqueHitos();
+    if (hitos) cont.appendChild(hitos);
 
     const a = datos.actividad;
     if (a.estado === 'PROGRAMADA') cont.appendChild(bloqueFotos('ANTES', fotosAntes, 2));

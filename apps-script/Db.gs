@@ -222,6 +222,31 @@ function auditar(usuario, accion, entidad, entidadId, antes, despues) {
   }
 }
 
+/**
+ * Escribe una clave de configuración. La hoja `config` no tiene `id`, así que no se usa
+ * `actualizar` (que busca por id): se localiza la fila y se escribe la celda.
+ */
+function configEscribir(clave, valor, descripcion) {
+  const cab = cabeceras('config');
+  if (cab.clave === undefined || cab.valor === undefined) throw new Error('MODELO: hoja config inválida');
+  const sh = hoja('config');
+  const fila = filtrar('config', function (c) { return String(c.clave) === String(clave); })[0];
+  if (fila) {
+    sh.getRange(fila._fila, cab.valor + 1).setValue(valor);
+    if (descripcion && cab.descripcion !== undefined) {
+      sh.getRange(fila._fila, cab.descripcion + 1).setValue(descripcion);
+    }
+  } else {
+    const nueva = {};
+    nueva.clave = clave;
+    nueva.valor = valor;
+    if (cab.descripcion !== undefined) nueva.descripcion = descripcion || '';
+    sh.appendRow(aFila('config', nueva));
+  }
+  limpiarCache('config');
+  return valor;
+}
+
 function config(clave) {
   const lista = filas('config');
   for (let i = 0; i < lista.length; i++) {

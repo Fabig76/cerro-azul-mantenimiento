@@ -60,6 +60,9 @@ const ACCIONES = {
   'salud.recalcular': { fn: accionSaludRecalcular, publica: true },
   'snapshot.refrescar': { fn: accionSnapshotRefrescar, publica: true },
   'disparadores.instalar': { fn: accionInstalarDisparadores, publica: true },
+  'hitos.guardar': { fn: hitosGuardar, sesion: true, roles: ['ADMIN'] },
+  'config.guardar': { fn: configGuardar, sesion: true, roles: ['ADMIN'] },
+  'ajustes.aplicar': { fn: accionAjustes, publica: true },
   'recurrencias.listar': { fn: recurrenciasListar, sesion: true },
   'recurrencias.guardar': { fn: recurrenciasGuardar, sesion: true, roles: ['ADMIN'] },
   'recurrencias.pausar': { fn: recurrenciasPausar, sesion: true, roles: ['ADMIN'] },
@@ -159,6 +162,10 @@ function accionPing() {
 function accionSetup(ctx, payload, requestId, parametros) {
   const clave = (payload && payload.key) || '';
   return arranqueProtegido(clave, setup);
+}
+
+function accionAjustes() {
+  return aplicarAjustes();
 }
 
 function accionGenerar(ctx) {

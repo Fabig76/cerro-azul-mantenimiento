@@ -154,6 +154,14 @@ function reportesCrear(ctx, payload) {
     filasRespuestas.forEach(function (f) { f.reporte_id = cabecera.id; });
     if (filasRespuestas.length) insertarVarias('respuestas', filasRespuestas, ctx.usuario.email);
 
+    if (payload.hito_id) {
+      const hito = buscarPorId('hitos', payload.hito_id);
+      if (!hito || String(hito.actividad_id) !== String(actividadId)) {
+        fallar_('VALIDACION', 'El hito no pertenece a esta actividad.');
+      }
+      actualizar('hitos', payload.hito_id, { estado: 'REPORTADO' }, ctx.usuario.email);
+    }
+
     const cambiosAct = {
       avance_reportado_pct: avance,
       estado: tipo === 'FINAL' ? 'REPORTADA' : 'EN_EJECUCION',
@@ -199,10 +207,14 @@ function reportesRevisar(ctx, payload) {
     }, ctx.usuario.email);
 
     const cambios = {};
+    if (decision === 'APROBAR' && reporte.hito_id) {
+      actualizar('hitos', reporte.hito_id, { estado: 'APROBADO', fecha_aprobacion: hoyIso() }, ctx.usuario.email);
+    }
+
     if (decision === 'APROBAR') {
-      const avance = Number(reporte.pct_declarado || 0);
-      cambios.estado = 'APROBADA';
-      cambios.avance_aprobado_pct = avance;
+      let avance = Number(reporte.pct_declarado || 0);
+      const porHitos = avancePorHitos_(act.id);
+      if (porHitos && reporte.hito_id) avance = porHitos.pct;
       cambios.fecha_aprobacion = ahoraIso();
       cambios.vencida = false;
       cambios.ultimo_mant_en = hoyIso();

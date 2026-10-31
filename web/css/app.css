@@ -282,3 +282,17 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 .novedad-cab { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
 .novedad-cab h3 { margin: 0; font-size: 14.5px; font-weight: 700; }
 .novedad p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+
+/* Ritmo e hitos */
+.ritmo { margin-bottom: 12px; }
+.ritmo-barra { position: relative; height: 10px; border-radius: 999px; background: var(--card-2); overflow: visible; }
+.ritmo-barra > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #10b981, #22d3ee); }
+.ritmo-marca {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 18px;
+  background: var(--danger);
+  border-radius: 2px;
+}
+.hito-cab { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }

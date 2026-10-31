@@ -332,7 +332,7 @@ function semillaConfig() {
     ['umbral_riesgo_pts', '20', 'Desviación de ritmo que marca una actividad en riesgo'],
     ['tolerancia_dias', '2', 'Días de tolerancia para contar a tiempo'],
     ['dias_proximo', '7', 'Días para el distintivo Próximo'],
-    ['dias_aviso_programado', '2', 'Días de anticipación del aviso de mantenimiento programado'],
+    ['dias_aviso_programado', '1', 'Días de anticipación de la actividad respecto a su fecha'],
     ['auto_publicar_criticas', 'FALSE', 'Publicar automáticamente alertas críticas'],
     ['cierre_automatico', 'TRUE', 'Pasar de aprobada a cerrada sin acta pendiente'],
     ['version_politica_datos', '1.0', 'Versión de la política de tratamiento de datos'],
