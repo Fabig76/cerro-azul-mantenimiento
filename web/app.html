@@ -93,6 +93,38 @@
       <div class="msg" id="avisoActividad" role="status" aria-live="polite"></div>
     </div>
 
+    <div class="card seccion-panel oculto" id="tarjetaUsuarios">
+      <div class="cabecera-seccion">
+        <h2>Usuarios</h2>
+        <span class="codigo" id="conteoUsuarios"></span>
+      </div>
+      <p class="bajada-tarjeta">Activa a quien se registra y asígnale las secciones que puede atender. Cada contratista necesita una empresa.</p>
+      <div id="listaUsuarios" class="lista-usuarios"></div>
+      <div id="panelUsuario" class="oculto"></div>
+      <div class="msg" id="avisoUsuarios" role="status" aria-live="polite"></div>
+
+      <form id="formEmpresa" class="form-actividad" novalidate>
+        <div class="kicker">Nueva empresa contratista</div>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="empRazon">Razón social</label>
+            <input id="empRazon" type="text" placeholder="Hidro S.A.S." required>
+          </div>
+          <div class="campo">
+            <label for="empNit">NIT</label>
+            <input id="empNit" type="text" placeholder="900123456">
+          </div>
+          <div class="campo">
+            <label for="empVigencia">Contrato hasta</label>
+            <input id="empVigencia" type="date">
+          </div>
+        </div>
+        <div class="acciones-form">
+          <button class="btn" type="submit">Crear empresa</button>
+        </div>
+      </form>
+    </div>
+
     <div class="card seccion-panel">
       <div class="cabecera-seccion">
         <h2>Secciones</h2>
@@ -170,6 +202,7 @@
 <script src="./js/google.js"></script>
 <script src="./js/fotos.js"></script>
 <script src="./js/actividad.js"></script>
+<script src="./js/usuarios.js"></script>
 <script src="./js/app.js"></script>
 </body>
 </html>

@@ -111,7 +111,15 @@
     rolActual = me.usuario.rol;
     cargarArbol(t, me);
     cargarActividades(t, me);
-    if (rolActual === 'ADMIN') prepararFormulario(t);
+    if (rolActual === 'ADMIN') {
+      prepararFormulario(t);
+      const tarjetaUsuarios = document.getElementById('tarjetaUsuarios');
+      if (tarjetaUsuarios) tarjetaUsuarios.classList.remove('oculto');
+      if (window.Usuarios) {
+        Usuarios.cargar();
+        Usuarios.prepararEmpresa();
+      }
+    }
   }
 
   function filaNodo(nodo) {

@@ -194,3 +194,38 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 .btn.peligro { color: var(--danger-ink); border-color: var(--danger); }
 .btn.peligro:hover { background: var(--danger-soft); color: var(--danger-ink); border-color: var(--danger); }
 .formulario-detalle { background: var(--card-2); border-radius: var(--radius-m); padding: 16px; margin-top: 12px; }
+
+/* Usuarios */
+.lista-usuarios { display: grid; gap: 10px; margin-top: 14px; }
+.usuario {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--card-2);
+  padding: 14px 16px;
+}
+.usuario-cab { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+.usuario-cab h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.usuario-correo { margin: 2px 0 8px; font-size: 12.8px; color: var(--muted); }
+.usuario-marcas { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.arbol-seleccion {
+  display: grid;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 8px;
+  background: var(--card);
+}
+.opcion-nodo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.opcion-nodo:hover { background: var(--brand-soft); }
+.opcion-nodo input { width: 17px; height: 17px; accent-color: var(--brand); }
