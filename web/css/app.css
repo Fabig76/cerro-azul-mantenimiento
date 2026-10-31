@@ -166,3 +166,27 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 @media (max-width: 640px) {
   .fila-campos { grid-template-columns: 1fr; }
 }
+
+/* Comparador antes / después */
+.comparador { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.comparador-marco {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background: var(--card-2);
+}
+.comparador-marco img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
+.comparador-marco figcaption {
+  padding: 8px 12px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+.comparador-antes figcaption { color: var(--warn-ink); }
+.comparador-despues figcaption { color: var(--ok-ink); }
+
+@media (max-width: 640px) { .comparador { grid-template-columns: 1fr; } }

@@ -32,6 +32,9 @@ const ACCIONES = {
   'evidencias.get': { fn: evidenciasGet, sesion: true },
   'reportes.crear': { fn: reportesCrear, sesion: true },
   'reportes.revisar': { fn: reportesRevisar, sesion: true, roles: ['ADMIN'] },
+
+  // Solo para cargar la demostración una vez; se cierra sola.
+  'demo.crear': { fn: accionDemo, publica: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -119,6 +122,11 @@ function accionPing() {
 function accionSetup(ctx, payload, requestId, parametros) {
   const clave = (payload && payload.key) || '';
   return arranqueProtegido(clave, setup);
+}
+
+function accionDemo() {
+  if (prop('DEMO_HECHO') === 'si') fallar_('CONFLICTO', 'La demostración ya fue creada.');
+  return crearDemo();
 }
 
 function accionSnapshotPendiente() {

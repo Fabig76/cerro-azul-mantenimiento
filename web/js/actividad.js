@@ -83,10 +83,31 @@
     const ev = datos.evidencias || [];
     const antes = ev.filter(function (e) { return e.momento === 'ANTES'; });
     const despues = ev.filter(function (e) { return e.momento === 'DESPUES'; });
-    const linea = el('p', 'bajada-tarjeta',
-      antes.length + ' foto(s) de ANTES · ' + despues.length + ' de DESPUÉS');
-    caja.appendChild(linea);
+    caja.appendChild(el('p', 'bajada-tarjeta',
+      antes.length + ' foto(s) de ANTES · ' + despues.length + ' de DESPUÉS'));
+
+    if (antes.length && despues.length) {
+      const comp = el('div', 'comparador');
+      [['ANTES', antes[0], 'comparador-antes'], ['DESPUÉS', despues[0], 'comparador-despues']].forEach(function (par) {
+        const marco = el('figure', 'comparador-marco ' + par[2]);
+        const img = el('img');
+        img.alt = par[0] + ': evidencia de la actividad';
+        img.loading = 'lazy';
+        marco.appendChild(img);
+        const pie = el('figcaption', null, par[0]);
+        marco.appendChild(pie);
+        comp.appendChild(marco);
+        cargarMiniatura(par[1].id, img);
+      });
+      caja.appendChild(comp);
+    }
     return caja;
+  }
+
+  async function cargarMiniatura(id, img) {
+    const r = await API.llamar('evidencias.get', { id: id, tam: 'grande' }, { token: Sesion.token() });
+    if (!r.ok) return;
+    img.src = 'data:' + r.data.mime + ';base64,' + r.data.base64;
   }
 
   function bloqueChecklist(editable) {
