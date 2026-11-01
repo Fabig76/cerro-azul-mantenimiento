@@ -58,6 +58,9 @@ function construirSnapshot() {
   const ejecutadas = delMes.filter(function (a) {
     return ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
   }).length;
+  const reportadas = delMes.filter(function (a) {
+    return String(a.estado) === 'REPORTADA';
+  }).length;
 
   const novedadesAbiertas = filtrar('novedades', function (n) {
     return bool(n.activo) && bool(n.publicable) &&
@@ -103,7 +106,8 @@ function construirSnapshot() {
     // Sin equipos registrados pero con trabajo hecho, el estado sale del cumplimiento del mes.
     let estado = dist.CRITICO > 0 ? 'CRITICO' : (dist.ATENCION > 0 ? 'ATENCION' : (hijos.length ? 'AL_DIA' : 'SIN_DATOS'));
     if (!hijos.length && programadas > 0) {
-      estado = ejecutadas >= programadas ? 'AL_DIA' : 'ATENCION';
+      const listas = ejecutadas + reportadas;
+      estado = listas >= programadas ? 'AL_DIA' : 'ATENCION';
     }
 
     return {
@@ -113,6 +117,7 @@ function construirSnapshot() {
       elementos: hijos.length,
       programadas: programadas,
       ejecutadas: ejecutadas,
+      reportadas: propios.filter(function (a) { return String(a.estado) === 'REPORTADA'; }).length,
       novedades: novedadesAbiertas.filter(function (n) { return String(n.nodo_id) === String(nodo.id); }).length,
     };
   }
@@ -125,7 +130,18 @@ function construirSnapshot() {
       salud: { puntaje: ag.puntaje, estado: ag.estado, distribucion: ag.distribucion, elementos: ag.elementos },
       mes: { programadas: ag.programadas, ejecutadas: ag.ejecutadas },
       novedades: ag.novedades,
-      ultimo_mant: fechaIso_(n.ultimo_mant_en),
+      ultimo_mant: (function () {
+        const aprobadas = actividades.filter(function (a) {
+          const en = porId[a.nodo_id];
+          if (!en) return false;
+          const suyo = en.ruta_ids + '/' + en.id;
+          const raiz = n.ruta_ids + '/' + n.id;
+          return (suyo === raiz || suyo.indexOf(raiz + '/') === 0) &&
+            ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0 && a.fecha_aprobacion;
+        });
+        if (!aprobadas.length) return '';
+        return aprobadas.map(function (a) { return fechaIso_(a.fecha_aprobacion); }).sort().pop();
+      })(),
       proximo_mant: fechaIso_(n.proximo_mant_en),
     };
   });
@@ -267,8 +283,21 @@ function construirSnapshot() {
     alertas: alertas,
     fotos_publicas: fotosPublicas,
     resumen: {
-      salud: { puntaje: saludPuntaje, estado: distribucion.CRITICO > 0 ? 'CRITICO' : (distribucion.ATENCION > 0 ? 'ATENCION' : 'AL_DIA'), distribucion: distribucion },
-      mes: { etiqueta: mesActual, programadas: programadas, ejecutadas: ejecutadas, cumplimiento_pct: programadas ? Math.round((ejecutadas / programadas) * 100) : null },
+      salud: {
+        puntaje: saludPuntaje,
+        // Sin mediciones no se puede decir «al día»: no hay nada que medir.
+        estado: distribucion.CRITICO > 0 ? 'CRITICO'
+          : (distribucion.ATENCION > 0 ? 'ATENCION'
+            : (distribucion.AL_DIA > 0 ? 'AL_DIA' : 'SIN_DATOS')),
+        distribucion: distribucion,
+      },
+      mes: {
+        etiqueta: mesActual,
+        programadas: programadas,
+        ejecutadas: ejecutadas,
+        reportadas: reportadas,
+        cumplimiento_pct: programadas ? Math.round((ejecutadas / programadas) * 100) : null,
+      },
       novedades_abiertas: novedadesAbiertas.length,
       proximos_7d: proximos7,
       elementos: elementos.length,

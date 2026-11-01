@@ -76,8 +76,15 @@
         etiqueta: (ESTADOS[salud.estado] || ['', 'gray'])[0],
         claseEtiqueta: (ESTADOS[salud.estado] || ['', 'gray'])[1],
       },
-      { n: (mes.cumplimiento_pct === null ? '—' : mes.cumplimiento_pct + '%'), l: 'Cumplimiento del mes', acento: 'indigo' },
-      { n: (mes.ejecutadas || 0) + ' / ' + (mes.programadas || 0), l: 'Ejecutadas de programadas', acento: 'cian' },
+      (function () {
+        // Si hay trabajo entregado y sin aprobar, el 0 % mentiría.
+        const reportadas = Number(mes.reportadas || 0);
+        if (reportadas > 0 && !mes.ejecutadas) {
+          return { n: reportadas, l: 'En revisión de la administración', acento: 'warn' };
+        }
+        return { n: (mes.cumplimiento_pct === null ? '—' : mes.cumplimiento_pct + '%'), l: 'Cumplimiento del mes', acento: 'indigo' };
+      })(),
+      { n: (mes.ejecutadas || 0) + ' / ' + (mes.programadas || 0), l: 'Aprobadas de programadas', acento: 'cian' },
       {
         n: r.novedades_abiertas || 0,
         l: 'Novedades abiertas',
@@ -143,7 +150,11 @@
       card.appendChild(barraDistribucion(s.salud.distribucion || {}));
 
       const mes = el('p', 'seccion-mes');
-      mes.textContent = 'Este mes: ' + s.mes.ejecutadas + ' de ' + s.mes.programadas + ' trabajos';
+      const aprobadas = Number(s.mes.ejecutadas || 0);
+      const entregadas = Number(s.mes.reportadas || 0);
+      let textoMes = 'Este mes: ' + aprobadas + ' de ' + (s.mes.programadas || 0) + ' aprobados';
+      if (entregadas > 0) textoMes += ' · ' + entregadas + ' en revisión';
+      mes.textContent = textoMes;
       card.appendChild(mes);
 
       if (s.novedades) {
