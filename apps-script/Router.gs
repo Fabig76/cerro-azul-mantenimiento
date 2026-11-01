@@ -18,7 +18,6 @@ const ACCIONES = {
   'auth.enlace.solicitar': { fn: authEnlaceSolicitar, publica: true },
   'auth.enlace.canjear': { fn: authEnlaceCanjear, publica: true },
   'auth.registrar': { fn: authRegistrar, publica: true },
-  'ejemplo.limpiar': { fn: ejemploLimpiar, sesion: true, roles: ['ADMIN'] },
   'auth.me': { fn: authMe, sesion: true },
   'auth.salir': { fn: authSalir, sesion: true },
 

@@ -44,38 +44,5 @@
     });
   }
 
-  function prepararEjemplo() {
-    const btn = document.getElementById('btnBorrarEjemplo');
-    if (!btn) return;
-    btn.addEventListener('click', async function () {
-      const caja = document.getElementById('avisoEjemplo');
-      if (btn.dataset.confirmado !== '1') {
-        btn.dataset.confirmado = '1';
-        btn.textContent = 'Confirmar: borrar datos de ejemplo';
-        if (caja) {
-          caja.textContent = 'Se retirarán las actividades, la novedad, la alerta y el tipo de ejemplo. Toca de nuevo para confirmar.';
-          caja.className = 'msg mostrar info';
-        }
-        setTimeout(function () {
-          btn.dataset.confirmado = '0';
-          btn.textContent = 'Borrar datos de ejemplo';
-        }, 8000);
-        return;
-      }
-      btn.disabled = true;
-      btn.textContent = 'Borrando…';
-      const r = await API.llamar('ejemplo.limpiar', {}, { token: Sesion.token(), idempotente: true });
-      btn.disabled = false;
-      btn.dataset.confirmado = '0';
-      btn.textContent = 'Borrar datos de ejemplo';
-      if (caja) {
-        caja.textContent = r.ok
-          ? 'Listo: se retiraron ' + r.data.borrados + ' registros de ejemplo.'
-          : (r.message || 'No se pudieron borrar.');
-        caja.className = 'msg mostrar ' + (r.ok ? 'ok' : 'error');
-      }
-    });
-  }
-
-  window.Respaldo = { cargar: cargar, preparar: preparar, prepararEjemplo: prepararEjemplo };
+  window.Respaldo = { cargar: cargar, preparar: preparar };
 })();

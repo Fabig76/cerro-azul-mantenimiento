@@ -203,7 +203,7 @@
         if (window.Elementos) { Elementos.cargar(); Elementos.preparar(); }
       }
       if (window.Pruebas) Pruebas.preparar();
-      if (window.Respaldo) { Respaldo.cargar(); Respaldo.preparar(); Respaldo.prepararEjemplo(); }
+      if (window.Respaldo) { Respaldo.cargar(); Respaldo.preparar(); }
       if (window.Empresas) { Empresas.preparar(); Empresas.cargar(); }
       if (window.Plan) { Plan.cargar(); Plan.preparar(); }
       if (window.Catalogo) { Catalogo.cargar(); Catalogo.preparar(); }

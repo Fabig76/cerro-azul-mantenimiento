@@ -128,7 +128,7 @@ function poblarEjemplo() {
         ultimo_mant_en: '',
         salud_puntaje: '',
         salud_estado: 'SIN_DATOS',
-        salud_calculado_en: '',
+        salud_calculada_en: '',
         activo: true,
       }, 'ejemplo');
       registrarEjemplo_('nodos', elemento.id);
@@ -387,7 +387,7 @@ function limpiarEjemplo(usuario) {
             cambios.ultimo_mant_en = '';
             cambios.salud_puntaje = '';
             cambios.salud_estado = 'SIN_DATOS';
-            cambios.salud_calculado_en = '';
+            cambios.salud_calculada_en = '';
           }
           actualizar(tabla, id, cambios, usuario || 'sistema');
           total++;
