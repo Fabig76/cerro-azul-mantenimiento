@@ -68,7 +68,7 @@
     const salud = r.salud || {};
     const mes = r.mes || {};
 
-    const acentoSalud = { AL_DIA: 'ok', ATENCION: 'warn', CRITICO: 'danger' }[salud.estado] || 'neutro';
+    const acentoSalud = { AL_DIA: 'ok', EN_REVISION: 'warn', ATENCION: 'warn', CRITICO: 'danger' }[salud.estado] || 'neutro';
     const tarjetas = [
       {
         n: salud.puntaje === null || salud.puntaje === undefined ? '—' : salud.puntaje,
@@ -129,7 +129,7 @@
       return;
     }
     snap.arbol.forEach(function (s) {
-      const acentoSeccion = { AL_DIA: 'ok', ATENCION: 'warn', CRITICO: 'danger' }[s.salud.estado] || 'neutro';
+      const acentoSeccion = { AL_DIA: 'ok', EN_REVISION: 'warn', ATENCION: 'warn', CRITICO: 'danger' }[s.salud.estado] || 'neutro';
       const card = el('article', 'card seccion-card acento-' + acentoSeccion);
       const cab = el('div', 'seccion-card-cab');
       const titulo = el('h3', null, s.nombre);
