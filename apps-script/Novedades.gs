@@ -95,16 +95,19 @@ function novedadesCrear(ctx, payload) {
 
 function novedadesResolver(ctx, payload) {
   const id = exigirTexto(payload.id, 'id');
-  const n = buscarPorId('novedades', id);
-  if (!n) fallar_('NO_ENCONTRADO', 'La novedad no existe.');
-  if (String(n.estado) === 'RESUELTA') fallar_('ESTADO_INVALIDO', 'Ya está resuelta.');
+  return conBloqueo(function () {
+    limpiarCache('novedades');
+    const n = buscarPorId('novedades', id);
+    if (!n) fallar_('NO_ENCONTRADO', 'La novedad no existe.');
+    if (String(n.estado) === 'RESUELTA') fallar_('ESTADO_INVALIDO', 'Ya está resuelta.');
 
-  const despues = actualizar('novedades', id, {
-    estado: 'RESUELTA',
-    fecha_resolucion: hoyIso(),
-  }, ctx.usuario.email);
+    const despues = actualizar('novedades', id, {
+      estado: 'RESUELTA',
+      fecha_resolucion: hoyIso(),
+    }, ctx.usuario.email);
 
-  recalcularSalud_(n.nodo_id, ctx.usuario.email);
-  auditar(ctx.usuario.email, 'NOVEDAD_RESUELTA', 'novedad', id, { estado: n.estado }, { estado: 'RESUELTA' });
-  return { novedad: novedadResumen_(despues) };
+    auditar(ctx.usuario.email, 'NOVEDAD_RESUELTA', 'novedad', id, { estado: n.estado }, { estado: 'RESUELTA' });
+    recalcularSalud_(n.nodo_id, ctx.usuario.email);
+    return { novedad: novedadResumen_(despues) };
+  });
 }

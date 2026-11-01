@@ -34,11 +34,21 @@ function actividadesIniciar(ctx, payload) {
   };
   if (total === 0) cambios.inicio_sin_foto_motivo = motivo;
 
-  const despues = actualizar('actividades', id, cambios, ctx.usuario.email);
-  auditar(ctx.usuario.email, 'ACTIVIDAD_INICIADA', 'actividad', id,
-    { estado: act.estado }, { estado: 'EN_EJECUCION', fotos_antes: total, motivo: motivo || null });
+  return conBloqueo(function () {
+    limpiarCache('actividades');
+    const act = buscarPorId('actividades', id);
+    if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
+    if (!puedeEjecutarActividad_(ctx, act)) fallar_('PROHIBIDO', 'No tienes acceso a esta actividad.');
+    if (['EN_EJECUCION', 'REPORTADA', 'APROBADA', 'CERRADA'].indexOf(String(act.estado)) >= 0) {
+      fallar_('ESTADO_INVALIDO', 'La actividad ya fue iniciada o cerrada.');
+    }
+    if (String(act.estado) === 'CANCELADA') fallar_('ESTADO_INVALIDO', 'La actividad está cancelada.');
 
-  return { actividad: actividadResumen_(despues), fotos_antes: total };
+    const despues = actualizar('actividades', id, cambios, ctx.usuario.email);
+    auditar(ctx.usuario.email, 'ACTIVIDAD_INICIADA', 'actividad', id,
+      { estado: act.estado }, { estado: 'EN_EJECUCION', fotos_antes: total, motivo: motivo || null });
+    return { actividad: actividadResumen_(despues), fotos_antes: total };
+  });
 }
 
 /** Calcula el cumplimiento de un ítem según su tipo y su criterio (RN-17). */
@@ -185,20 +195,19 @@ function falarEstadoCondicion_() {
 /** Revisión del administrador: aprobar o rechazar con motivo (RN-04). */
 function reportesRevisar(ctx, payload) {
   const reporteId = exigirTexto(payload.reporte_id, 'reporte_id');
-  const reporte = buscarPorId('reportes', reporteId);
-  if (!reporte) fallar_('NO_ENCONTRADO', 'El reporte no existe.');
-  if (String(reporte.estado_revision) !== 'PENDIENTE') fallar_('ESTADO_INVALIDO', 'Ese reporte ya fue revisado.');
-
   const decision = exigirEnEnum(payload.decision, 'decision', ['APROBAR', 'RECHAZAR']);
   const comentario = payload.comentario ? String(payload.comentario).slice(0, 1000) : '';
   if (decision === 'RECHAZAR' && comentario.length < 5) {
     fallar_('VALIDACION', 'Para rechazar escribe el motivo.');
   }
 
-  const act = buscarPorId('actividades', reporte.actividad_id);
-  if (!act) fallar_('NO_ENCONTRADO', 'La actividad del reporte no existe.');
-
   return conBloqueo(function () {
+    limpiarCache('reportes');
+    const reporte = buscarPorId('reportes', reporteId);
+    if (!reporte) fallar_('NO_ENCONTRADO', 'El reporte no existe.');
+    if (String(reporte.estado_revision) !== 'PENDIENTE') fallar_('ESTADO_INVALIDO', 'Ese reporte ya fue revisado.');
+    const act = buscarPorId('actividades', reporte.actividad_id);
+    if (!act) fallar_('NO_ENCONTRADO', 'La actividad del reporte no existe.');
     actualizar('reportes', reporteId, {
       estado_revision: decision === 'APROBAR' ? 'APROBADO' : 'RECHAZADO',
       comentario_admin: comentario,

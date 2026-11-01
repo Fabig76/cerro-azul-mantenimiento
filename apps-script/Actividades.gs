@@ -254,6 +254,11 @@ function actividadesGet(ctx, payload) {
 /** Edita una actividad existente. Solo ADMIN. */
 function actividadesEditar(ctx, payload) {
   const id = exigirTexto(payload.id, 'id');
+  return conBloqueo(function () { return editarActividad_(ctx, payload, id); });
+}
+
+function editarActividad_(ctx, payload, id) {
+  limpiarCache('actividades');
   const act = buscarPorId('actividades', id);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
   if (['CERRADA', 'CANCELADA'].indexOf(String(act.estado)) >= 0) {
@@ -305,6 +310,11 @@ function actividadesCancelar(ctx, payload) {
   const motivo = exigirTexto(payload.motivo, 'motivo', 500);
   if (motivo.length < 10) fallar_('VALIDACION', 'Escribe el motivo de la cancelación (al menos 10 caracteres).');
 
+  return conBloqueo(function () { return cancelarActividad_(ctx, payload, id, motivo); });
+}
+
+function cancelarActividad_(ctx, payload, id, motivo) {
+  limpiarCache('actividades');
   const act = buscarPorId('actividades', id);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
   if (String(act.estado) === 'CANCELADA') fallar_('ESTADO_INVALIDO', 'Ya está cancelada.');
