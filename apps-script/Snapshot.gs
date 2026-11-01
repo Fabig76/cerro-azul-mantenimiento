@@ -486,11 +486,13 @@ function publicNodo(param) {
     const delMes = propias.filter(function (a) { return mesDe_(a.fecha_fin_plan) === m; });
     const prog = delMes.length;
     const ej = delMes.filter(function (a) { return ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0; }).length;
+    const rep = delMes.filter(function (a) { return String(a.estado) === 'REPORTADA'; }).length;
     return {
       mes: m,
       etiqueta: MESES_CORTOS[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(2, 4),
       programadas: prog,
       ejecutadas: ej,
+      reportadas: rep,
       cumplimiento_pct: prog ? Math.round((ej / prog) * 100) : null,
     };
   });
@@ -557,15 +559,20 @@ function publicNodo(param) {
       puntaje: conPuntaje.length ? Math.round(conPuntaje.reduce(function (s, n) { return s + Number(n.salud_puntaje); }, 0) / conPuntaje.length) : null,
       estado: (function () {
         const base = ecumuladoEstado_(elementos);
-        if (base !== 'SIN_DATOS') return base;
+        if (base === 'CRITICO' || base === 'ATENCION') return base;
         const delMes = propias.filter(function (a) {
           return mesDe_(a.fecha_fin_plan) === mesActual && String(a.estado) !== 'CANCELADA';
         });
         if (!delMes.length) return 'SIN_DATOS';
-        const hechas = delMes.filter(function (a) {
+        const aprobadas = delMes.filter(function (a) {
           return ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
         }).length;
-        return hechas >= delMes.length ? 'AL_DIA' : 'ATENCION';
+        const entregadas = delMes.filter(function (a) {
+          return String(a.estado) === 'REPORTADA';
+        }).length;
+        if (aprobadas >= delMes.length) return 'AL_DIA';
+        if (aprobadas + entregadas >= delMes.length) return 'EN_REVISION';
+        return 'ATENCION';
       })(),
       distribucion: distribucion,
       elementos: elementos.length,

@@ -464,12 +464,24 @@
     if (kpis) {
       kpis.textContent = '';
       const mes = (d.meses || []).filter(function (m) { return m.mes === d.mes_actual; })[0] || {};
-      [
+      const enRevision = Number(mes.reportadas || 0);
+      const cifras = [
         { n: mes.programadas || 0, l: 'Programadas del mes', a: 'indigo' },
-        { n: mes.ejecutadas || 0, l: 'Ejecutadas', a: 'ok' },
-        { n: mes.cumplimiento_pct === null || mes.cumplimiento_pct === undefined ? '—' : mes.cumplimiento_pct + '%', l: 'Cumplimiento', a: 'ciber' },
-        { n: (d.proximos || []).length, l: 'Próximos 30 días', a: 'violeta' },
-      ].forEach(function (k) {
+        { n: mes.ejecutadas || 0, l: 'Aprobadas', a: 'ok' },
+      ];
+      if (enRevision > 0 && !mes.ejecutadas) {
+        cifras.push({ n: enRevision, l: 'En revisión de la administración', a: 'warn' });
+      } else {
+        cifras.push({
+          n: mes.cumplimiento_pct === null || mes.cumplimiento_pct === undefined ? '—' : mes.cumplimiento_pct + '%',
+          l: 'Cumplimiento',
+          a: 'ciber',
+        });
+        if (enRevision > 0) cifras.push({ n: enRevision, l: 'En revisión', a: 'warn' });
+      }
+      cifras.push({ n: (d.proximos || []).length, l: 'Próximos 30 días', a: 'violeta' });
+
+      cifras.forEach(function (k) {
         const caja = el('div', 'kpi acento-' + (k.a === 'ciber' ? 'cian' : k.a));
         caja.appendChild(el('div', 'kpi-n', String(k.n)));
         caja.appendChild(el('div', 'kpi-l', k.l));
