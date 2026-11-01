@@ -94,6 +94,28 @@
       sel.appendChild(op);
     }
     sel.addEventListener('change', function () { cargar(sel.value); });
+
+    const btn = document.getElementById('btnInforme');
+    if (btn) {
+      btn.addEventListener('click', async function () {
+        btn.disabled = true;
+        btn.textContent = 'Generando…';
+        const r = await API.llamar('informes.mensual', { mes: sel.value || undefined }, { token: Sesion.token() });
+        btn.disabled = false;
+        btn.textContent = 'Generar informe mensual';
+        if (!r.ok) return aviso(r.message || 'No se pudo generar el informe.', 'error');
+        aviso('Informe del mes listo y guardado en Drive.', 'ok');
+        const enlace = document.getElementById('enlaceInforme');
+        if (enlace) {
+          enlace.textContent = '';
+          enlace.href = r.data.url;
+          enlace.target = '_blank';
+          enlace.rel = 'noopener';
+          enlace.textContent = 'Abrir ' + r.data.nombre;
+          enlace.classList.remove('oculto');
+        }
+      });
+    }
   }
 
   window.Empresas = { cargar: cargar, preparar: preparar };
