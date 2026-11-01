@@ -51,6 +51,12 @@ function runAllTests() {
   pruebasRitmo_();
   pruebasSuperficiePublica_();
 
+  // Las fallas van primero: son lo único que hay que leer.
+  RESULTADOS.detalle.sort(function (a, b) {
+    const fa = a.indexOf('FALLA') === 0 ? 0 : 1;
+    const fb = b.indexOf('FALLA') === 0 ? 0 : 1;
+    return fa - fb;
+  });
   console.log('PASADAS: ' + RESULTADOS.pasadas + ' · FALLIDAS: ' + RESULTADOS.fallidas);
   console.log(RESULTADOS.detalle.join('\n'));
   return RESULTADOS;
