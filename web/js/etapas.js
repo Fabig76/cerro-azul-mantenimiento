@@ -25,6 +25,7 @@
     const cabecera = el('div', 'etapa-fila etapa-cab');
     cabecera.appendChild(el('span', null, 'Etapa'));
     cabecera.appendChild(el('span', null, 'Peso'));
+    cabecera.appendChild(el('span', null, '%'));
     cabecera.appendChild(el('span', null, 'Fecha'));
     cabecera.appendChild(el('span', null, ''));
     filas.appendChild(cabecera);
@@ -45,11 +46,22 @@
       peso.type = 'number';
       peso.className = 'item-input etapa-peso';
       peso.min = '1';
+      peso.max = '10';
       peso.step = '1';
       peso.inputMode = 'numeric';
       peso.value = d.peso === undefined ? PESO_POR_DEFECTO : d.peso;
-      peso.setAttribute('aria-label', 'Peso de la etapa');
-      peso.title = 'Cuánto aporta esta etapa al avance total';
+      peso.setAttribute('aria-label', 'Peso de la etapa, de 1 a 10');
+      peso.title = 'De 1 a 10: cuántas partes del trabajo representa esta etapa';
+      peso.addEventListener('blur', function () {
+        let v = Math.round(Number(peso.value) || PESO_POR_DEFECTO);
+        if (v < 1) v = 1;
+        if (v > 10) v = 10;
+        peso.value = v;
+        actualizarTotales();
+      });
+
+      // Porcentaje que representa esta etapa sobre el total
+      const parte = el('span', 'etapa-parte');
 
       const fecha = document.createElement('input');
       fecha.type = 'date';
@@ -70,6 +82,7 @@
 
       fila.appendChild(nombre);
       fila.appendChild(peso);
+      fila.appendChild(parte);
       fila.appendChild(fecha);
       fila.appendChild(quitar);
       filas.appendChild(fila);
@@ -86,16 +99,26 @@
     });
 
     function actualizarTotales() {
-      const pesos = Array.prototype.slice.call(filas.querySelectorAll('.etapa-peso'))
-        .map(function (i) { return Number(i.value) || 0; });
+      const entradas = Array.prototype.slice.call(filas.querySelectorAll('.etapa-fila:not(.etapa-cab)'));
+      const pesos = entradas.map(function (f) {
+        const p = f.querySelector('.etapa-peso');
+        return Math.max(0, Number(p && p.value) || 0);
+      });
       const total = pesos.reduce(function (a, b) { return a + b; }, 0);
+
+      entradas.forEach(function (f, i) {
+        const sello = f.querySelector('.etapa-parte');
+        if (sello) sello.textContent = total ? Math.round((pesos[i] / total) * 100) + ' %' : '—';
+      });
+
       const cuantas = pesos.length;
-      if (!cuantas) {
+      if (!cuantas || !total) {
         resumen.textContent = '';
         return;
       }
-      resumen.textContent = cuantas + (cuantas === 1 ? ' etapa · peso total ' : ' etapas · peso total ') + total +
-        '. Una etapa de peso 5 avanza lo mismo que cinco etapas de peso 1.';
+      resumen.textContent = cuantas + (cuantas === 1 ? ' etapa · ' : ' etapas · ') +
+        'el avance se reparte así: cada ' + (cuantas === 1 ? 'etapa es el 100 %' : 'etapa aporta su porcentaje') +
+        ', y al aprobarse todas el trabajo llega a 100 %.';
     }
 
     contenedor.appendChild(filas);
