@@ -207,3 +207,12 @@
   opacity: .8;
 }
 .franja-cerrar:hover { opacity: 1; }
+
+/* Tarjetas de la portada con acento propio */
+.card.con-acento {
+  border-left: 6px solid var(--acento, var(--line));
+  background: linear-gradient(100deg, var(--acento-suave, transparent) 0%, var(--card) 45%);
+}
+[data-theme="dark"] .card.con-acento {
+  background: linear-gradient(100deg, var(--acento-suave, transparent) 0%, var(--card) 58%);
+}
