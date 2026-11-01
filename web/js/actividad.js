@@ -93,6 +93,75 @@
    * Novedad encontrada durante el trabajo: la reporta cualquiera que pueda
    * ejecutar la actividad, y queda ligada al equipo y a esta actividad.
    */
+
+  /**
+   * Guía del trabajo: dice en qué paso va y cuál sigue.
+   * Es lo primero que ve quien abre la actividad.
+   */
+  function bloqueGuia() {
+    const a = datos.actividad;
+    const enCurso = ['EN_EJECUCION'].indexOf(String(a.estado)) >= 0;
+    const entregada = ['REPORTADA', 'APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
+    const cerrada = ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
+
+    const pasos = [
+      {
+        n: 1,
+        titulo: 'Toma la foto de antes',
+        detalle: 'Una o dos fotos del área tal como la encuentras. Sin esto no se puede empezar.',
+        hecho: fotosAntes.length > 0,
+        actual: String(a.estado) === 'PROGRAMADA' && fotosAntes.length === 0,
+      },
+      {
+        n: 2,
+        titulo: 'Marca el inicio del trabajo',
+        detalle: 'Queda registrada la hora en que empezaste. No cierra nada: solo arranca el trabajo.',
+        hecho: enCurso || entregada,
+        actual: String(a.estado) === 'PROGRAMADA' && fotosAntes.length > 0,
+      },
+      {
+        n: 3,
+        titulo: 'Responde el checklist y cuenta qué hiciste',
+        detalle: 'Cada ítem del checklist y una descripción del trabajo realizado.',
+        hecho: entregada,
+        actual: enCurso,
+      },
+      {
+        n: 4,
+        titulo: 'Sube la foto de después y envía',
+        detalle: 'La misma toma, ya terminado. Al enviar, la administración revisa y aprueba.',
+        hecho: cerrada,
+        actual: enCurso && fotosDespues.length > 0,
+      },
+    ];
+
+    const caja = el('div', 'guia');
+    caja.appendChild(el('div', 'kicker', 'Cómo se registra este trabajo'));
+
+    const lista = el('ol', 'guia-pasos');
+    pasos.forEach(function (p) {
+      const li = el('li', 'guia-paso' + (p.hecho ? ' hecho' : '') + (p.actual ? ' actual' : ''));
+      const marca = el('span', 'guia-marca', p.hecho ? '✓' : String(p.n));
+      const texto = el('div', 'guia-texto');
+      texto.appendChild(el('strong', null, p.titulo));
+      texto.appendChild(el('span', null, p.detalle));
+      li.appendChild(marca);
+      li.appendChild(texto);
+      lista.appendChild(li);
+    });
+    caja.appendChild(lista);
+
+    const siguiente = pasos.filter(function (p) { return !p.hecho; })[0];
+    if (siguiente) {
+      caja.appendChild(el('p', 'guia-ahora', 'Ahora: ' + siguiente.titulo.toLowerCase() + '.'));
+    } else if (String(a.estado) === 'REPORTADA') {
+      caja.appendChild(el('p', 'guia-ahora', 'Enviado. Está en revisión de la administración.'));
+    } else {
+      caja.appendChild(el('p', 'guia-ahora', 'Trabajo cerrado y aprobado.'));
+    }
+    return caja;
+  }
+
   function bloqueNovedad() {
     const a = datos.actividad;
     if (['CERRADA', 'CANCELADA', 'APROBADA'].indexOf(String(a.estado)) >= 0) return null;
@@ -392,7 +461,9 @@
     inp.className = 'oculto';
     inp.id = 'file_' + momento;
 
-    const btn = el('button', 'btn', 'Tomar foto');
+    const esPrimerPaso = momento === 'ANTES' && destino.length === 0;
+    const btn = el('button', esPrimerPaso ? 'btn primary' : 'btn',
+      esPrimerPaso ? '1. Tomar la foto de antes' : 'Tomar foto');
     btn.type = 'button';
     btn.addEventListener('click', function () { inp.click(); });
 
@@ -400,7 +471,7 @@
       const file = inp.files && inp.files[0];
       if (!file) return;
       btn.disabled = true;
-      btn.textContent = 'Comprimiendo…';
+      btn.textContent = 'Comprimiendo la foto…';
       try {
         const prep = await Fotos.preparar(file);
         const r = await API.llamar('evidencias.upload', {
@@ -424,7 +495,7 @@
         caja.appendChild(previa);
 
         btn.disabled = false;
-        btn.textContent = 'Foto de ' + momento.toLowerCase() + ' lista ✓';
+        btn.textContent = 'Foto de ' + momento.toLowerCase() + ' lista ✓ (tocar para reemplazar)';
         btn.classList.add('cargada');
         aviso('Foto de ' + momento.toLowerCase() + ' cargada (' + prep.kb + ' KB).', 'ok');
         pintar();
@@ -553,7 +624,7 @@
     const a = datos.actividad;
 
     if (a.estado === 'PROGRAMADA') {
-      const btn = el('button', 'btn primary', 'Iniciar con fotos de antes');
+      const btn = el('button', 'btn primary', 'Empezar el trabajo ahora');
       btn.type = 'button';
       btn.disabled = fotosAntes.length === 0;
       btn.addEventListener('click', async function () {
@@ -570,7 +641,13 @@
         abrir(a.id, rol);
       });
       caja.appendChild(btn);
-      if (fotosAntes.length === 0) caja.appendChild(el('p', 'bajada-tarjeta', 'Sube primero una foto de antes.'));
+      if (fotosAntes.length === 0) {
+        caja.appendChild(el('p', 'bajada-tarjeta aviso-paso',
+          'Falta la foto de antes: tómala arriba y este botón se activa solo.'));
+      } else {
+        caja.appendChild(el('p', 'bajada-tarjeta',
+          'Al pulsarlo se registra la hora de inicio. La actividad pasa a «en ejecución» y podrás llenar el checklist.'));
+      }
     }
 
     if (a.estado === 'EN_EJECUCION') {
@@ -814,6 +891,7 @@
 
   function pintarDetalle(cont) {
     cont.appendChild(cabecera());
+    cont.appendChild(bloqueGuia());
     const hitos = bloqueHitos();
     if (hitos) cont.appendChild(hitos);
 
