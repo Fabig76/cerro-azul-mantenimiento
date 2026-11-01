@@ -215,7 +215,124 @@
     }
   }
 
-  function filaNodo(nodo) {
+  const nodosAbiertos = {};
+  let tiposCache = null;
+
+  async function tiposDisponibles(t) {
+    if (tiposCache) return tiposCache;
+    const r = await API.llamar('tipos.listar', {}, { token: t });
+    tiposCache = (r.ok && r.data.tipos) ? r.data.tipos : [];
+    return tiposCache;
+  }
+
+  /** Formulario de edición en línea para un nodo. */
+  async function editorNodo(nodo, t, alGuardar) {
+    const caja = document.createElement('form');
+    caja.className = 'editor-nodo';
+
+    function campo(etiqueta, input) {
+      const c = document.createElement('div');
+      c.className = 'campo';
+      const l = document.createElement('label');
+      l.textContent = etiqueta;
+      c.appendChild(l);
+      c.appendChild(input);
+      return c;
+    }
+
+    const nombre = document.createElement('input');
+    nombre.type = 'text';
+    nombre.maxLength = 120;
+    nombre.value = nodo.nombre;
+    nombre.required = true;
+
+    const descripcion = document.createElement('input');
+    descripcion.type = 'text';
+    descripcion.maxLength = 200;
+    descripcion.value = nodo.descripcion || '';
+
+    const tipos = await tiposDisponibles(t);
+    let selectTipo = null;
+    if (String(nodo.clase) === 'ELEMENTO') {
+      selectTipo = document.createElement('select');
+      selectTipo.className = 'item-input';
+      const vacio = document.createElement('option');
+      vacio.value = '';
+      vacio.textContent = 'Sin tipo';
+      selectTipo.appendChild(vacio);
+      tipos.forEach(function (tp) {
+        const op = document.createElement('option');
+        op.value = tp.id;
+        op.textContent = tp.nombre;
+        if (String(tp.id) === String(nodo.tipo_elemento_id)) op.selected = true;
+        selectTipo.appendChild(op);
+      });
+    }
+
+    const sensible = document.createElement('input');
+    sensible.type = 'checkbox';
+    sensible.checked = String(nodo.sensible) === 'true';
+    const etiquetaSensible = document.createElement('label');
+    etiquetaSensible.className = 'casilla-datos compacta';
+    etiquetaSensible.appendChild(sensible);
+    const textoS = document.createElement('span');
+    textoS.textContent = 'Sistema sensible: no se publica su detalle';
+    etiquetaSensible.appendChild(textoS);
+
+    caja.appendChild(campo('Nombre', nombre));
+    if (selectTipo) caja.appendChild(campo('Tipo de equipo', selectTipo));
+    caja.appendChild(campo('Descripción', descripcion));
+    caja.appendChild(etiquetaSensible);
+
+    const acciones = document.createElement('div');
+    acciones.className = 'acciones-form';
+
+    const guardar = document.createElement('button');
+    guardar.type = 'submit';
+    guardar.className = 'btn primary';
+    guardar.textContent = 'Guardar';
+
+    const cancelar = document.createElement('button');
+    cancelar.type = 'button';
+    cancelar.className = 'btn';
+    cancelar.textContent = 'Cancelar';
+    cancelar.addEventListener('click', function () { caja.remove(); });
+
+    acciones.appendChild(guardar);
+    acciones.appendChild(cancelar);
+    caja.appendChild(acciones);
+
+    const aviso = document.createElement('div');
+    aviso.className = 'msg';
+    aviso.setAttribute('role', 'status');
+    caja.appendChild(aviso);
+
+    caja.addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      guardar.disabled = true;
+      const payload = {
+        id: nodo.id,
+        nombre: nombre.value.trim(),
+        descripcion: descripcion.value.trim(),
+        sensible: sensible.checked,
+      };
+      if (selectTipo) payload.tipo_elemento_id = selectTipo.value;
+      const r = await API.llamar('nodos.editar', payload, { token: t, idempotente: true });
+      guardar.disabled = false;
+      if (!r.ok) {
+        aviso.textContent = r.message || 'No se pudo guardar.';
+        aviso.className = 'msg mostrar error';
+        return;
+      }
+      caja.remove();
+      alGuardar();
+    });
+
+    return caja;
+  }
+
+  function filaNodo(nodo, opciones) {
+    const opts = opciones || {};
     const fila = document.createElement('div');
     fila.className = 'fila-nodo';
 
@@ -250,6 +367,42 @@
       pill.textContent = 'sensible';
       fila.appendChild(pill);
     }
+
+    if (opts.conHijos) {
+      const flecha = document.createElement('button');
+      flecha.type = 'button';
+      flecha.className = 'boton-plegar';
+      flecha.setAttribute('aria-label', 'Mostrar u ocultar subsecciones');
+      flecha.textContent = nodosAbiertos[nodo.id] ? '▾' : '▸';
+      flecha.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        nodosAbiertos[nodo.id] = !nodosAbiertos[nodo.id];
+        opts.alPlegar();
+      });
+      fila.insertBefore(flecha, fila.firstChild);
+    } else {
+      const hueco = document.createElement('span');
+      hueco.className = 'boton-plegar hueco';
+      fila.insertBefore(hueco, fila.firstChild);
+    }
+
+    if (opts.editable) {
+      const editar = document.createElement('button');
+      editar.type = 'button';
+      editar.className = 'btn-mini';
+      editar.textContent = 'Editar';
+      editar.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        const existente = fila.parentNode.querySelector('.editor-nodo');
+        if (existente) existente.remove();
+        editorNodo(nodo, opts.token, opts.alGuardar).then(function (form) {
+          fila.parentNode.insertBefore(form, fila.nextSibling);
+          form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      });
+      fila.appendChild(editar);
+    }
+
     return fila;
   }
 
@@ -284,6 +437,8 @@
       (porPadre[p] = porPadre[p] || []).push(n);
     });
 
+    const puedeEditar = String(rolActual) === 'ADMIN';
+
     function pintar(padre) {
       const lista = document.createElement('ul');
       lista.className = 'arbol';
@@ -291,11 +446,23 @@
         .sort(function (a, b) { return Number(a.orden) - Number(b.orden); })
         .forEach(function (n) {
           const li = document.createElement('li');
-          li.appendChild(filaNodo(n));
-          if (porPadre[n.id]) li.appendChild(pintar(n.id));
+          const tieneHijos = !!porPadre[n.id];
+          li.appendChild(filaNodo(n, {
+            conHijos: tieneHijos,
+            editable: puedeEditar,
+            token: t,
+            alPlegar: function () { cargarArbol(t); },
+            alGuardar: function () { cargarArbol(t); },
+          }));
+          if (tieneHijos && nodosAbiertos[n.id]) li.appendChild(pintar(n.id));
           lista.appendChild(li);
         });
       return lista;
+    }
+
+    // Al entrar, solo el primer nivel está abierto.
+    if (!Object.keys(nodosAbiertos).length) {
+      (porPadre['RAIZ'] || []).forEach(function (n) { if (porPadre[n.id]) nodosAbiertos[n.id] = true; });
     }
 
     const resumen = document.createElement('div');
@@ -311,7 +478,29 @@
       chip.appendChild(document.createTextNode(cuantos + ' ' + par[1].toLowerCase()));
       resumen.appendChild(chip);
     });
+    const controles = document.createElement('div');
+    controles.className = 'controles-arbol';
+    const abrir = document.createElement('button');
+    abrir.type = 'button';
+    abrir.className = 'btn-mini';
+    abrir.textContent = 'Desplegar todo';
+    abrir.addEventListener('click', function () {
+      nodos.forEach(function (n) { nodosAbiertos[n.id] = true; });
+      cargarArbol(t);
+    });
+    const cerrar = document.createElement('button');
+    cerrar.type = 'button';
+    cerrar.className = 'btn-mini';
+    cerrar.textContent = 'Plegar todo';
+    cerrar.addEventListener('click', function () {
+      Object.keys(nodosAbiertos).forEach(function (k) { delete nodosAbiertos[k]; });
+      cargarArbol(t);
+    });
+    controles.appendChild(abrir);
+    controles.appendChild(cerrar);
+
     if (resumen.childNodes.length) cont.appendChild(resumen);
+    cont.appendChild(controles);
 
     cont.appendChild(pintar('RAIZ'));
   }

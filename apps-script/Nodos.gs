@@ -71,6 +71,12 @@ function nodosEditar(ctx, payload) {
 
   const cambios = {};
   if (payload.nombre !== undefined) cambios.nombre = exigirTexto(payload.nombre, 'nombre', 120);
+  if (payload.descripcion !== undefined) cambios.descripcion = String(payload.descripcion || '').slice(0, 300);
+  if (payload.tipo_elemento_id !== undefined) {
+    const tipoId = String(payload.tipo_elemento_id || '');
+    if (tipoId && !buscarPorId('tipos_elemento', tipoId)) fallar_('VALIDACION', 'El tipo no existe.');
+    cambios.tipo_elemento_id = tipoId;
+  }
   if (payload.sensible !== undefined) cambios.sensible = !!payload.sensible;
   if (payload.visible_publico !== undefined) cambios.visible_publico = !!payload.visible_publico;
   if (payload.criticidad !== undefined) cambios.criticidad = Number(payload.criticidad);
