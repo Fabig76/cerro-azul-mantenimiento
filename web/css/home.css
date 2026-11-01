@@ -274,3 +274,14 @@
 .estado-fila { display: flex; gap: 12px; align-items: flex-start; }
 .estado-fila p { margin: 0; font-size: 13.5px; color: var(--muted); }
 .estado-fila .badge { flex: 0 0 auto; margin-top: 1px; }
+
+/* Bloques del resumen */
+#resumenImportante { margin-top: 18px; }
+.fila-aviso { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+.fila-aviso:first-of-type { border-top: 0; }
+.fila-aviso strong { font-size: 14px; display: block; margin-bottom: 2px; }
+.fila-aviso p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.fila-aviso > div { min-width: 0; }
+.meta-novedad { font-size: 12px !important; color: var(--text-3, #86868b) !important; margin-top: 3px !important; }
+.vacio-linea { margin: 0; font-size: 13.5px; color: var(--muted); }
+#resumenImportante .card .btn { margin-top: 14px; }

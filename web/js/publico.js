@@ -52,6 +52,7 @@
     pintarRecientes(snap);
     pintarAlertas(snap);
     pintarNovedades(snap);
+    pintarImportante(snap);
     pintarCuentaNovedades(snap);
     pintarNormativo(snap);
     const sello = document.getElementById('actualizado');
@@ -278,6 +279,58 @@
       cerrar.addEventListener('click', function () { franja.classList.add('oculto'); });
       franja.appendChild(cerrar);
     }
+  }
+
+  function pintarImportante(snap) {
+    const cont = document.getElementById('resumenImportante');
+    if (!cont) return;
+    cont.textContent = '';
+
+    const alertas = (snap.alertas || []).slice(0, 2);
+    if (alertas.length) {
+      const caja = el('div', 'card con-acento acento-warn');
+      caja.appendChild(el('h3', 'titulo-tarjeta', 'Avisos de la administración'));
+      alertas.forEach(function (a) {
+        const fila = el('div', 'fila-aviso');
+        fila.appendChild(el('span', 'badge ' + (a.nivel === 'CRITICA' ? 'danger' : 'warn'), a.nivel));
+        const texto = el('div');
+        texto.appendChild(el('strong', null, a.titulo));
+        if (a.mensaje) texto.appendChild(el('p', null, a.mensaje));
+        fila.appendChild(texto);
+        caja.appendChild(fila);
+      });
+      cont.appendChild(caja);
+    }
+
+    const abiertas = (snap.novedades || []).slice(0, 3);
+    const cajaN = el('div', 'card con-acento acento-danger');
+    cajaN.appendChild(el('h3', 'titulo-tarjeta', 'Daños y fallas en atención'));
+    if (!abiertas.length) {
+      cajaN.appendChild(el('p', 'vacio-linea', 'Sin novedades abiertas.'));
+    } else {
+      abiertas.forEach(function (n) {
+        const fila = el('div', 'fila-aviso');
+        fila.appendChild(el('span', 'badge ' + (n.gravedad === 'ALTA' || n.gravedad === 'CRITICA' ? 'danger' : 'warn'),
+          n.gravedad));
+        const texto = el('div');
+        texto.appendChild(el('span', null, n.texto));
+        const meta = el('p', 'meta-novedad');
+        meta.textContent = n.nodo_codigo + (n.fecha_compromiso ? ' · compromiso ' + n.fecha_compromiso : '');
+        texto.appendChild(meta);
+        fila.appendChild(texto);
+        cajaN.appendChild(fila);
+      });
+    }
+    const enlace = el('a', 'btn', 'Ver todas');
+    enlace.href = '#/novedades';
+    enlace.dataset.ir = 'novedades';
+    enlace.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      window.location.hash = '#/novedades';
+      mostrarTab('novedades');
+    });
+    cajaN.appendChild(enlace);
+    cont.appendChild(cajaN);
   }
 
   function pintarCuentaNovedades(snap) {

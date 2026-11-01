@@ -398,3 +398,97 @@ function limpiarEjemplo(usuario) {
   auditar(usuario || 'sistema', 'EJEMPLO_RETIRADO', 'sistema', 'ejemplo', null, { borrados: total });
   return { borrados: total };
 }
+
+/** Completa el ejemplo con una actividad aprobada y publicable en una sección no sensible. */
+function completarEjemplo() {
+  if (prop('EJEMPLO_FOTOS') === 'si') return { hecho: false, mensaje: 'ya estaba' };
+
+  return conBloqueo(function () {
+    const hoy = hoyIso();
+    const nodo = nodoPorCodigo_('CA-T3');
+    if (!nodo) fallar_('SIN_CONFIGURAR', 'Falta CA-T3.');
+    const empresa = empresaDemo_();
+
+    // Se reutilizan los archivos de evidencia ya subidos, apuntando a la nueva actividad.
+    const origen = filtrar('evidencias', function (e) {
+      return bool(e.activo) && e.drive_file_id && e.momento === 'ANTES';
+    })[0];
+    const origen2 = filtrar('evidencias', function (e) {
+      return bool(e.activo) && e.drive_file_id && e.momento === 'DESPUES';
+    })[0];
+    if (!origen) fallar_('SIN_CONFIGURAR', 'No hay evidencias para reutilizar.');
+
+    const act = insertar('actividades', {
+      id: newId('ACT'),
+      titulo: 'Lavado de muros del pasillo exterior',
+      descripcion: 'Lavado y desinfección del muro del pasillo exterior de la Torre 3.',
+      nodo_id: nodo.id,
+      plantilla_id: '', plantilla_version: '',
+      empresa_id: empresa ? empresa.id : '',
+      responsable_id: '',
+      tipo: 'UNICA', origen: 'MANUAL', novedad_id: '', recurrencia_id: '',
+      fecha_inicio_plan: sumarDias(hoy, -7),
+      fecha_fin_plan: sumarDias(hoy, -6),
+      dias_plan: 2,
+      prioridad: 'MEDIA',
+      estado: 'APROBADA',
+      vencida: false, en_riesgo: false,
+      avance_reportado_pct: 100, avance_aprobado_pct: 100,
+      fecha_inicio_real: sumarDias(hoy, -7) + 'T07:40:00-05:00',
+      fecha_reporte_final: sumarDias(hoy, -6) + 'T15:10:00-05:00',
+      fecha_aprobacion: sumarDias(hoy, -5) + 'T09:00:00-05:00',
+      obligatoria_legal: false, afecta_uso: false, publicable: true,
+      acta_file_id: '', inicio_sin_foto_motivo: '', activo: true,
+    }, 'ejemplo');
+    registrarEjemplo_('actividades', act.id);
+
+    const reporte = insertar('reportes', {
+      id: newId('REP'),
+      actividad_id: act.id,
+      hito_id: '',
+      usuario_id: '',
+      fecha: sumarDias(hoy, -6) + 'T15:10:00-05:00',
+      tipo: 'FINAL',
+      pct_declarado: 100,
+      descripcion: 'Trabajo terminado y verificado en sitio.',
+      horas: 6,
+      estado_revision: 'APROBADO',
+      comentario_admin: 'Conforme.',
+      revisado_por: 'ejemplo@urbcerroazul.com',
+      revisado_en: ahoraIso(),
+      activo: true,
+    }, 'ejemplo');
+    registrarEjemplo_('reportes', reporte.id);
+
+    [origen, origen2].forEach(function (base) {
+      if (!base) return;
+      const copia = insertar('evidencias', {
+        id: newId('EVI'),
+        reporte_id: reporte.id,
+        actividad_id: act.id,
+        nodo_id: nodo.id,
+        momento: base.momento,
+        drive_file_id: base.drive_file_id,
+        mini_file_id: base.drive_file_id,
+        mime: base.mime,
+        bytes: base.bytes,
+        sha256: base.sha256,
+        fecha_captura: base.fecha_captura,
+        fecha_subida: sumarDias(hoy, -6) + 'T15:05:00-05:00',
+        lat: '', lng: '',
+        contiene_personas: false,
+        publicable: true,
+        public_file_id: '',
+        activo: true,
+      }, 'ejemplo');
+      registrarEjemplo_('evidencias', copia.id);
+    });
+
+    actualizar('nodos', nodo.id, { ultimo_mant_en: fechaIso_(act.fecha_aprobacion), condicion_operativa: 'Operativo' }, 'ejemplo');
+    limpiarCache('');
+    recalcularTodo('ejemplo');
+    regenerarSnapshot();
+    prop('EJEMPLO_FOTOS', 'si');
+    return { hecho: true, actividad: act.titulo };
+  });
+}
