@@ -153,7 +153,8 @@
       }
       card.appendChild(fila);
 
-      card.appendChild(barraDistribucion(s.salud.distribucion || {}));
+      // La barra de semáforo solo tiene sentido si hay equipos medidos.
+      if (s.salud.elementos) card.appendChild(barraDistribucion(s.salud.distribucion || {}));
 
       const mes = el('p', 'seccion-mes');
       const aprobadas = Number(s.mes.ejecutadas || 0);
