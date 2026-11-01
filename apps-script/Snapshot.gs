@@ -88,7 +88,14 @@ function construirSnapshot() {
     const puntaje = conP.length
       ? Math.round(conP.reduce(function (s, h) { return s + Number(h.salud_puntaje); }, 0) / conP.length)
       : null;
-    const propios = actividades.filter(function (a) { return String(a.nodo_id) === String(nodo.id); });
+    // Cuenta las actividades de todo el subárbol y del mes, no solo las colgadas del nodo.
+    const propios = actividades.filter(function (a) {
+      const n = porId[a.nodo_id];
+      if (!n) return false;
+      const suyo = n.ruta_ids + '/' + n.id;
+      const enSubarbol = suyo === prefijo || suyo.indexOf(prefijo + '/') === 0;
+      return enSubarbol && mesDe_(a.fecha_fin_plan) === mesActual;
+    });
     return {
       puntaje: puntaje,
       estado: dist.CRITICO > 0 ? 'CRITICO' : (dist.ATENCION > 0 ? 'ATENCION' : (hijos.length ? 'AL_DIA' : 'SIN_DATOS')),

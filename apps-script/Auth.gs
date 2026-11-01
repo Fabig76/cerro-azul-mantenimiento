@@ -112,11 +112,28 @@ function nodosAsignados_(usuarioId) {
   const asignaciones = filtrar('asignaciones', function (a) {
     if (String(a.usuario_id) !== String(usuarioId)) return false;
     if (a.desde && fechaIso_(a.desde) > hoy) return false;
-    if (a.hasta && fechaIso_(a.hasta) < hoy) return false;
+    if (a.hasta && fechaIso_(a.hasta) <= hoy) return false;
     return bool(a.activo);
   });
   return asignaciones.map(function (a) { return buscarPorId('nodos', a.nodo_id); })
     .filter(function (n) { return !!n; });
+}
+
+/**
+ * Permiso de ejecución: distinto de "puede ver". El supervisor nunca ejecuta y un
+ * contratista solo ejecuta en sus secciones asignadas, no en toda la empresa.
+ */
+function puedeEjecutarActividad_(ctx, act) {
+  if (ctx.rol === 'ADMIN') return true;
+  if (ctx.rol !== 'CONTRATISTA') return false;
+  const nodo = buscarPorId('nodos', act.nodo_id);
+  if (!nodo) return false;
+  const asignados = nodosAsignados_(ctx.usuario.id);
+  const propio = nodo.ruta_ids + '/' + nodo.id;
+  return asignados.some(function (a) {
+    const raiz = a.ruta_ids + '/' + a.id;
+    return propio === raiz || propio.indexOf(raiz + '/') === 0;
+  });
 }
 
 /** Exige que el usuario tenga acceso al nodo (o a un ancestro suyo). */

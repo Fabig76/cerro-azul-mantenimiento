@@ -114,7 +114,7 @@ function usuariosAsignar(ctx, payload) {
   const hoy = hoyIso();
   const anteriores = asignacionesDe_(id);
   anteriores.forEach(function (a) {
-    actualizar('asignaciones', a.id, { hasta: hoy }, ctx.usuario.email);
+    actualizar('asignaciones', a.id, { hasta: hoy, activo: false }, ctx.usuario.email);
   });
 
   if (nodos.length) {
@@ -147,7 +147,7 @@ function usuariosDesactivar(ctx, payload) {
   const sesiones = revocarSesiones_(id, ctx.usuario.email);
   const hoy = hoyIso();
   asignacionesDe_(id).forEach(function (a) {
-    actualizar('asignaciones', a.id, { hasta: hoy }, ctx.usuario.email);
+    actualizar('asignaciones', a.id, { hasta: hoy, activo: false }, ctx.usuario.email);
   });
   const despues = actualizar('usuarios', id, {
     estado: 'INACTIVO',

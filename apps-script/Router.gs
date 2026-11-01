@@ -9,9 +9,7 @@
 
 const ACCIONES = {
   ping: { fn: accionPing, publica: true },
-  'setup.run': { fn: accionSetup, publica: true },
   'snapshot.regenerar': { fn: accionRegenerarSnapshot, sesion: true, roles: ['ADMIN'] },
-  'snapshot.ver': { fn: accionVerSnapshot, publica: true },
   'public.snapshot': { fn: publicSnapshot, publica: true, crudo: true },
   'public.foto': { fn: publicFoto, publica: true, crudo: true },
 
@@ -52,14 +50,6 @@ const ACCIONES = {
   'reportes.revisar': { fn: reportesRevisar, sesion: true, roles: ['ADMIN'] },
 
   // Solo para cargar la demostración una vez; se cierra sola.
-  'demo.crear': { fn: accionDemo, publica: true },
-  'empresa.inicial': { fn: accionEmpresaInicial, publica: true },
-  'empresa.datos': { fn: accionEmpresaDatos, publica: true },
-  'usuario.inicial': { fn: accionUsuarioInicial, publica: true },
-  'diag.asignacion': { fn: accionDiag, publica: true },
-  'salud.recalcular': { fn: accionSaludRecalcular, publica: true },
-  'snapshot.refrescar': { fn: accionSnapshotRefrescar, publica: true },
-  'disparadores.instalar': { fn: accionInstalarDisparadores, publica: true },
   'hitos.guardar': { fn: hitosGuardar, sesion: true, roles: ['ADMIN'] },
   'kpi.panel': { fn: accionKpi, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'informes.mensual': { fn: accionInforme, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
@@ -68,7 +58,6 @@ const ACCIONES = {
   'respaldos.crear': { fn: accionRespaldo, sesion: true, roles: ['ADMIN'] },
   'archivo.ejecutar': { fn: accionArchivo, sesion: true, roles: ['ADMIN'] },
   'config.guardar': { fn: configGuardar, sesion: true, roles: ['ADMIN'] },
-  'ajustes.aplicar': { fn: accionAjustes, publica: true },
   'recurrencias.listar': { fn: recurrenciasListar, sesion: true },
   'recurrencias.guardar': { fn: recurrenciasGuardar, sesion: true, roles: ['ADMIN'] },
   'recurrencias.pausar': { fn: recurrenciasPausar, sesion: true, roles: ['ADMIN'] },
@@ -85,12 +74,17 @@ const ACCIONES = {
 // Entradas HTTP
 // ---------------------------------------------------------------------------
 
+const ACCIONES_PUBLICAS_GET = ['ping', 'public.snapshot', 'public.foto'];
+
 function doGet(e) {
   const p = (e && e.parameter) || {};
   const accion = p.action || '';
+  // Solo estas tres se atienden por GET anónimo. Todo lo demás es POST con sesión.
+  if (ACCIONES_PUBLICAS_GET.indexOf(accion) < 0) {
+    return responder(err('NO_ENCONTRADO', 'Acción no reconocida: ' + accion));
+  }
   const def = ACCIONES[accion];
   if (!def) return responder(err('NO_ENCONTRADO', 'Acción no reconocida: ' + accion));
-  if (!def.publica) return responder(err('NO_AUTENTICADO', 'Esta acción requiere sesión (POST).'));
   try {
     // Las acciones "crudas" ya devuelven su propio ContentService (JSON público).
     if (def.crudo) return def.fn(p);
@@ -112,13 +106,12 @@ function doPost(e) {
   const accion = cuerpo.action;
   const def = ACCIONES[accion];
   if (!def) return responder(err('NO_ENCONTRADO', 'Acción no reconocida: ' + accion));
-
-  // Idempotencia de escrituras: el mismo requestId devuelve la primera respuesta.
-  const claveReq = cuerpo.requestId ? 'req:' + cuerpo.requestId : null;
-  if (claveReq) {
-    const previa = cacheGet(claveReq);
-    if (previa) return responder(JSON.parse(previa));
+  // Las de lectura pública solo se sirven por GET.
+  if (ACCIONES_PUBLICAS_GET.indexOf(accion) >= 0) {
+    return responder(err('NO_ENCONTRADO', 'Acción no reconocida: ' + accion));
   }
+
+
 
   try {
     let ctx = { usuario: null, rol: null };
@@ -135,6 +128,12 @@ function doPost(e) {
         fallar_('CONFLICTO', 'Demasiadas fotos seguidas. Espera un minuto.');
       }
 
+      // Idempotencia por usuario y por acción, ya autenticado (B1).
+      if (cuerpo.requestId) {
+        const previa = cacheGet('req:' + String(ctx.usuario.id) + ':' + accion + ':' + cuerpo.requestId);
+        if (previa) return responder(JSON.parse(previa));
+      }
+
       if (def.roles && def.roles.indexOf(ctx.rol) < 0) {
         auditar(ctx.usuario.email, 'DENEGADO', accion, '', null, { rol: ctx.rol });
         return responder(err('PROHIBIDO', 'Tu rol (' + ctx.rol + ') no permite esta acción.'));
@@ -142,7 +141,10 @@ function doPost(e) {
     }
     const salida = def.fn(ctx, cuerpo.payload || {}, cuerpo.requestId || null);
     const respuesta = ok(salida);
-    if (claveReq) cachePut(claveReq, JSON.stringify(respuesta), 600);
+    if (cuerpo.requestId && ctx.usuario) {
+      cachePut('req:' + String(ctx.usuario.id) + ':' + accion + ':' + cuerpo.requestId,
+        JSON.stringify(respuesta), 600);
+    }
     return responder(respuesta);
   } catch (ex) {
     return responder(aError_(ex));
@@ -174,10 +176,6 @@ function accionPing() {
   return { app: 'cerro-azul', en: ahoraIso(), setup: !!prop('SHEET_ID') };
 }
 
-function accionSetup(ctx, payload, requestId, parametros) {
-  const clave = (payload && payload.key) || '';
-  return arranqueProtegido(clave, setup);
-}
 
 function accionEntrega(ctx) {
   return exportarEntrega(ctx.usuario.email);
@@ -203,9 +201,6 @@ function accionKpi(ctx, payload) {
   return kpisMes(payload && payload.mes ? String(payload.mes) : null);
 }
 
-function accionAjustes() {
-  return aplicarAjustes();
-}
 
 function accionGenerar(ctx) {
   const r = generarActividadesPendientes(ctx.usuario.email);
@@ -214,61 +209,14 @@ function accionGenerar(ctx) {
   return r;
 }
 
-function accionInstalarDisparadores() {
-  const veces = Number(prop('TRIGGERS_INSTALADOS') || 0);
-  if (veces >= 2) fallar_('CONFLICTO', 'Los disparadores ya están instalados.');
-  prop('TRIGGERS_INSTALADOS', veces + 1);
-  try {
-    return instalarDisparadores();
-  } catch (e) {
-    // Se devuelve el mensaje real para poder diagnosticar (permisos, cuota, etc.).
-    fallar_('ERROR_INTERNO', String(e && e.message ? e.message : e));
-  }
-}
 
-function accionSnapshotRefrescar() {
-  const veces = Number(prop('SNAP_REFRESH') || 0);
-  if (veces >= 5) fallar_('CONFLICTO', 'El refresco manual ya está cerrado.');
-  prop('SNAP_REFRESH', veces + 1);
-  cacheDel('snap');
-  return regenerarSnapshot();
-}
 
-function accionSaludRecalcular() {
-  if (prop('RECALC_HECHO') === 'si') fallar_('CONFLICTO', 'El recálculo inicial ya se ejecutó.');
-  const r = recalcularTodo('sistema');
-  prop('RECALC_HECHO', 'si');
-  return r;
-}
 
-function accionDiag() {
-  if (prop('DIAG_HECHO') === 'si') fallar_('CONFLICTO', 'El diagnóstico ya se ejecutó.');
-  return diagnosticoAsignacion();
-}
 
-function accionUsuarioInicial() {
-  if (prop('USUARIO_INICIAL') === 'si') fallar_('CONFLICTO', 'El usuario inicial ya fue creado.');
-  return crearUsuarioInicial();
-}
 
-function accionEmpresaDatos() {
-  if (prop('EMPRESA_DATOS') === 'si') fallar_('CONFLICTO', 'Los datos de la empresa ya fueron completados.');
-  return completarEmpresaInicial();
-}
 
-function accionEmpresaInicial() {
-  if (prop('EMPRESA_INICIAL') === 'si') fallar_('CONFLICTO', 'La empresa inicial ya fue creada.');
-  return crearEmpresaInicial();
-}
 
-function accionDemo() {
-  if (prop('DEMO_HECHO') === 'si') fallar_('CONFLICTO', 'La demostración ya fue creada.');
-  return crearDemo();
-}
 
-function accionVerSnapshot() {
-  return { bytes: snapshotPublico_().length, generado_en: JSON.parse(snapshotPublico_()).generado_en };
-}
 
 function accionRegenerarSnapshot(ctx) {
   return regenerarSnapshot();
