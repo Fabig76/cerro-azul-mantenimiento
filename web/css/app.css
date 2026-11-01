@@ -544,3 +544,14 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
   z-index: 1;
 }
 .avance b.pct-revision { color: var(--warn-ink, #b45309); font-weight: 800; }
+
+/* En pantallas angostas la tarjeta no puede desbordar */
+.actividad { min-width: 0; }
+.actividad-cab { flex-wrap: wrap; row-gap: 6px; }
+.actividad-cab h3 { min-width: 0; overflow-wrap: anywhere; }
+.avance { min-width: 0; }
+.avance-barra { min-width: 0; }
+@media (max-width: 420px) {
+  .avance { gap: 8px; }
+  .avance b { min-width: 34px; font-size: 12px; }
+}
