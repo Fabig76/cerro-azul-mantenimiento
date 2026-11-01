@@ -417,3 +417,6 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 .editor-nodo .campo label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .editor-nodo .acciones-form { margin: 2px 0 0; }
 .casilla-datos.compacta { margin: 0; padding: 9px 12px; font-size: 12.5px; }
+
+.btn.peligro { color: var(--danger-ink); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+.btn.peligro:hover { background: var(--danger-soft); }

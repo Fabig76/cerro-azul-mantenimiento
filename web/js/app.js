@@ -226,7 +226,7 @@
   }
 
   /** Formulario de edición en línea para un nodo. */
-  async function editorNodo(nodo, t, alGuardar) {
+  async function editorNodo(nodo, t, alGuardar, todos) {
     const caja = document.createElement('form');
     caja.className = 'editor-nodo';
 
@@ -279,9 +279,29 @@
     textoS.textContent = 'Sistema sensible: no se publica su detalle';
     etiquetaSensible.appendChild(textoS);
 
+    // Mover a otro padre (sin permitir ciclos)
+    const mover = document.createElement('select');
+    mover.className = 'item-input';
+    const raizOp = document.createElement('option');
+    raizOp.value = '';
+    raizOp.textContent = '— Sin mover —';
+    mover.appendChild(raizOp);
+    const rutaPropia = String(nodo.ruta_ids || '') + '/' + nodo.id;
+    (todos || []).forEach(function (otro) {
+      if (String(otro.id) === String(nodo.id)) return;
+      const rutaOtro = String(otro.ruta_ids || '') + '/' + otro.id;
+      if (rutaOtro.indexOf(rutaPropia) === 0) return; // descendiente
+      if (String(otro.clase) === 'ELEMENTO') return;
+      const op = document.createElement('option');
+      op.value = otro.id;
+      op.textContent = otro.codigo + ' · ' + otro.nombre;
+      mover.appendChild(op);
+    });
+
     caja.appendChild(campo('Nombre', nombre));
     if (selectTipo) caja.appendChild(campo('Tipo de equipo', selectTipo));
     caja.appendChild(campo('Descripción', descripcion));
+    if (!String(nodo.parent_id || '').trim() === false) caja.appendChild(campo('Mover a otra sección', mover));
     caja.appendChild(etiquetaSensible);
 
     const acciones = document.createElement('div');
@@ -300,6 +320,32 @@
 
     acciones.appendChild(guardar);
     acciones.appendChild(cancelar);
+
+    // Retirar del árbol (borrado lógico, con confirmación)
+    if (nodo.parent_id) {
+      const retirar = document.createElement('button');
+      retirar.type = 'button';
+      retirar.className = 'btn peligro';
+      retirar.textContent = 'Retirar del árbol';
+      let confirmado = false;
+      retirar.addEventListener('click', async function () {
+        if (!confirmado) {
+          confirmado = true;
+          retirar.textContent = 'Confirmar retiro';
+          setTimeout(function () { confirmado = false; retirar.textContent = 'Retirar del árbol'; }, 6000);
+          return;
+        }
+        const r = await API.llamar('nodos.desactivar', { id: nodo.id }, { token: t, idempotente: true });
+        if (!r.ok) {
+          aviso.textContent = r.message || 'No se pudo retirar.';
+          aviso.className = 'msg mostrar error';
+          return;
+        }
+        caja.remove();
+        alGuardar();
+      });
+      acciones.appendChild(retirar);
+    }
     caja.appendChild(acciones);
 
     const aviso = document.createElement('div');
@@ -318,12 +364,23 @@
       };
       if (selectTipo) payload.tipo_elemento_id = selectTipo.value;
       const r = await API.llamar('nodos.editar', payload, { token: t, idempotente: true });
-      guardar.disabled = false;
       if (!r.ok) {
+        guardar.disabled = false;
         aviso.textContent = r.message || 'No se pudo guardar.';
         aviso.className = 'msg mostrar error';
         return;
       }
+      if (mover.value) {
+        const rm = await API.llamar('nodos.mover', { id: nodo.id, nuevo_parent_id: mover.value }, { token: t, idempotente: true });
+        if (!rm.ok) {
+          guardar.disabled = false;
+          aviso.textContent = rm.message || 'Se guardó, pero no se pudo mover.';
+          aviso.className = 'msg mostrar error';
+          alGuardar();
+          return;
+        }
+      }
+      guardar.disabled = false;
       caja.remove();
       alGuardar();
     });
@@ -395,7 +452,7 @@
         ev.stopPropagation();
         const existente = fila.parentNode.querySelector('.editor-nodo');
         if (existente) existente.remove();
-        editorNodo(nodo, opts.token, opts.alGuardar).then(function (form) {
+        editorNodo(nodo, opts.token, opts.alGuardar, opts.todos).then(function (form) {
           fila.parentNode.insertBefore(form, fila.nextSibling);
           form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
@@ -451,8 +508,9 @@
             conHijos: tieneHijos,
             editable: puedeEditar,
             token: t,
+            todos: nodos,
             alPlegar: function () { cargarArbol(t); },
-            alGuardar: function () { cargarArbol(t); },
+            alGuardar: function () { nodosAbiertos[n.id] = true; cargarArbol(t); },
           }));
           if (tieneHijos && nodosAbiertos[n.id]) li.appendChild(pintar(n.id));
           lista.appendChild(li);
