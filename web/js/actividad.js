@@ -296,7 +296,15 @@
           nota.className = 'bajada-tarjeta aviso-error';
           return;
         }
-        enlace.href = r.data.url;
+        // El PDF llega en la respuesta: se abre desde el navegador, sin Drive de por medio.
+        const bytes = atob(r.data.base64);
+        const buffer = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i);
+        const blob = new Blob([buffer], { type: 'application/pdf' });
+        const urlPdf = URL.createObjectURL(blob);
+
+        enlace.href = urlPdf;
+        enlace.download = r.data.nombre || 'acta.pdf';
         enlace.classList.remove('oculto');
         enlace.textContent = 'Abrir ' + (r.data.nombre || 'el acta');
         nota.textContent = 'Acta lista: ' + (r.data.items || 0) + ' ítems y ' +

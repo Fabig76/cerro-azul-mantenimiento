@@ -279,5 +279,13 @@ function generarActaActividad(actividadId, usuario) {
   archivo.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
 
   auditar(usuario || 'sistema', 'ACTA_GENERADA', 'actividad', act.id, null, { archivo: nombre });
-  return { nombre: nombre, url: archivo.getUrl(), items: items.length, evidencias: evidencias.length };
+
+  // El PDF viaja en la respuesta: no depende de permisos de Drive ni de qué
+  // cuenta de Google esté abierta en el navegador.
+  return {
+    nombre: nombre,
+    base64: Utilities.base64Encode(blob.getBytes()),
+    items: items.length,
+    evidencias: evidencias.length,
+  };
 }
