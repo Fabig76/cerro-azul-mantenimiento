@@ -30,6 +30,15 @@ function lanza_(codigo, fn, nombre) {
   }
 }
 
+/**
+ * Alias con nombre que ordena primero en la lista del editor.
+ * El desplegable de Apps Script ordena alfabéticamente y no filtra al escribir,
+ * así que esta queda arriba de todo: es la que hay que elegir para probar.
+ */
+function abProbarTodo() {
+  return runAllTests();
+}
+
 /** Punto de entrada. */
 function runAllTests() {
   RESULTADOS.pasadas = 0;
