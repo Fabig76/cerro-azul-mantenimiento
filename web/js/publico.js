@@ -154,7 +154,7 @@
   }
 
   function pintarProximos(snap) {
-    const cont = document.getElementById('proximos');
+    const cont = document.getElementById('lista-proximos');
     if (!cont) return;
     cont.textContent = '';
     if (!snap.proximos || !snap.proximos.length) {
@@ -176,7 +176,7 @@
   }
 
   async function pintarRecientes(snap) {
-    const cont = document.getElementById('recientes');
+    const cont = document.getElementById('lista-recientes');
     if (!cont) return;
     cont.textContent = '';
     if (!snap.recientes || !snap.recientes.length) {
@@ -259,7 +259,7 @@
   }
 
   function pintarNovedades(snap) {
-    const cont = document.getElementById('novedades');
+    const cont = document.getElementById('lista-novedades');
     if (!cont) return;
     cont.textContent = '';
     if (!snap.novedades || !snap.novedades.length) {
@@ -279,7 +279,7 @@
   }
 
   function pintarNormativo(snap) {
-    const cont = document.getElementById('normativo');
+    const cont = document.getElementById('lista-normativo');
     if (!cont || !snap.normativo || !snap.normativo.length) return;
     cont.textContent = '';
     snap.normativo.forEach(function (n) {
