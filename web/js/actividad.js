@@ -83,6 +83,62 @@
     return caja;
   }
 
+
+  /**
+   * Acta: solo tiene sentido cuando el trabajo ya se reportó o se aprobó.
+   * Va al final del detalle porque es el cierre del expediente.
+   */
+  function bloqueActa() {
+    const a = datos.actividad;
+    const listo = ['REPORTADA', 'APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
+    if (!listo) return null;
+
+    const caja = el('div', 'bloque');
+    caja.appendChild(el('div', 'kicker', 'Cierre'));
+    caja.appendChild(el('p', 'bajada-tarjeta',
+      'El acta reúne la ficha, el checklist respondido, las evidencias y la revisión. Queda guardada en Drive.'));
+
+    const acciones = el('div', 'acciones-form');
+    const btn = el('button', 'btn primary', 'Generar acta en PDF');
+    btn.type = 'button';
+    const enlace = el('a', 'btn oculto', 'Abrir el acta');
+    enlace.target = '_blank';
+    enlace.rel = 'noopener';
+    const nota = el('p', 'bajada-tarjeta');
+
+    btn.addEventListener('click', async function () {
+      btn.disabled = true;
+      btn.textContent = 'Generando…';
+      nota.textContent = '';
+      try {
+        const r = await API.llamar('actividades.acta', { id: a.id }, { token: Sesion.token(), idempotente: true });
+        if (!r.ok) {
+          nota.textContent = r.message || 'No se pudo generar el acta.';
+          nota.className = 'bajada-tarjeta aviso-error';
+          return;
+        }
+        enlace.href = r.data.url;
+        enlace.classList.remove('oculto');
+        enlace.textContent = 'Abrir ' + (r.data.nombre || 'el acta');
+        nota.textContent = 'Acta lista: ' + (r.data.items || 0) + ' ítems y ' +
+          (r.data.evidencias || 0) + ' evidencias.';
+        nota.className = 'bajada-tarjeta';
+      } catch (e) {
+        nota.textContent = 'La generación tardó demasiado o falló. Intenta de nuevo.';
+        nota.className = 'bajada-tarjeta aviso-error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generar acta en PDF';
+      }
+    });
+
+    acciones.appendChild(btn);
+    acciones.appendChild(enlace);
+    caja.appendChild(acciones);
+    caja.appendChild(nota);
+    return caja;
+  }
+
   function bloqueEvidencias() {
     const caja = el('div', 'bloque');
     caja.appendChild(el('div', 'kicker', 'Evidencia'));
@@ -104,27 +160,7 @@
     });
     caja.appendChild(lista);
 
-    const acciones = el('div', 'acciones-form');
-    const btnActa = el('button', 'btn', 'Descargar acta en PDF');
-    btnActa.type = 'button';
-    btnActa.addEventListener('click', async function () {
-      btnActa.disabled = true;
-      btnActa.textContent = 'Generando…';
-      const r = await API.llamar('actividades.acta', { id: act.id }, { token: Sesion.token(), idempotente: true });
-      btnActa.disabled = false;
-      btnActa.textContent = 'Descargar acta en PDF';
-      if (!r.ok) {
-        const avisoActa = document.getElementById('avisoActividad');
-        if (avisoActa) {
-          avisoActa.textContent = r.message || 'No se pudo generar el acta.';
-          avisoActa.className = 'msg mostrar error';
-        }
-        return;
-      }
-      window.open(r.data.url, '_blank', 'noopener');
-    });
-    acciones.appendChild(btnActa);
-    caja.appendChild(acciones);
+
 
     if (antes.length && despues.length) {
       const comp = el('div', 'comparador');
@@ -244,7 +280,20 @@
         }, { token: Sesion.token(), idempotente: true });
         if (!r.ok) throw new Error(r.message || 'No se pudo subir la foto.');
         destino.push({ id: r.data.evidencia_id, kb: prep.kb });
-        aviso('Foto de ' + momento.toLowerCase() + ' cargada.', 'ok');
+
+        // Confirmación visible: la foto queda a la vista, no solo un mensaje.
+        const previa = document.createElement('img');
+        previa.className = 'foto-previa';
+        previa.alt = 'Foto de ' + momento.toLowerCase() + ' cargada';
+        previa.src = 'data:image/jpeg;base64,' + prep.base64_mini;
+        const ya = caja.querySelector('.foto-previa');
+        if (ya) ya.remove();
+        caja.appendChild(previa);
+
+        btn.disabled = false;
+        btn.textContent = 'Foto de ' + momento.toLowerCase() + ' lista ✓';
+        btn.classList.add('cargada');
+        aviso('Foto de ' + momento.toLowerCase() + ' cargada (' + prep.kb + ' KB).', 'ok');
         pintar();
       } catch (err) {
         aviso(err.message || 'No se pudo subir la foto.', 'error');
@@ -625,6 +674,9 @@
     if (a.estado === 'REPORTADA' || a.estado === 'APROBADA' || a.estado === 'CERRADA') {
       cont.appendChild(bloqueChecklist(false));
     }
+    // El acta cierra el expediente: siempre al final.
+    const acta = bloqueActa();
+    if (acta) cont.appendChild(acta);
     cont.appendChild(acciones());
   }
 

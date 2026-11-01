@@ -420,3 +420,16 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 
 .btn.peligro { color: var(--danger-ink); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
 .btn.peligro:hover { background: var(--danger-soft); }
+
+/* Foto cargada y acta */
+.foto-previa {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  margin-top: 12px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.btn.cargada { border-color: var(--ok); color: var(--ok-ink, #0f7b47); background: var(--ok-soft); }
+.aviso-error { color: var(--danger-ink) !important; font-weight: 600; }

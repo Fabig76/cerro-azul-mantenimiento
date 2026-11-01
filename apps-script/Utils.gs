@@ -116,12 +116,23 @@ function exigirTexto(v, campo, max) {
   return s;
 }
 
+/**
+ * Valida un valor contra una lista y devuelve el valor canónico de la lista.
+ * Compara sin distinguir mayúsculas, pero NO las impone: así los tipos MIME
+ * («image/jpeg») sobreviven a la validación.
+ */
 function exigirEnEnum(v, campo, permitidos) {
-  const s = String(v || '').toUpperCase();
-  if (permitidos.indexOf(s) < 0) {
-    throw new Error('VALIDACION: ' + campo + ' debe ser uno de ' + permitidos.join(', '));
-  }
-  return s;
+  const s = String(v || '').trim();
+  const exacto = permitidos.filter(function (p) { return String(p) === s; })[0];
+  if (exacto !== undefined) return exacto;
+
+  const arriba = s.toUpperCase();
+  const equivalente = permitidos.filter(function (p) {
+    return String(p).toUpperCase() === arriba;
+  })[0];
+  if (equivalente !== undefined) return equivalente;
+
+  throw new Error('VALIDACION: ' + campo + ' debe ser uno de ' + permitidos.join(', '));
 }
 
 // ---------------------------------------------------------------------------
