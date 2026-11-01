@@ -34,6 +34,7 @@
       mostrarError('No pudimos cargar la información del portal.');
       return;
     }
+    ultimoSnap = snap;
     try {
       pintarTodo(snap);
     } catch (e) {
@@ -445,16 +446,58 @@
     });
   }
 
-  function ruta() {
+  function verAlertas(snap) {
+    mostrarPortada(false);
+    const det = document.getElementById('detalle');
+    if (det) det.classList.add('oculto');
+    const pantalla = document.getElementById('pantallaAlertas');
+    if (pantalla) pantalla.classList.remove('oculto');
+
+    const cont = document.getElementById('listaAlertasPublicas');
+    if (!cont) return;
+    cont.textContent = '';
+    const lista = (snap && snap.alertas) || [];
+    if (!lista.length) {
+      cont.appendChild(el('div', 'card', 'No hay alertas vigentes. Cuando la administración publique una, aparecerá aquí.'));
+      return;
+    }
+    lista.forEach(function (a) {
+      const nivel = NIVEL_ALERTA[a.nivel] || NIVEL_ALERTA.INFO;
+      const caja = el('div', 'card con-acento acento-' + (a.nivel === 'CRITICA' ? 'danger' : a.nivel === 'URGENTE' ? 'warn' : 'indigo'));
+      const cab = el('div', 'seccion-card-cab');
+      cab.appendChild(el('h3', null, a.titulo));
+      cab.appendChild(el('span', 'badge ' + (a.nivel === 'CRITICA' || a.nivel === 'URGENTE' ? 'danger' : 'warn'), a.nivel));
+      caja.appendChild(cab);
+      if (a.mensaje) caja.appendChild(el('p', null, a.mensaje));
+      const meta = el('p', 'seccion-codigo');
+      meta.textContent = (a.nodo_codigo || 'Todo el conjunto') + ' · desde ' + a.inicio + (a.fin ? ' hasta ' + a.fin : '');
+      caja.appendChild(meta);
+      (a.actualizaciones || []).forEach(function (u) {
+        const linea = el('div', 'linea-alerta');
+        linea.textContent = (u.fecha || '').replace('T', ' ').slice(0, 16) + ' · ' + u.texto;
+        caja.appendChild(linea);
+      });
+      cont.appendChild(caja);
+    });
+  }
+
+  function ruta(snap) {
     const h = window.location.hash || '';
+    const pantalla = document.getElementById('pantallaAlertas');
+    if (pantalla) pantalla.classList.add('oculto');
     const m = h.match(/^#\/nodo\/([A-Z0-9_]+)/i);
     if (m) return verNodo(m[1]);
+    if (h.indexOf('#/alertas') === 0) return verAlertas(snap);
     mostrarPortada(true);
   }
 
-  window.addEventListener('hashchange', ruta);
+  let ultimoSnap = null;
+  window.addEventListener('hashchange', function () { ruta(ultimoSnap); });
 
   document.addEventListener('DOMContentLoaded', function () {
-    cargar().then(ruta);
+    cargar().then(function () {
+      ultimoSnap = null;
+      ruta(ultimoSnap);
+    });
   });
 })();
