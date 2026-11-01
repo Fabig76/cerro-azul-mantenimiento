@@ -261,6 +261,16 @@
       </form>
     </div>
 
+    <div class="card seccion-panel oculto" id="tarjetaRespaldo">
+      <div class="cabecera-seccion"><h2>Respaldos</h2></div>
+      <p class="bajada-tarjeta">Copias del libro en Drive. Se conservan las últimas ocho; la más reciente es la que sirve para restaurar.</p>
+      <p class="bajada-tarjeta" id="ultimoRespaldo">Sin respaldos todavía.</p>
+      <div class="acciones-form">
+        <button class="btn" id="btnRespaldo" type="button">Hacer respaldo ahora</button>
+      </div>
+      <div class="msg" id="avisoRespaldo" role="status" aria-live="polite"></div>
+    </div>
+
     <div class="card seccion-panel oculto" id="tarjetaUsuarios">
       <div class="cabecera-seccion">
         <h2>Usuarios</h2>
@@ -404,6 +414,7 @@
 <script src="./js/alertas.js"></script>
 <script src="./js/plan.js"></script>
 <script src="./js/empresas.js"></script>
+<script src="./js/respaldo.js"></script>
 <script src="./js/app.js"></script>
 </body>
 </html>

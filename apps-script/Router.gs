@@ -63,6 +63,9 @@ const ACCIONES = {
   'hitos.guardar': { fn: hitosGuardar, sesion: true, roles: ['ADMIN'] },
   'kpi.panel': { fn: accionKpi, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'informes.mensual': { fn: accionInforme, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
+  'respaldos.listar': { fn: accionRespaldos, sesion: true, roles: ['ADMIN'] },
+  'respaldos.crear': { fn: accionRespaldo, sesion: true, roles: ['ADMIN'] },
+  'archivo.ejecutar': { fn: accionArchivo, sesion: true, roles: ['ADMIN'] },
   'config.guardar': { fn: configGuardar, sesion: true, roles: ['ADMIN'] },
   'ajustes.aplicar': { fn: accionAjustes, publica: true },
   'recurrencias.listar': { fn: recurrenciasListar, sesion: true },
@@ -122,6 +125,15 @@ function doPost(e) {
       const auth = autenticar_(cuerpo.token);
       if (!auth.ok) return responder(auth.respuesta);
       ctx = auth.ctx;
+      // Límite de frecuencia por usuario (S-07): 60 acciones y 20 fotos por minuto.
+      const emailLimite = String(ctx.usuario.email || 'anon');
+      if (Number(cacheContar('rl:' + emailLimite, 60)) > 60) {
+        fallar_('CONFLICTO', 'Demasiadas solicitudes en un minuto. Espera un momento.');
+      }
+      if (accion === 'evidencias.upload' && Number(cacheContar('rlup:' + emailLimite, 60)) > 20) {
+        fallar_('CONFLICTO', 'Demasiadas fotos seguidas. Espera un minuto.');
+      }
+
       if (def.roles && def.roles.indexOf(ctx.rol) < 0) {
         auditar(ctx.usuario.email, 'DENEGADO', accion, '', null, { rol: ctx.rol });
         return responder(err('PROHIBIDO', 'Tu rol (' + ctx.rol + ') no permite esta acción.'));
@@ -164,6 +176,18 @@ function accionPing() {
 function accionSetup(ctx, payload, requestId, parametros) {
   const clave = (payload && payload.key) || '';
   return arranqueProtegido(clave, setup);
+}
+
+function accionRespaldos(ctx) {
+  return listarRespaldos();
+}
+
+function accionRespaldo(ctx) {
+  return respaldarLibro(ctx.usuario.email);
+}
+
+function accionArchivo(ctx, payload) {
+  return archivarAnteriores(payload && payload.meses ? Number(payload.meses) : 24, ctx.usuario.email);
 }
 
 function accionInforme(ctx, payload) {
