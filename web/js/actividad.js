@@ -304,9 +304,16 @@
         const urlPdf = URL.createObjectURL(blob);
 
         enlace.href = urlPdf;
-        enlace.download = r.data.nombre || 'acta.pdf';
         enlace.classList.remove('oculto');
         enlace.textContent = 'Abrir ' + (r.data.nombre || 'el acta');
+
+        // Descarga con nombre propio, por si se quiere guardar
+        if (!caja.querySelector('.descargar-acta')) {
+          const descargar = el('a', 'btn descargar-acta', 'Descargar');
+          descargar.href = urlPdf;
+          descargar.download = r.data.nombre || 'acta.pdf';
+          acciones.appendChild(descargar);
+        }
         nota.textContent = 'Acta lista: ' + (r.data.items || 0) + ' ítems y ' +
           (r.data.evidencias || 0) + ' evidencias.';
         nota.className = 'bajada-tarjeta';
