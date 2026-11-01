@@ -89,6 +89,106 @@
    * Acta: solo tiene sentido cuando el trabajo ya se reportó o se aprobó.
    * Va al final del detalle porque es el cierre del expediente.
    */
+  /**
+   * Novedad encontrada durante el trabajo: la reporta cualquiera que pueda
+   * ejecutar la actividad, y queda ligada al equipo y a esta actividad.
+   */
+  function bloqueNovedad() {
+    const a = datos.actividad;
+    if (['CERRADA', 'CANCELADA', 'APROBADA'].indexOf(String(a.estado)) >= 0) return null;
+
+    const caja = el('div', 'bloque');
+    caja.appendChild(el('div', 'kicker', 'Novedades del trabajo'));
+    caja.appendChild(el('p', 'bajada-tarjeta',
+      'Si encontró un daño, una falla o algo que deba revisarse, déjelo aquí. La administración lo recibe como novedad abierta.'));
+
+    const form = el('div', 'form-novedad');
+
+    const titulo = document.createElement('input');
+    titulo.type = 'text';
+    titulo.className = 'item-input';
+    titulo.id = 'novTituloAct';
+    titulo.maxLength = 120;
+    titulo.placeholder = 'Qué encontró: «Cable suelto en la cámara 3»';
+
+    const fila = el('div', 'fila-campos');
+    const tipo = document.createElement('select');
+    tipo.className = 'item-input';
+    tipo.id = 'novTipoAct';
+    [['DANO', 'Daño'], ['FALLA', 'Falla'], ['RIESGO', 'Riesgo'], ['OBSERVACION', 'Observación']]
+      .forEach(function (o) {
+        const op = document.createElement('option');
+        op.value = o[0];
+        op.textContent = o[1];
+        tipo.appendChild(op);
+      });
+
+    const gravedad = document.createElement('select');
+    gravedad.className = 'item-input';
+    gravedad.id = 'novGravedadAct';
+    [['BAJA', 'Baja'], ['MEDIA', 'Media'], ['ALTA', 'Alta'], ['CRITICA', 'Crítica']]
+      .forEach(function (o) {
+        const op = document.createElement('option');
+        op.value = o[0];
+        op.textContent = o[1];
+        if (o[0] === 'MEDIA') op.selected = true;
+        gravedad.appendChild(op);
+      });
+
+    fila.appendChild(tipo);
+    fila.appendChild(gravedad);
+
+    const descripcion = document.createElement('textarea');
+    descripcion.className = 'item-input';
+    descripcion.id = 'novDescripcionAct';
+    descripcion.rows = 3;
+    descripcion.placeholder = 'Detalle: dónde está, qué se observó, qué riesgo representa.';
+
+    const btn = el('button', 'btn', 'Reportar novedad');
+    btn.type = 'button';
+    btn.addEventListener('click', async function () {
+      if (!titulo.value.trim()) {
+        return aviso('Escribe qué encontró antes de reportar.', 'error');
+      }
+      btn.disabled = true;
+      btn.textContent = 'Enviando…';
+      const r = await API.llamar('novedades.crear', {
+        nodo_id: a.nodo_id,
+        actividad_id: a.id,
+        titulo: titulo.value.trim(),
+        tipo: tipo.value,
+        gravedad: gravedad.value,
+        descripcion: descripcion.value.trim(),
+      }, { token: Sesion.token(), idempotente: true });
+      btn.disabled = false;
+      btn.textContent = 'Reportar novedad';
+      if (!r.ok) return aviso(r.message || 'No se pudo reportar la novedad.', 'error');
+      titulo.value = '';
+      descripcion.value = '';
+      aviso('Novedad reportada. La administración la verá en su panel.', 'ok');
+    });
+
+    form.appendChild(titulo);
+    form.appendChild(fila);
+    form.appendChild(descripcion);
+    form.appendChild(btn);
+    caja.appendChild(form);
+
+    // Las que ya reportó en esta actividad
+    const propias = (datos.novedades || []);
+    if (propias.length) {
+      const lista = el('ul', 'lista-fotos');
+      propias.forEach(function (n) {
+        const li = el('li', 'fila-foto');
+        li.appendChild(el('span', 'badge ' + (n.gravedad === 'ALTA' || n.gravedad === 'CRITICA' ? 'danger' : 'warn'), n.gravedad));
+        li.appendChild(el('span', 'fila-foto-fecha', n.titulo + ' · ' + n.estado));
+        lista.appendChild(li);
+      });
+      caja.appendChild(lista);
+    }
+    return caja;
+  }
+
   function bloqueActa() {
     const a = datos.actividad;
     const listo = ['REPORTADA', 'APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
@@ -703,6 +803,16 @@
     const cont = document.getElementById('contenidoActividad');
     if (!cont) return;
     cont.textContent = '';
+    try {
+      pintarDetalle(cont);
+    } catch (e) {
+      // Un error de pintado no puede dejar la pantalla muda.
+      cont.appendChild(el('p', 'msg mostrar error', 'No se pudo mostrar la actividad: ' + (e && e.message ? e.message : e)));
+      console.error(e);
+    }
+  }
+
+  function pintarDetalle(cont) {
     cont.appendChild(cabecera());
     const hitos = bloqueHitos();
     if (hitos) cont.appendChild(hitos);
@@ -717,6 +827,10 @@
     if (a.estado === 'REPORTADA' || a.estado === 'APROBADA' || a.estado === 'CERRADA') {
       cont.appendChild(bloqueChecklist(false));
     }
+    // Novedades encontradas durante el trabajo
+    const novedades = bloqueNovedad();
+    if (novedades) cont.appendChild(novedades);
+
     // La evidencia cargada y el acta cierran el expediente.
     cont.appendChild(bloqueEvidencias());
     const acta = bloqueActa();
