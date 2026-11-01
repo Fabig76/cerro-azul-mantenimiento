@@ -263,7 +263,16 @@ function reportesRevisar(ctx, payload) {
     if (decision === 'APROBAR') {
       let avance = Number(reporte.pct_declarado || 0);
       const porHitos = avancePorHitos_(act.id);
-      if (porHitos && reporte.hito_id) avance = porHitos.pct;
+      if (porHitos && reporte.hito_id) {
+        avance = porHitos.pct;
+      } else if (!filtrar('respuestas', function (r) {
+        return String(r.reporte_id) === String(reporteId) && bool(r.activo);
+      }).length) {
+        // Sin checklist respondido no hay pesos: aprobar equivale a trabajo terminado.
+        avance = 100;
+      }
+      // Antes se calculaba y no se guardaba: la actividad quedaba en 0 %.
+      cambios.avance_aprobado_pct = avance;
       cambios.fecha_aprobacion = ahoraIso();
       cambios.vencida = false;
       cambios.ultimo_mant_en = hoyIso();
