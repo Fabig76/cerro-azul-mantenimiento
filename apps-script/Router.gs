@@ -59,6 +59,7 @@ const ACCIONES = {
   'hitos.guardar': { fn: hitosGuardar, sesion: true, roles: ['ADMIN'] },
   'kpi.panel': { fn: accionKpi, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'informes.mensual': { fn: accionInforme, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
+  'actividades.acta': { fn: accionActa, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'entrega.exportar': { fn: accionEntrega, sesion: true, roles: ['ADMIN'] },
   'tests.ejecutar': { fn: accionTests, sesion: true, roles: ['ADMIN'] },
   'config.get': { fn: configGet, sesion: true, roles: ['ADMIN'] },
@@ -190,6 +191,11 @@ function accionPing() {
   return { app: 'cerro-azul', en: ahoraIso(), setup: !!prop('SHEET_ID') };
 }
 
+
+function accionActa(ctx, payload) {
+  const id = exigirTexto(payload && payload.id, 'id');
+  return generarActaActividad(id, ctx.usuario.email);
+}
 
 function accionTests(ctx) {
   const r = runAllTests();

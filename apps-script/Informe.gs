@@ -177,3 +177,99 @@ function generarInformeMensual(mes, usuario) {
   auditar(usuario || 'sistema', 'INFORME_GENERADO', 'informe', archivo.getId(), null, { mes: m });
   return { mes: m, archivo_id: archivo.getId(), nombre: nombre, url: archivo.getUrl(), bytes: blob.getBytes().length };
 }
+
+/** Acta de una actividad: checklist respondido, evidencias y aprobación. */
+function generarActaActividad(actividadId, usuario) {
+  const act = buscarPorId('actividades', actividadId);
+  if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
+
+  const nodo = buscarPorId('nodos', act.nodo_id);
+  const empresa = act.empresa_id ? buscarPorId('empresas', act.empresa_id) : null;
+  const responsable = act.responsable_id ? buscarPorId('usuarios', act.responsable_id) : null;
+  const items = filtrar('checklist_items', function (i) { return String(i.actividad_id) === String(act.id); })
+    .sort(function (a, b) { return Number(a.orden) - Number(b.orden); });
+  const evidencias = filtrar('evidencias', function (e) {
+    return String(e.actividad_id) === String(act.id) && bool(e.activo);
+  });
+  const reporte = filtrar('reportes', function (r) { return String(r.actividad_id) === String(act.id); })
+    .sort(function (a, b) { return String(a.fecha_envio) < String(b.fecha_envio) ? 1 : -1; })[0];
+
+  const filasItems = items.map(function (i) {
+    const ok = evaluarItem_(i, i.respuesta);
+    const marca = ok === true ? 'Cumple' : ok === false ? 'No cumple' : '—';
+    return filaTabla_([
+      esc_(i.grupo || ''),
+      esc_(i.pregunta),
+      esc_(i.respuesta || 'sin responder'),
+      marca,
+    ]);
+  }).join('');
+
+  const filasEvidencias = evidencias.map(function (e) {
+    return filaTabla_([
+      esc_(e.momento),
+      esc_(String(e.fecha_subida || '').replace('T', ' ').slice(0, 16)),
+      esc_(bool(e.contiene_personas) ? 'Con personas · no publicable' : 'Sin personas'),
+      esc_(e.drive_file_id ? 'Archivo en Drive' : '—'),
+    ]);
+  }).join('');
+
+  const html = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><style>' +
+    '@page { size: Letter; margin: 16mm 14mm; }' +
+    'body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color:#0f172a; font-size:11pt; line-height:1.5; margin:0 }' +
+    '.cab { border-bottom:3px solid #4f46e5; padding-bottom:12px; margin-bottom:18px }' +
+    '.cab h1 { margin:0; font-size:19pt; letter-spacing:-.02em }' +
+    '.cab .sub { color:#5b6b84; font-size:9.5pt; margin-top:4px }' +
+    'h2 { font-size:11pt; margin:20px 0 6px; color:#4f46e5; text-transform:uppercase; letter-spacing:.05em }' +
+    'table { width:100%; border-collapse:collapse; font-size:9.5pt; margin-top:4px }' +
+    'th { background:#f5f7fb; text-align:left; padding:6px 8px; font-size:8.5pt; text-transform:uppercase; color:#5b6b84 }' +
+    'td { padding:6px 8px; border-top:1px solid #e3e8f0 }' +
+    'dl { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; margin:0; font-size:10pt }' +
+    'dt { color:#5b6b84 } dd { margin:0; font-weight:600 }' +
+    '.pie { margin-top:26px; padding-top:10px; border-top:1px solid #e3e8f0; font-size:8.5pt; color:#5b6b84 }' +
+    '</style></head><body>' +
+    '<div class="cab"><h1>Acta de mantenimiento</h1>' +
+    '<div class="sub">Urbanización Cerro Azul · ' + esc_(ahoraIso()) + '</div></div>' +
+
+    '<h2>Actividad</h2>' +
+    '<dl>' +
+      '<dt>Actividad</dt><dd>' + esc_(act.titulo) + '</dd>' +
+      '<dt>Sección</dt><dd>' + esc_(nodo ? nodo.codigo + ' · ' + nodo.nombre : '—') + '</dd>' +
+      '<dt>Empresa</dt><dd>' + esc_(empresa ? empresa.razon_social : '—') + '</dd>' +
+      '<dt>Responsable</dt><dd>' + esc_(responsable ? responsable.nombre : '—') + '</dd>' +
+      '<dt>Estado</dt><dd>' + esc_(act.estado) + '</dd>' +
+      '<dt>Planificada</dt><dd>' + esc_(fechaIso_(act.fecha_inicio_plan) + ' a ' + fechaIso_(act.fecha_fin_plan)) + '</dd>' +
+      '<dt>Ejecutada</dt><dd>' + esc_((String(act.fecha_inicio_real || '').slice(0, 10) || '—') + ' a ' + (String(act.fecha_reporte_final || '').slice(0, 10) || '—')) + '</dd>' +
+      '<dt>Avance aprobado</dt><dd>' + esc_(String(act.avance_aprobado_pct || 0) + ' %') + '</dd>' +
+    '</dl>' +
+
+    '<h2>Checklist</h2>' +
+    '<table><thead>' + filaTabla_(['Grupo', 'Ítem', 'Respuesta', 'Cumple'], true) +
+    '</thead><tbody>' + (filasItems || filaTabla_(['Sin checklist registrado', '', '', ''])) + '</tbody></table>' +
+
+    '<h2>Evidencias</h2>' +
+    '<table><thead>' + filaTabla_(['Momento', 'Subida', 'Personas', 'Archivo'], true) +
+    '</thead><tbody>' + (filasEvidencias || filaTabla_(['Sin evidencias', '', '', ''])) + '</tbody></table>' +
+
+    (reporte ? '<h2>Revisión</h2><dl>' +
+      '<dt>Resultado</dt><dd>' + esc_(reporte.estado_revision) + '</dd>' +
+      '<dt>Observación</dt><dd>' + esc_(reporte.comentario_admin || '—') + '</dd>' +
+      '</dl>' : '') +
+
+    '<div class="pie">Documento generado desde el Portal de Control de Mantenimientos. ' +
+    'Las fotografías originales quedan archivadas en la carpeta de evidencias de la copropiedad.</div>' +
+    '</body></html>';
+
+  const carpeta = subcarpeta_(subcarpeta_(carpetaRaiz_(), 'Documentos'), 'Actas');
+  const nombre = 'Acta-' + String(act.id).slice(-8) + '-' + fechaIso_(act.fecha_fin_plan) + '.pdf';
+  const blob = Utilities.newBlob(html, MimeType.HTML, 'acta.html').getAs(MimeType.PDF);
+  blob.setName(nombre);
+
+  const existentes = carpeta.getFilesByName(nombre);
+  while (existentes.hasNext()) existentes.next().setTrashed(true);
+  const archivo = carpeta.createFile(blob);
+  archivo.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+
+  auditar(usuario || 'sistema', 'ACTA_GENERADA', 'actividad', act.id, null, { archivo: nombre });
+  return { nombre: nombre, url: archivo.getUrl(), items: items.length, evidencias: evidencias.length };
+}

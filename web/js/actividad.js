@@ -104,6 +104,28 @@
     });
     caja.appendChild(lista);
 
+    const acciones = el('div', 'acciones-form');
+    const btnActa = el('button', 'btn', 'Descargar acta en PDF');
+    btnActa.type = 'button';
+    btnActa.addEventListener('click', async function () {
+      btnActa.disabled = true;
+      btnActa.textContent = 'Generando…';
+      const r = await API.llamar('actividades.acta', { id: act.id }, { token: Sesion.token(), idempotente: true });
+      btnActa.disabled = false;
+      btnActa.textContent = 'Descargar acta en PDF';
+      if (!r.ok) {
+        const avisoActa = document.getElementById('avisoActividad');
+        if (avisoActa) {
+          avisoActa.textContent = r.message || 'No se pudo generar el acta.';
+          avisoActa.className = 'msg mostrar error';
+        }
+        return;
+      }
+      window.open(r.data.url, '_blank', 'noopener');
+    });
+    acciones.appendChild(btnActa);
+    caja.appendChild(acciones);
+
     if (antes.length && despues.length) {
       const comp = el('div', 'comparador');
       [['ANTES', antes[0], 'comparador-antes'], ['DESPUÉS', despues[0], 'comparador-despues']].forEach(function (par) {
