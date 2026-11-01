@@ -603,19 +603,31 @@
     const barra = document.createElement('div');
     barra.className = 'avance-barra';
 
-    // Gris: lo que el contratista ya reportó. Sólido: lo aprobado.
+    // Verde: aprobado. Ámbar: hecho y esperando revisión. Gris: sin empezar.
     const reportado = Math.max(0, Math.min(100, Number(a.avance_reportado_pct) || 0));
     const aprobado = Math.max(0, Math.min(100, Number(a.avance_aprobado_pct) || 0));
-    const enCurso = document.createElement('i');
-    enCurso.className = 'avance-reportado';
-    enCurso.style.width = reportado + '%';
-    barra.appendChild(enCurso);
+    const enRevision = Math.max(0, reportado - aprobado);
+
     const relleno = document.createElement('i');
+    relleno.className = 'avance-aprobado';
     relleno.style.width = aprobado + '%';
     barra.appendChild(relleno);
 
+    if (enRevision > 0) {
+      const revision = document.createElement('i');
+      revision.className = 'avance-revision';
+      revision.style.left = aprobado + '%';
+      revision.style.width = enRevision + '%';
+      barra.appendChild(revision);
+    }
+
     const pct = document.createElement('b');
-    pct.textContent = reportado > aprobado ? reportado + '% rep.' : aprobado + '%';
+    if (reportado > aprobado) {
+      pct.textContent = reportado + '%';
+      pct.className = 'pct-revision';
+    } else {
+      pct.textContent = aprobado + '%';
+    }
     pct.title = 'Reportado ' + reportado + ' % · aprobado ' + aprobado + ' %';
     avance.appendChild(barra);
     avance.appendChild(pct);
