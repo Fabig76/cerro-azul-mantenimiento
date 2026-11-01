@@ -472,3 +472,7 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
   .etapa-fila input[type="date"] { grid-column: 1 / -1; }
   .etapa-cab span:nth-child(4) { display: none; }
 }
+
+/* Los selectores no necesitan todo el ancho */
+.campo select { max-width: 360px; }
+.campo input[type="date"], .campo input[type="number"] { max-width: 220px; }

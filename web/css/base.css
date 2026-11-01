@@ -363,7 +363,7 @@ footer.pie b { color: #334155; }
 
 
 /* Tarjetas de cifras (compartidas por el portal público y el panel) */
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 12px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(138px, 1fr)); gap: 12px; }
 .kpi {
   min-height: 96px;
   padding: 16px 18px;
