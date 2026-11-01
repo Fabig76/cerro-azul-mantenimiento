@@ -25,26 +25,30 @@
   function construirPestanas(rol) {
     const barra = document.getElementById('barraPestanas');
     if (!barra) return;
-    barra.textContent = '';
-    const permitidas = pestanasDe(rol);
-    permitidas.forEach(function (p) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'pestana acento-' + p.acento;
-      b.dataset.pestana = p.id;
-      b.textContent = p.nombre;
-      b.addEventListener('click', function () { mostrarPestana(p.id); });
-      barra.appendChild(b);
+
+    // Los botones vienen en el HTML; aquí solo se habilitan según el rol.
+    const botones = Array.prototype.slice.call(barra.querySelectorAll('.pestana'));
+    const permitidas = [];
+    botones.forEach(function (b) {
+      const roles = String(b.dataset.roles || '').split(',');
+      const puede = roles.indexOf(rol) >= 0;
+      b.hidden = !puede;
+      if (puede) {
+        permitidas.push(b.dataset.pestana);
+        if (!b.dataset.cableada) {
+          b.addEventListener('click', function () { mostrarPestana(b.dataset.pestana); });
+          b.dataset.cableada = '1';
+        }
+      }
     });
 
-    // Paneles que el rol no puede ver salen del DOM del panel.
     document.querySelectorAll('[data-panel]').forEach(function (panel) {
-      const permitido = permitidas.some(function (p) { return p.id === panel.dataset.panel; });
+      const permitido = permitidas.indexOf(panel.dataset.panel) >= 0;
       if (!permitido) panel.classList.add('oculto');
     });
 
     const inicial = (window.location.hash || '').replace('#/', '');
-    const elegida = permitidas.some(function (p) { return p.id === inicial; }) ? inicial : permitidas[0].id;
+    const elegida = permitidas.indexOf(inicial) >= 0 ? inicial : permitidas[0];
     mostrarPestana(elegida);
   }
 
