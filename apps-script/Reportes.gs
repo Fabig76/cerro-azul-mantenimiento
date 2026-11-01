@@ -289,12 +289,25 @@ function reportesRevisar(ctx, payload) {
       cambios.avance_aprobado_pct = avance;
       cambios.fecha_aprobacion = ahoraIso();
       cambios.vencida = false;
-      cambios.ultimo_mant_en = hoyIso();
       if (bool(config('cierre_automatico'))) cambios.estado = 'CERRADA';
     } else {
       cambios.estado = 'RECHAZADA';
     }
     const actActualizada = actualizar('actividades', act.id, cambios, ctx.usuario.email);
+
+    // La fecha del último mantenimiento es del equipo, no de la actividad.
+    if (decision === 'APROBAR') {
+      const nodoAprobado = buscarPorId('nodos', actActualizada.nodo_id);
+      if (nodoAprobado) {
+        const proximo = nodoAprobado.periodicidad_dias
+          ? sumarDias(hoyIso(), Number(nodoAprobado.periodicidad_dias))
+          : nodoAprobado.proximo_mant_en;
+        actualizar('nodos', nodoAprobado.id, {
+          ultimo_mant_en: hoyIso(),
+          proximo_mant_en: proximo || '',
+        }, ctx.usuario.email);
+      }
+    }
 
     // La condición reportada queda como lectura del elemento (RN-15).
     if (decision === 'APROBAR' && actActualizada.condicion_operativa) {

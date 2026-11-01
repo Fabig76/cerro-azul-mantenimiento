@@ -65,6 +65,8 @@ function nodosCrear(ctx, payload) {
 
 function nodosEditar(ctx, payload) {
   desdePortal_(payload);
+  // Garantiza que la hoja tenga las columnas nuevas del esquema antes de escribir.
+  asegurarPestañas(hojaCalculo());
   const id = exigirTexto(payload.id, 'id');
   const nodo = buscarPorId('nodos', id);
   if (!nodo) fallar_('NO_ENCONTRADO', 'Nodo inexistente');

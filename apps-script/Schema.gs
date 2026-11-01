@@ -7,7 +7,7 @@ const CAMPOS_AUDITORIA = ['creado_en', 'creado_por', 'actualizado_en', 'actualiz
 
 const SCHEMA = {
   nodos: [
-    'id', 'parent_id', 'clase', 'segmento', 'nombre', 'codigo', 'ruta_ids', 'profundidad', 'orden',
+    'id', 'parent_id', 'clase', 'segmento', 'nombre', 'descripcion', 'codigo', 'ruta_ids', 'profundidad', 'orden',
     'tipo_elemento_id', 'sensible', 'visible_publico', 'criticidad', 'ficha_json', 'condicion_operativa',
     'salud_estado', 'salud_puntaje', 'salud_calculada_en', 'ultimo_mant_en', 'proximo_mant_en',
     'foto_portada_id',
