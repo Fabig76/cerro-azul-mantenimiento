@@ -96,13 +96,22 @@ function construirSnapshot() {
       const enSubarbol = suyo === prefijo || suyo.indexOf(prefijo + '/') === 0;
       return enSubarbol && mesDe_(a.fecha_fin_plan) === mesActual;
     });
+    const programadas = propios.filter(function (a) { return String(a.estado) !== 'CANCELADA'; }).length;
+    const ejecutadas = propios.filter(function (a) { return ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0; }).length;
+
+    // Sin equipos registrados pero con trabajo hecho, el estado sale del cumplimiento del mes.
+    let estado = dist.CRITICO > 0 ? 'CRITICO' : (dist.ATENCION > 0 ? 'ATENCION' : (hijos.length ? 'AL_DIA' : 'SIN_DATOS'));
+    if (!hijos.length && programadas > 0) {
+      estado = ejecutadas >= programadas ? 'AL_DIA' : 'ATENCION';
+    }
+
     return {
       puntaje: puntaje,
-      estado: dist.CRITICO > 0 ? 'CRITICO' : (dist.ATENCION > 0 ? 'ATENCION' : (hijos.length ? 'AL_DIA' : 'SIN_DATOS')),
+      estado: estado,
       distribucion: dist,
       elementos: hijos.length,
-      programadas: propios.filter(function (a) { return String(a.estado) !== 'CANCELADA'; }).length,
-      ejecutadas: propios.filter(function (a) { return ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0; }).length,
+      programadas: programadas,
+      ejecutadas: ejecutadas,
       novedades: novedadesAbiertas.filter(function (n) { return String(n.nodo_id) === String(nodo.id); }).length,
     };
   }
@@ -510,7 +519,18 @@ function publicNodo(param) {
     migas: migas,
     salud: {
       puntaje: conPuntaje.length ? Math.round(conPuntaje.reduce(function (s, n) { return s + Number(n.salud_puntaje); }, 0) / conPuntaje.length) : null,
-      estado: ecumuladoEstado_(elementos),
+      estado: (function () {
+        const base = ecumuladoEstado_(elementos);
+        if (base !== 'SIN_DATOS') return base;
+        const delMes = propias.filter(function (a) {
+          return mesDe_(a.fecha_fin_plan) === mesActual && String(a.estado) !== 'CANCELADA';
+        });
+        if (!delMes.length) return 'SIN_DATOS';
+        const hechas = delMes.filter(function (a) {
+          return ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
+        }).length;
+        return hechas >= delMes.length ? 'AL_DIA' : 'ATENCION';
+      })(),
       distribucion: distribucion,
       elementos: elementos.length,
     },
