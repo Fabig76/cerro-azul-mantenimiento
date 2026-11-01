@@ -435,3 +435,39 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 .aviso-error { color: var(--danger-ink) !important; font-weight: 600; }
 
 textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; line-height: 1.5; }
+
+/* Editor de etapas por filas */
+.etapas { display: grid; gap: 8px; }
+.etapa-fila {
+  display: grid;
+  grid-template-columns: 1fr 84px 150px 34px;
+  gap: 8px;
+  align-items: center;
+}
+.etapa-cab {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 800;
+  color: var(--muted);
+  padding-bottom: 2px;
+}
+.etapa-peso { text-align: center; }
+.boton-quitar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.boton-quitar:hover { color: var(--danger-ink); border-color: var(--danger); background: var(--danger-soft); }
+.etapa-resumen { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+@media (max-width: 560px) {
+  .etapa-fila { grid-template-columns: 1fr 70px 34px; }
+  .etapa-fila input[type="date"] { grid-column: 1 / -1; }
+  .etapa-cab span:nth-child(3) { display: none; }
+}

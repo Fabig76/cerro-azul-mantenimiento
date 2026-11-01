@@ -415,23 +415,20 @@
 
   function formularioHitos() {
     const caja = bloqueFormulario('Etapas del trabajo');
-    caja.appendChild(el('p', 'bajada-tarjeta', 'Una línea por etapa: nombre | peso | fecha. El peso define cuánto aporta al avance.'));
-    const area = el('textarea', 'item-input');
-    area.id = 'hitosTexto';
-    area.placeholder = 'Desmontaje | 2 | 2026-11-03\nImpermeabilización | 5 | 2026-11-06\nRemate y limpieza | 1 | 2026-11-08';
+    caja.appendChild(el('p', 'bajada-tarjeta',
+      'Divide el trabajo en etapas. El peso dice cuánto aporta cada una al avance: una de peso 5 pesa lo mismo que cinco de peso 1.'));
     const actuales = (datos.hitos || []).filter(function (h) { return h.estado !== 'APROBADO'; });
-    area.value = actuales.map(function (h) { return h.nombre + ' | ' + h.peso + ' | ' + (h.fecha_plan || ''); }).join('\n');
-    caja.appendChild(area);
+    const contenedor = el('div', 'etapas');
+    caja.appendChild(contenedor);
+    const leerEtapas = window.Etapas.crear(contenedor, actuales.map(function (h) {
+      return { nombre: h.nombre, peso: h.peso, fecha_plan: h.fecha_plan };
+    }));
 
     const acciones = el('div', 'acciones-form');
     const guardar = el('button', 'btn primary', 'Guardar etapas');
     guardar.type = 'button';
     guardar.addEventListener('click', async function () {
-      const lineas = area.value.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
-      const hitos = lineas.map(function (l) {
-        const p = l.split('|').map(function (x) { return x.trim(); });
-        return { nombre: p[0], peso: Number(p[1]) || 1, fecha_plan: p[2] || '' };
-      });
+      const hitos = leerEtapas();
       if (!hitos.length) return aviso('Escribe al menos una etapa.', 'error');
       guardar.disabled = true;
       const r = await API.llamar('hitos.guardar', {

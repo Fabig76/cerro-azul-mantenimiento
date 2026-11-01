@@ -712,15 +712,26 @@
     aviso('Cerraste la sesión.', 'info');
   }
 
+  let leerEtapasNueva = null;
+
+  function montarEtapasNueva() {
+    const cont = document.getElementById('etapasNueva');
+    if (!cont || !window.Etapas) return;
+    cont.textContent = '';
+    leerEtapasNueva = window.Etapas.crear(cont, []);
+  }
+
   function prepararFormulario(t) {
     const form = document.getElementById('formActividad');
     if (!form) return;
     form.classList.remove('oculto');
+    montarEtapasNueva();
     cargarNodosEnFormulario(t);
     const cancelar = document.getElementById('btnCancelarActividad');
     if (cancelar) cancelar.addEventListener('click', function () {
       document.getElementById('actTitulo').value = '';
       document.getElementById('actDescripcion').value = '';
+      montarEtapasNueva();
     });
     form.addEventListener('submit', async function (ev) {
       ev.preventDefault();
@@ -734,6 +745,7 @@
         fecha_fin_plan: document.getElementById('actFin').value || document.getElementById('actInicio').value,
         prioridad: document.getElementById('actPrioridad').value,
         descripcion: document.getElementById('actDescripcion').value.trim(),
+        hitos: (leerEtapasNueva ? leerEtapasNueva() : []),
       }, { token: Sesion.token(), idempotente: true });
       boton.disabled = false;
       if (!r.ok) {
