@@ -143,6 +143,9 @@ function doPost(e) {
       }
     }
     const salida = def.fn(ctx, cuerpo.payload || {}, cuerpo.requestId || null);
+    // La cola de correos se vacía fuera del ciclo de la acción (RN-20).
+    quizasEnviarCorreos_();
+
     const respuesta = ok(salida);
     if (cuerpo.requestId && ctx.usuario) {
       cachePut('req:' + String(ctx.usuario.id) + ':' + accion + ':' + cuerpo.requestId,

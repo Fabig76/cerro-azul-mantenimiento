@@ -400,6 +400,13 @@ function authRegistrar(ctx, payload) {
   }, email);
 
   cacheDel(clave);
+
+  // Avisar a los administradores, sin bloquear el registro (RN-20).
+  adminsEmails_().forEach(function (adm) {
+    const admin = usuarioPorEmail_(adm);
+    if (admin) encolar_(admin.id, 'USUARIO_NUEVO', usuario.id);
+  });
+
   auditar(email, 'USUARIO_REGISTRADO', 'usuario', usuario.id, null,
     { empresa: empresaId || null, acepto: true });
 

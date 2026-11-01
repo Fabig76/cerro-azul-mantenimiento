@@ -135,6 +135,7 @@ function actividadesCrear(ctx, payload) {
     }), ctx.usuario.email);
   }
 
+  if (payload.responsable_id) encolar_(payload.responsable_id, 'ACTIVIDAD_ASIGNADA', actividad.id);
   auditar(ctx.usuario.email, 'ACTIVIDAD_CREADA', 'actividad', actividad.id, null,
     { titulo: titulo, nodo: nodo.codigo, dias: dias });
   return { actividad: actividadResumen_(actividad), hitos: hitos.length };

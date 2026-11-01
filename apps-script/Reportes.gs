@@ -29,6 +29,20 @@ function actividadesIniciar(ctx, payload) {
   }
   if (total > 2) fallar_('VALIDACION', 'Máximo dos fotos de ANTES.');
 
+  // Las fotos deben ser de ahora, no de la semana pasada (4.3 / M1).
+  if (total > 0) {
+    const minutos = configNumero('minutos_inicio_antes', 30);
+    const recientes = vinculadas.length ? vinculadas : antes;
+    const vieja = recientes.filter(function (e) {
+      const subida = new Date(String(e.fecha_subida));
+      return isNaN(subida.getTime()) || (Date.now() - subida.getTime()) > minutos * 60000;
+    })[0];
+    if (vieja) {
+      fallar_('VALIDACION', 'La foto de ANTES debe tomarse al iniciar (máximo ' + minutos +
+        ' minutos antes). Vuelve a tomarla y reintenta.');
+    }
+  }
+
   const cambios = {
     estado: 'EN_EJECUCION',
     fecha_inicio_real: ahoraIso(),
@@ -219,6 +233,7 @@ function reportesRevisar(ctx, payload) {
     }, ctx.usuario.email);
 
     const cambios = {};
+    if (decision === 'RECHAZAR') encolar_(reporte.usuario_id, 'REPORTE_RECHAZADO', reporteId);
     if (decision === 'APROBAR' && reporte.hito_id) {
       actualizar('hitos', reporte.hito_id, { estado: 'APROBADO', fecha_aprobacion: hoyIso() }, ctx.usuario.email);
     }

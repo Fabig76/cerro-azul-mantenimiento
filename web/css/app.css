@@ -404,3 +404,8 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 .card[data-panel="usuarios"] { --acento: #4f46e5; --acento-suave: rgba(79, 70, 229, .12); }
 .card[data-panel="alertas"] { --acento: var(--danger); --acento-suave: var(--danger-soft); }
 .card[data-panel="sistema"] { --acento: #64748b; --acento-suave: rgba(100, 116, 139, .12); }
+
+/* Evidencias con fecha */
+.lista-fotos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.fila-foto { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+.fila-foto-fecha { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }

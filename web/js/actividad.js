@@ -89,8 +89,20 @@
     const ev = datos.evidencias || [];
     const antes = ev.filter(function (e) { return e.momento === 'ANTES'; });
     const despues = ev.filter(function (e) { return e.momento === 'DESPUES'; });
-    caja.appendChild(el('p', 'bajada-tarjeta',
-      antes.length + ' foto(s) de ANTES · ' + despues.length + ' de DESPUÉS'));
+    function detalleFoto(e) {
+      const subida = (e.fecha_subida || '').replace('T', ' ').slice(0, 16);
+      const captura = (e.fecha_captura || '').replace('T', ' ').slice(0, 16);
+      return captura && captura !== subida ? 'captura ' + captura + ' · subida ' + subida : 'subida ' + subida;
+    }
+    const lista = el('ul', 'lista-fotos');
+    antes.concat(despues).forEach(function (e) {
+      const li = el('li', 'fila-foto');
+      li.appendChild(el('span', 'badge ' + (e.momento === 'ANTES' ? 'warn' : 'ok'), e.momento));
+      li.appendChild(el('span', 'fila-foto-fecha', detalleFoto(e)));
+      if (e.contiene_personas) li.appendChild(el('span', 'badge danger', 'con personas'));
+      lista.appendChild(li);
+    });
+    caja.appendChild(lista);
 
     if (antes.length && despues.length) {
       const comp = el('div', 'comparador');

@@ -69,13 +69,17 @@ function sha256Hex(texto) {
   return hex;
 }
 
-/** Token aleatorio de n bytes en hexadecimal. */
+/**
+ * Token aleatorio en hexadecimal a partir de UUID v4 (B3 de la auditoría).
+ * Math.random no es criptográficamente seguro; el UUID sí es una fuente adecuada.
+ */
 function tokenAleatorioHex(n) {
+  const necesarios = Math.max(2, Math.ceil((n || 32) / 16));
   let s = '';
-  for (let i = 0; i < n; i++) {
-    s += ('0' + Math.floor(Math.random() * 256).toString(16)).slice(-2);
+  for (let i = 0; i < necesarios; i++) {
+    s += Utilities.getUuid().replace(/-/g, '');
   }
-  return s + Utilities.getUuid().replace(/-/g, '');
+  return s.slice(0, Math.max(32, (n || 32) * 2));
 }
 
 function esVacio(v) {

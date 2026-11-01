@@ -10,17 +10,24 @@
   const CLAVE_RECORDAR = 'ca_recordar';
 
   function guardar(datos, recordar) {
-    sessionStorage.setItem(CLAVE, JSON.stringify(datos));
-    if (recordar) localStorage.setItem(CLAVE, JSON.stringify(datos));
-    else localStorage.removeItem(CLAVE);
-    localStorage.setItem(CLAVE_RECORDAR, recordar ? '1' : '0');
+    const texto = JSON.stringify(datos);
+    try { sessionStorage.setItem(CLAVE, texto); } catch (e) { /* modo privado o cuota */ }
+    try {
+      if (recordar) localStorage.setItem(CLAVE, texto);
+      else localStorage.removeItem(CLAVE);
+      localStorage.setItem(CLAVE_RECORDAR, recordar ? '1' : '0');
+    } catch (e) { /* sin almacenamiento persistente */ }
   }
 
   function leer() {
-    const deSesion = sessionStorage.getItem(CLAVE);
-    if (deSesion) return JSON.parse(deSesion);
-    const deLocal = localStorage.getItem(CLAVE);
-    if (deLocal) return JSON.parse(deLocal);
+    try {
+      const deSesion = sessionStorage.getItem(CLAVE);
+      if (deSesion) return JSON.parse(deSesion);
+    } catch (e) { /* nada */ }
+    try {
+      const deLocal = localStorage.getItem(CLAVE);
+      if (deLocal) return JSON.parse(deLocal);
+    } catch (e) { /* nada */ }
     return null;
   }
 
@@ -30,9 +37,11 @@
   }
 
   function limpiar() {
-    sessionStorage.removeItem(CLAVE);
-    localStorage.removeItem(CLAVE);
-    localStorage.removeItem(CLAVE_RECORDAR);
+    try { sessionStorage.removeItem(CLAVE); } catch (e) { /* nada */ }
+    try {
+      localStorage.removeItem(CLAVE);
+      localStorage.removeItem(CLAVE_RECORDAR);
+    } catch (e) { /* nada */ }
   }
 
   window.Sesion = { guardar: guardar, leer: leer, token: token, limpiar: limpiar };

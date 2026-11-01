@@ -71,6 +71,7 @@ function usuariosActivar(ctx, payload) {
     inactivo_desde: '',
   }, ctx.usuario.email);
 
+  encolar_(id, 'CUENTA_ACTIVADA', id);
   auditar(ctx.usuario.email, 'USUARIO_ACTIVADO', 'usuario', id,
     { estado: u.estado }, { estado: 'ACTIVO', rol: rol, empresa: empresaId });
   return { usuario: usuarioResumen_(despues) };

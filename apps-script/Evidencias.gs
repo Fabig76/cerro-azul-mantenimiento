@@ -44,11 +44,16 @@ function evidenciasUpload(ctx, payload) {
   }
 
   const momento = exigirEnEnum(payload.momento || 'ANTES', 'momento', ['ANTES', 'DURANTE', 'DESPUES', 'DOCUMENTO']);
+  // Una foto de ANTES solo tiene sentido antes de empezar (4.3).
+  if (momento === 'ANTES' && String(act.estado) !== 'PROGRAMADA') {
+    fallar_('ESTADO_INVALIDO', 'La actividad ya fue iniciada: no se aceptan fotos de ANTES.');
+  }
   const mime = exigirEnEnum(payload.mime || 'image/jpeg', 'mime', ['image/jpeg', 'image/png', 'application/pdf']);
   const bytes = decodificarBase64_(payload.base64);
   if (bytes.length > 2 * 1024 * 1024) fallar_('ARCHIVO_GRANDE', 'La imagen supera 2 MB.');
 
-  const sha = payload.sha256 ? String(payload.sha256) : Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes, Utilities.Charset.UTF_8).map(function (b) {
+  // El hash se calcula siempre en el servidor: el del cliente no es confiable (B2).
+  const sha = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes).map(function (b) {
     return ((b + 256) % 256).toString(16).padStart(2, '0');
   }).join('');
 
