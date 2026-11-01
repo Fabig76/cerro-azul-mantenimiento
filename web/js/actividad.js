@@ -52,6 +52,10 @@
       vista.classList.toggle('oculto', !visible);
     }
     if (lista) lista.classList.toggle('oculto', !!visible);
+    if (vista) {
+      if (visible) vista.dataset.abierta = '1';
+      else delete vista.dataset.abierta;
+    }
     if (visible && window.App) App.pestana('actividades');
     if (visible && vista) vista.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }

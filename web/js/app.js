@@ -57,9 +57,16 @@
       const visible = panel.dataset.panel === id;
       panel.classList.toggle('oculto', !visible);
     });
-    // El detalle de una actividad solo vive dentro de su pestaña.
+    // El detalle de una actividad solo vive dentro de su pestaña y nunca se duplica con la lista.
     const detalle = document.getElementById('vistaActividad');
-    if (detalle && id !== 'actividades') detalle.classList.add('oculto');
+    const lista = document.getElementById('tarjetaActividades');
+    if (detalle) {
+      if (id !== 'actividades') detalle.classList.add('oculto');
+      else if (detalle.dataset.abierta === '1') {
+        detalle.classList.remove('oculto');
+        if (lista) lista.classList.add('oculto');
+      }
+    }
     if (window.history && history.replaceState) {
       history.replaceState(null, '', window.location.pathname + '#/' + id);
     }
