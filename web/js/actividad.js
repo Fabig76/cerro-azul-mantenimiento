@@ -943,11 +943,13 @@
     const novedades = bloqueNovedad();
     if (novedades) cont.appendChild(novedades);
 
-    // La evidencia cargada y el acta cierran el expediente.
+    // La evidencia cargada va al final del trabajo.
     cont.appendChild(bloqueEvidencias());
+
+    // Las acciones primero y el acta al cierre de la página: es el último documento.
+    cont.appendChild(acciones());
     const acta = bloqueActa();
     if (acta) cont.appendChild(acta);
-    cont.appendChild(acciones());
   }
 
   window.Actividad = { abrir: abrir };
