@@ -392,3 +392,16 @@ footer.pie b { color: #334155; }
 @media (max-width: 640px) { .kpis { grid-template-columns: repeat(2, 1fr); } } }
 .kpi-n { font-size: 27px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; color: var(--ink); }
 .kpi-l { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+
+/* Botones bloqueados: que se note que no se puede pulsar */
+.btn:disabled, .btn[disabled] {
+  opacity: .55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+.btn.primary:disabled {
+  background: var(--card-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
