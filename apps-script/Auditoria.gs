@@ -1,0 +1,65 @@
+/**
+ * Auditoria.gs — apoyo temporal para probar todos los módulos.
+ * Se retira del router al terminar la auditoría.
+ */
+
+function auditoriaSesion() {
+  const u = usuarioPorEmail_('admin@urbcerroazul.com');
+  if (!u) return { estado: 'NO_ENCONTRADO' };
+  const r = crearSesion_(u, 'AUDITORIA');
+  return { rol: u.rol, token: r.token || r.sesion || r };
+}
+
+/** Borra lo que dejó la auditoría: actividades activas y entidades marcadas «PRUEBA». */
+function auditoriaLimpiar() {
+  const resumen = { actividades: 0, tipos: 0, plantillas: 0, empresas: 0, nodos: 0, novedades: 0, alertas: 0 };
+
+  return conBloqueo(function () {
+    filtrar('actividades', function (a) { return bool(a.activo); }).forEach(function (a) {
+      filtrar('reportes', function (r) {
+        return String(r.actividad_id) === String(a.id) && bool(r.activo);
+      }).forEach(function (r) {
+        filtrar('respuestas', function (x) {
+          return String(x.reporte_id) === String(r.id) && bool(x.activo);
+        }).forEach(function (x) { actualizar('respuestas', x.id, { activo: false }, 'auditoria'); });
+        actualizar('reportes', r.id, { activo: false }, 'auditoria');
+      });
+      filtrar('evidencias', function (e) {
+        return String(e.actividad_id) === String(a.id) && bool(e.activo);
+      }).forEach(function (e) { actualizar('evidencias', e.id, { activo: false }, 'auditoria'); });
+      filtrar('hitos', function (h) {
+        return String(h.actividad_id) === String(a.id) && bool(h.activo);
+      }).forEach(function (h) { actualizar('hitos', h.id, { activo: false }, 'auditoria'); });
+      actualizar('actividades', a.id, { activo: false, publicable: false }, 'auditoria');
+      resumen.actividades++;
+    });
+
+    const marca = function (x) { return String(x.nombre || x.razon_social || x.titulo || '').indexOf('PRUEBA') === 0; };
+
+    filtrar('tipos_elemento', function (t) { return bool(t.activo) && marca(t); }).forEach(function (t) {
+      actualizar('tipos_elemento', t.id, { activo: false }, 'auditoria'); resumen.tipos++;
+    });
+    filtrar('plantillas', function (p) { return bool(p.activo) && marca(p); }).forEach(function (p) {
+      actualizar('plantillas', p.id, { activo: false, activa: false }, 'auditoria'); resumen.plantillas++;
+    });
+    filtrar('empresas', function (e) { return bool(e.activo) && marca(e); }).forEach(function (e) {
+      actualizar('empresas', e.id, { activo: false, estado: 'INACTIVA' }, 'auditoria'); resumen.empresas++;
+    });
+    filtrar('nodos', function (n) { return bool(n.activo) && marca(n); }).forEach(function (n) {
+      actualizar('nodos', n.id, {
+        activo: false, salud_puntaje: '', salud_estado: 'SIN_DATOS', salud_calculada_en: '', ultimo_mant_en: '',
+      }, 'auditoria'); resumen.nodos++;
+    });
+    filtrar('novedades', function (n) { return bool(n.activo) && marca(n); }).forEach(function (n) {
+      actualizar('novedades', n.id, { activo: false, publicable: false }, 'auditoria'); resumen.novedades++;
+    });
+    filtrar('alertas', function (a) { return bool(a.activo) && marca(a); }).forEach(function (a) {
+      actualizar('alertas', a.id, { activo: false, estado: 'CERRADA' }, 'auditoria'); resumen.alertas++;
+    });
+
+    limpiarCache('');
+    recalcularTodo('auditoria');
+    regenerarSnapshot();
+    return resumen;
+  });
+}

@@ -68,6 +68,15 @@ function autenticar_(token) {
     return { ok: false, respuesta: err('INACTIVO', 'Tu cuenta está inactiva.') };
   }
 
+  // Sin autorización de datos vigente no hay sesión (Ley 1581).
+  if (sinConsentimiento_(usuario)) {
+    return {
+      ok: false,
+      respuesta: err('SIN_CONSENTIMIENTO',
+        'Debes autorizar el tratamiento de tus datos para seguir. Ingresa de nuevo para completar el registro.'),
+    };
+  }
+
   const rol = String(usuario.rol || 'CONTRATISTA');
   return { ok: true, ctx: { usuario: usuario, rol: rol, token_hash: hash } };
 }
