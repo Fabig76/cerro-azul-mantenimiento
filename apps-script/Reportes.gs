@@ -5,6 +5,7 @@
 
 /** Inicia la actividad exigiendo 1-2 fotos ANTES (RN-03a). El admin puede justificar la excepción. */
 function actividadesIniciar(ctx, payload) {
+  desdePortal_(payload);
   const id = exigirTexto(payload.id, 'id');
   const act = buscarPorId('actividades', id);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
@@ -74,6 +75,7 @@ function evaluarItem_(item, valor) {
 
 /** Reporte final del contratista. */
 function reportesCrear(ctx, payload) {
+  desdePortal_(payload);
   const actividadId = exigirTexto(payload.actividad_id, 'actividad_id');
   const act = buscarPorId('actividades', actividadId);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
@@ -194,6 +196,7 @@ function falarEstadoCondicion_() {
 
 /** Revisión del administrador: aprobar o rechazar con motivo (RN-04). */
 function reportesRevisar(ctx, payload) {
+  desdePortal_(payload);
   const reporteId = exigirTexto(payload.reporte_id, 'reporte_id');
   const decision = exigirEnEnum(payload.decision, 'decision', ['APROBAR', 'RECHAZAR']);
   const comentario = payload.comentario ? String(payload.comentario).slice(0, 1000) : '';

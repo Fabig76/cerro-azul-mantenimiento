@@ -4,6 +4,7 @@
  */
 
 function nodosCrear(ctx, payload) {
+  desdePortal_(payload);
   const parentId = payload.parent_id || null;
   const padre = parentId ? buscarPorId('nodos', parentId) : null;
   if (parentId && !padre) fallar_('NO_ENCONTRADO', 'El nodo padre no existe.');
@@ -63,6 +64,7 @@ function nodosCrear(ctx, payload) {
 }
 
 function nodosEditar(ctx, payload) {
+  desdePortal_(payload);
   const id = exigirTexto(payload.id, 'id');
   const nodo = buscarPorId('nodos', id);
   if (!nodo) fallar_('NO_ENCONTRADO', 'Nodo inexistente');
@@ -85,6 +87,7 @@ function nodosEditar(ctx, payload) {
 
 /** Mueve un nodo y recalcula código, ruta y profundidad de todo su subárbol. */
 function nodosMover(ctx, payload) {
+  desdePortal_(payload);
   const id = exigirTexto(payload.id, 'id');
   const nuevoPadreId = payload.nuevo_parent_id || '';
   const nodo = buscarPorId('nodos', id);

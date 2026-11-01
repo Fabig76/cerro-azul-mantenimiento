@@ -50,6 +50,7 @@ function recurrenciasListar(ctx, payload) {
 }
 
 function recurrenciasGuardar(ctx, payload) {
+  desdePortal_(payload);
   const nodoId = exigirTexto(payload.nodo_id, 'nodo_id');
   const nodo = buscarPorId('nodos', nodoId);
   if (!nodo) fallar_('NO_ENCONTRADO', 'La sección no existe.');
@@ -100,6 +101,7 @@ function recurrenciasPausar(ctx, payload) {
 
 /** Crea las recurrencias que propone el tipo del elemento (Anexo B). */
 function recurrenciasDesdeTipo(ctx, payload) {
+  desdePortal_(payload);
   const nodoId = exigirTexto(payload.nodo_id, 'nodo_id');
   const nodo = buscarPorId('nodos', nodoId);
   if (!nodo) fallar_('NO_ENCONTRADO', 'La sección no existe.');

@@ -34,6 +34,7 @@ function decodificarBase64_(txt) {
  * payload: { actividad_id, momento, base64, base64_mini?, mime, sha256, fecha_captura?, lat?, lng?, contiene_personas? }
  */
 function evidenciasUpload(ctx, payload) {
+  desdePortal_(payload);
   const actividadId = exigirTexto(payload.actividad_id, 'actividad_id');
   const act = buscarPorId('actividades', actividadId);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');

@@ -51,6 +51,7 @@ function usuariosListar(ctx, payload) {
 
 /** Activa a un usuario, le fija el rol y la empresa. */
 function usuariosActivar(ctx, payload) {
+  desdePortal_(payload);
   const id = exigirTexto(payload.id, 'id');
   const u = buscarPorId('usuarios', id);
   if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');
@@ -101,6 +102,7 @@ function usuariosEditar(ctx, payload) {
 
 /** Reemplaza las secciones asignadas (el acceso incluye todo el subárbol). */
 function usuariosAsignar(ctx, payload) {
+  desdePortal_(payload);
   const id = exigirTexto(payload.id, 'id');
   const u = buscarPorId('usuarios', id);
   if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');
@@ -137,6 +139,7 @@ function usuariosAsignar(ctx, payload) {
 
 /** Desactiva al usuario y revoca sus sesiones. */
 function usuariosDesactivar(ctx, payload) {
+  desdePortal_(payload);
   const id = exigirTexto(payload.id, 'id');
   const u = buscarPorId('usuarios', id);
   if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');

@@ -48,6 +48,7 @@ function actividadResumenBase_(a) {
 
 /** Crea una actividad. Solo ADMIN. */
 function actividadesCrear(ctx, payload) {
+  desdePortal_(payload);
   const nodoId = exigirTexto(payload.nodo_id, 'nodo_id');
   const nodo = buscarPorId('nodos', nodoId);
   if (!nodo) fallar_('NO_ENCONTRADO', 'La sección indicada no existe.');
@@ -253,6 +254,7 @@ function actividadesGet(ctx, payload) {
 
 /** Edita una actividad existente. Solo ADMIN. */
 function actividadesEditar(ctx, payload) {
+  desdePortal_(payload);
   const id = exigirTexto(payload.id, 'id');
   return conBloqueo(function () { return editarActividad_(ctx, payload, id); });
 }
@@ -306,6 +308,7 @@ function editarActividad_(ctx, payload, id) {
 
 /** Cancela una actividad con motivo obligatorio. No borra: deja el registro (RN-13). */
 function actividadesCancelar(ctx, payload) {
+  desdePortal_(payload);
   const id = exigirTexto(payload.id, 'id');
   const motivo = exigirTexto(payload.motivo, 'motivo', 500);
   if (motivo.length < 10) fallar_('VALIDACION', 'Escribe el motivo de la cancelación (al menos 10 caracteres).');

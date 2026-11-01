@@ -40,6 +40,7 @@ function alertasListar(ctx, payload) {
 
 /** Crea o actualiza una alerta. */
 function alertasGuardar(ctx, payload) {
+  desdePortal_(payload);
   const nivel = exigirEnEnum(payload.nivel || 'INFO', 'nivel', NIVELES_ALERTA);
   const categoria = exigirEnEnum(payload.categoria || 'GENERAL', 'categoria',
     ['FALLA', 'CORTE_SERVICIO', 'CIERRE_AREA', 'MANTENIMIENTO_PROGRAMADO', 'SEGURIDAD', 'GENERAL']);
@@ -79,6 +80,7 @@ function alertasGuardar(ctx, payload) {
 
 /** Publica una alerta: queda visible para todos de inmediato. */
 function alertasPublicar(ctx, payload) {
+  desdePortal_(payload);
   const id = exigirTexto(payload.id, 'id');
   const a = buscarPorId('alertas', id);
   if (!a) fallar_('NO_ENCONTRADO', 'La alerta no existe.');

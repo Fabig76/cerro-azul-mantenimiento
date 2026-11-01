@@ -4,6 +4,7 @@
 
 /** Reemplaza los hitos pendientes de una actividad. Solo ADMIN. */
 function hitosGuardar(ctx, payload) {
+  desdePortal_(payload);
   const actividadId = exigirTexto(payload.actividad_id, 'actividad_id');
   const act = buscarPorId('actividades', actividadId);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');

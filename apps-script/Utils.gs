@@ -157,3 +157,15 @@ function configGuardar(ctx, payload) {
   auditar(ctx.usuario.email, 'CONFIG_CAMBIADA', 'config', clave, existente ? existente.valor : null, valor);
   return { clave: clave, valor: valor };
 }
+
+/**
+ * Guardia para las funciones que solo tienen sentido desde el portal.
+ * Evita el error críptico cuando alguien las ejecuta desde el editor por equivocación.
+ */
+function desdePortal_(payload) {
+  if (!payload || Object.keys(payload).length === 0) {
+    fallar_('VALIDACION',
+      'Esta función se ejecuta desde el portal, no desde el editor. ' +
+      'Para las pruebas, selecciona runAllTests en la lista de funciones.');
+  }
+}
