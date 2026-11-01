@@ -16,6 +16,14 @@
     CRITICO: ['Crítico', 'danger'], SIN_DATOS: ['Sin datos', 'gray'],
   };
 
+  function mostrarError(mensaje) {
+    const aviso = document.getElementById('avisoPortal');
+    if (aviso) {
+      aviso.textContent = mensaje;
+      aviso.className = 'msg mostrar error';
+    }
+  }
+
   async function cargar() {
     const url = (window.CFG && window.CFG.API_URL ? window.CFG.API_URL : '') + '?action=public.snapshot';
     let snap;
@@ -23,10 +31,19 @@
       const r = await fetch(url, { redirect: 'follow' });
       snap = await r.json();
     } catch (e) {
-      const aviso = document.getElementById('avisoPortal');
-      if (aviso) { aviso.textContent = 'No pudimos cargar la información del portal.'; aviso.className = 'msg mostrar error'; }
+      mostrarError('No pudimos cargar la información del portal.');
       return;
     }
+    try {
+      pintarTodo(snap);
+    } catch (e) {
+      // Un fallo de pintado no puede dejar la portada en "Cargando…" para siempre.
+      mostrarError('Error al mostrar la información: ' + (e && e.message ? e.message : e));
+      throw e;
+    }
+  }
+
+  function pintarTodo(snap) {
     pintarResumen(snap);
     pintarArbol(snap);
     pintarMeses(snap);
