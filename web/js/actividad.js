@@ -46,11 +46,13 @@
 
   function mostrar(visible) {
     const vista = document.getElementById('vistaActividad');
-    const panel = document.getElementById('pantallaPanel');
+    const lista = document.getElementById('tarjetaActividades');
     if (vista) {
       if (visible && vista.hasAttribute('hidden')) vista.removeAttribute('hidden');
+      vista.classList.toggle('oculto', !visible);
     }
-    if (panel) panel.classList.toggle('modo-detalle', !!visible);
+    if (lista) lista.classList.toggle('oculto', !!visible);
+    if (visible && window.App) App.pestana('actividades');
     if (visible && vista) vista.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 

@@ -7,6 +7,65 @@
 
   function $(sel) { return document.querySelector(sel); }
 
+  const PESTANAS = [
+    { id: 'actividades', nombre: 'Actividades', acento: 'indigo', roles: ['ADMIN', 'SUPERVISOR', 'CONTRATISTA'] },
+    { id: 'secciones', nombre: 'Secciones', acento: 'cian', roles: ['ADMIN', 'SUPERVISOR', 'CONTRATISTA'] },
+    { id: 'novedades', nombre: 'Novedades', acento: 'warn', roles: ['ADMIN', 'SUPERVISOR', 'CONTRATISTA'] },
+    { id: 'plan', nombre: 'Plan', acento: 'violeta', roles: ['ADMIN'] },
+    { id: 'empresas', nombre: 'Empresas', acento: 'ok', roles: ['ADMIN', 'SUPERVISOR'] },
+    { id: 'usuarios', nombre: 'Usuarios', acento: 'indigo', roles: ['ADMIN'] },
+    { id: 'alertas', nombre: 'Alertas', acento: 'danger', roles: ['ADMIN'] },
+    { id: 'sistema', nombre: 'Sistema', acento: 'neutro', roles: ['ADMIN'] },
+  ];
+
+  function pestanasDe(rol) {
+    return PESTANAS.filter(function (p) { return p.roles.indexOf(rol) >= 0; });
+  }
+
+  function construirPestanas(rol) {
+    const barra = document.getElementById('barraPestanas');
+    if (!barra) return;
+    barra.textContent = '';
+    const permitidas = pestanasDe(rol);
+    permitidas.forEach(function (p) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pestana acento-' + p.acento;
+      b.dataset.pestana = p.id;
+      b.textContent = p.nombre;
+      b.addEventListener('click', function () { mostrarPestana(p.id); });
+      barra.appendChild(b);
+    });
+
+    // Paneles que el rol no puede ver salen del DOM del panel.
+    document.querySelectorAll('[data-panel]').forEach(function (panel) {
+      const permitido = permitidas.some(function (p) { return p.id === panel.dataset.panel; });
+      if (!permitido) panel.classList.add('oculto');
+    });
+
+    const inicial = (window.location.hash || '').replace('#/', '');
+    const elegida = permitidas.some(function (p) { return p.id === inicial; }) ? inicial : permitidas[0].id;
+    mostrarPestana(elegida);
+  }
+
+  function mostrarPestana(id) {
+    document.querySelectorAll('#barraPestanas .pestana').forEach(function (b) {
+      b.classList.toggle('activa', b.dataset.pestana === id);
+      b.setAttribute('aria-selected', b.dataset.pestana === id ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-panel]').forEach(function (panel) {
+      const visible = panel.dataset.panel === id;
+      panel.classList.toggle('oculto', !visible);
+    });
+    // El detalle de una actividad solo vive dentro de su pestaña.
+    const detalle = document.getElementById('vistaActividad');
+    if (detalle && id !== 'actividades') detalle.classList.add('oculto');
+    if (window.history && history.replaceState) {
+      history.replaceState(null, '', window.location.pathname + '#/' + id);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   let rolActual = 'CONTRATISTA';
   let registroToken = null;
   let nodosActuales = [];
@@ -121,6 +180,7 @@
 
     rolActual = me.usuario.rol;
     window.__rol = rolActual;
+    construirPestanas(rolActual);
     cargarArbol(t, me);
     cargarActividades(t, me);
     if (window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
@@ -131,23 +191,11 @@
         formElemento.classList.remove('oculto');
         if (window.Elementos) { Elementos.cargar(); Elementos.preparar(); }
       }
-      const tarjetaPruebas = document.getElementById('tarjetaPruebas');
-      if (tarjetaPruebas) tarjetaPruebas.classList.remove('oculto');
       if (window.Pruebas) Pruebas.preparar();
-      const tarjetaRespaldo = document.getElementById('tarjetaRespaldo');
-      if (tarjetaRespaldo) tarjetaRespaldo.classList.remove('oculto');
       if (window.Respaldo) { Respaldo.cargar(); Respaldo.preparar(); }
-      const tarjetaEmpresas = document.getElementById('tarjetaEmpresas');
-      if (tarjetaEmpresas) tarjetaEmpresas.classList.remove('oculto');
       if (window.Empresas) { Empresas.preparar(); Empresas.cargar(); }
-      const tarjetaPlan = document.getElementById('tarjetaPlan');
-      if (tarjetaPlan) tarjetaPlan.classList.remove('oculto');
       if (window.Plan) { Plan.cargar(); Plan.preparar(); }
-      const tarjetaAlertas = document.getElementById('tarjetaAlertas');
-      if (tarjetaAlertas) tarjetaAlertas.classList.remove('oculto');
       if (window.Alertas) { Alertas.cargar(); Alertas.preparar(); }
-      const tarjetaUsuarios = document.getElementById('tarjetaUsuarios');
-      if (tarjetaUsuarios) tarjetaUsuarios.classList.remove('oculto');
       if (window.Usuarios) {
         Usuarios.cargar();
         Usuarios.prepararEmpresa();
@@ -458,7 +506,10 @@
       });
   }
 
-  window.App = { refrescar: function () { cargarActividades(Sesion.token()); } };
+  window.App = {
+    refrescar: function () { cargarActividades(Sesion.token()); },
+    pestana: mostrarPestana,
+  };
 
   document.addEventListener('DOMContentLoaded', async function () {
     const bt = document.getElementById('btnTema');

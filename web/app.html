@@ -125,12 +125,12 @@
       </div>
     </div>
 
-    <div class="card seccion-panel" id="vistaActividad" hidden>
+    <div class="card seccion-panel" id="vistaActividad" hidden data-panel="actividades">
       <div id="contenidoActividad"></div>
       <div class="msg" id="avisoActividad" role="status" aria-live="polite"></div>
     </div>
 
-    <div class="card seccion-panel" id="tarjetaNovedades">
+    <div class="card seccion-panel" id="tarjetaNovedades" data-panel="novedades">
       <div class="cabecera-seccion">
         <h2>Novedades</h2>
         <span class="codigo" id="conteoNovedades"></span>
@@ -179,7 +179,7 @@
       </form>
     </div>
 
-    <div class="card seccion-panel oculto" id="tarjetaEmpresas">
+    <div class="card seccion-panel oculto" id="tarjetaEmpresas" data-panel="empresas">
       <div class="cabecera-seccion">
         <h2>Cumplimiento por empresa</h2>
         <span class="codigo" id="conteoEmpresas"></span>
@@ -198,7 +198,7 @@
       <div class="msg" id="avisoEmpresas" role="status" aria-live="polite"></div>
     </div>
 
-    <div class="card seccion-panel oculto" id="tarjetaPlan">
+    <div class="card seccion-panel oculto" id="tarjetaPlan" data-panel="plan">
       <div class="cabecera-seccion">
         <h2>Plan de mantenimiento</h2>
         <span class="codigo" id="conteoPlan"></span>
@@ -251,7 +251,7 @@
       </form>
     </div>
 
-    <div class="card seccion-panel oculto" id="tarjetaAlertas">
+    <div class="card seccion-panel oculto" id="tarjetaAlertas" data-panel="alertas">
       <div class="cabecera-seccion"><h2>Alertas para propietarios</h2></div>
       <p class="bajada-tarjeta">Lo que publique aparece en una franja en la portada pública hasta que se cierre.</p>
       <div id="listaAlertas" class="lista-novedades"></div>
@@ -298,7 +298,7 @@
       </form>
     </div>
 
-    <div class="card seccion-panel oculto" id="tarjetaPruebas">
+    <div class="card seccion-panel oculto" id="tarjetaPruebas" data-panel="sistema">
       <div class="cabecera-seccion"><h2>Estado del sistema</h2></div>
       <p class="bajada-tarjeta">Comprueba que la lógica, los permisos y el portal público respondan como se espera. No modifica datos.</p>
       <div class="acciones-form">
@@ -308,7 +308,7 @@
       <div class="lista-pruebas oculto" id="detallePruebas"></div>
     </div>
 
-    <div class="card seccion-panel oculto" id="tarjetaRespaldo">
+    <div class="card seccion-panel oculto" id="tarjetaRespaldo" data-panel="sistema">
       <div class="cabecera-seccion"><h2>Respaldos</h2></div>
       <p class="bajada-tarjeta">Copias del libro en Drive. Se conservan las últimas ocho; la más reciente es la que sirve para restaurar.</p>
       <p class="bajada-tarjeta" id="ultimoRespaldo">Sin respaldos todavía.</p>
@@ -318,7 +318,7 @@
       <div class="msg" id="avisoRespaldo" role="status" aria-live="polite"></div>
     </div>
 
-    <div class="card seccion-panel oculto" id="tarjetaUsuarios">
+    <div class="card seccion-panel oculto" id="tarjetaUsuarios" data-panel="usuarios">
       <div class="cabecera-seccion">
         <h2>Usuarios</h2>
         <span class="codigo" id="conteoUsuarios"></span>
@@ -388,7 +388,7 @@
       </form>
     </div>
 
-    <div class="card seccion-panel">
+    <div class="card seccion-panel" id="tarjetaActividades" data-panel="actividades">
       <div class="cabecera-seccion">
         <h2>Actividades</h2>
         <span class="codigo" id="conteoActividades"></span>
