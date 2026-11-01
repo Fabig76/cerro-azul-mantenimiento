@@ -177,7 +177,10 @@ function authGoogle(ctx, payload) {
   if (String(info.email_verified) !== 'true') fallar_('NO_AUTENTICADO', 'El correo de Google no está verificado.');
 
   const email = String(info.email || '').toLowerCase();
-  const usuario = asegurarUsuario_(email, info.name || email, 'GOOGLE');
+  const usuario = asegurarAdmin_(email, info.name || email, 'GOOGLE');
+  if (!usuario) {
+    return { estado: 'NO_REGISTRADO', registro_token: crearTokenRegistro_(email), email: email };
+  }
   return continuarIngreso_(usuario, 'GOOGLE');
 }
 
@@ -228,7 +231,11 @@ function authEnlaceCanjear(ctx, payload) {
   if (!email) fallar_('NO_ENCONTRADO', 'El enlace venció o ya fue usado. Solicita uno nuevo.');
   cacheDel(clave);
 
-  const usuario = asegurarUsuario_(String(email).toLowerCase(), String(email), 'ENLACE');
+  const correo = String(email).toLowerCase();
+  const usuario = asegurarAdmin_(correo, correo, 'ENLACE');
+  if (!usuario) {
+    return { estado: 'NO_REGISTRADO', registro_token: crearTokenRegistro_(correo), email: correo };
+  }
   return continuarIngreso_(usuario, 'ENLACE');
 }
 
@@ -251,11 +258,19 @@ function continuarIngreso_(usuario, origen) {
   };
 }
 
-/** Busca el usuario por correo; si no existe lo crea PENDIENTE (o ADMIN si es el primero). */
-function asegurarUsuario_(email, nombre, origen) {
-  const existente = filtrar('usuarios', function (u) {
+/** Busca el usuario por correo. No lo crea: el alta pasa por el registro con autorización. */
+function usuarioPorEmail_(email) {
+  return filtrar('usuarios', function (u) {
     return String(u.email || '').toLowerCase() === email && !bool(u.suprimido_en);
-  })[0];
+  })[0] || null;
+}
+
+/**
+ * Solo los correos de administración se crean solos (necesitan entrar para activar a los demás).
+ * Cualquier otra persona pasa por auth.registrar, que guarda la autorización de datos.
+ */
+function asegurarAdmin_(email, nombre, origen) {
+  const existente = usuarioPorEmail_(email);
   if (existente) {
     if (esAdminPorEmail_(email) && String(existente.rol) !== 'ADMIN') {
       const actualizado = actualizar('usuarios', existente.id, { rol: 'ADMIN', estado: 'ACTIVO' }, 'sistema');
@@ -264,27 +279,32 @@ function asegurarUsuario_(email, nombre, origen) {
     }
     return existente;
   }
+  if (!esAdminPorEmail_(email) && filas('usuarios').length > 0) return null;
 
-  const esPrimero = filas('usuarios').length === 0;
-  const rol = esPrimero || esAdminPorEmail_(email) ? 'ADMIN' : 'CONTRATISTA';
-  const estado = esPrimero || esAdminPorEmail_(email) ? 'ACTIVO' : 'PENDIENTE';
   const usuario = insertar('usuarios', {
     id: newId('USU'),
     email: email,
     nombre: nombre || email,
     telefono: '',
-    rol: rol,
+    rol: 'ADMIN',
     empresa_id: '',
-    estado: estado,
-    acepto_datos_en: '',
-    acepto_datos_version: '',
+    estado: 'ACTIVO',
+    acepto_datos_en: ahoraIso(),
+    acepto_datos_version: 'admin',
     ultimo_acceso: '',
     inactivo_desde: '',
     suprimido_en: '',
     activo: true,
   }, origen);
-  auditar('sistema', 'USUARIO_CREADO', 'usuario', usuario.id, null, { email: email, rol: rol, estado: estado });
+  auditar('sistema', 'USUARIO_CREADO', 'usuario', usuario.id, null, { email: email, rol: 'ADMIN' });
   return usuario;
+}
+
+/** Token de un solo uso para completar el registro. */
+function crearTokenRegistro_(email) {
+  const token = tokenAleatorioHex(24);
+  cachePut('reg:' + sha256Hex(token), String(email).toLowerCase(), 1800);
+  return token;
 }
 
 // ---------------------------------------------------------------------------
@@ -330,4 +350,58 @@ function autorizar() {
   };
   console.log(JSON.stringify(r));
   return r;
+}
+
+
+/**
+ * Registro con autorización de tratamiento de datos (Ley 1581 de 2012).
+ * Exige casilla marcada y guarda fecha y versión de la política aceptada.
+ */
+function authRegistrar(ctx, payload) {
+  const token = exigirTexto(payload.registro_token, 'registro_token');
+  if (payload.acepta_datos !== true) {
+    fallar_('VALIDACION', 'Debes autorizar el tratamiento de tus datos para registrarte.');
+  }
+
+  const clave = 'reg:' + sha256Hex(token);
+  const email = cacheGet(clave);
+  if (!email) fallar_('NO_ENCONTRADO', 'El registro venció. Vuelve a ingresar con tu correo.');
+
+  const nombre = exigirTexto(payload.nombre, 'nombre', 120);
+  const telefono = payload.telefono ? String(payload.telefono).slice(0, 30) : '';
+
+  let empresaId = payload.empresa_id || '';
+  if (!empresaId && payload.empresa_nueva && payload.empresa_nueva.razon_social) {
+    const nueva = insertar('empresas', {
+      id: newId('EMP'),
+      razon_social: String(payload.empresa_nueva.razon_social).slice(0, 160),
+      nit: payload.empresa_nueva.nit ? String(payload.empresa_nueva.nit).slice(0, 30) : '',
+      contacto: '', email: '', telefono: '',
+      contrato_numero: '', vigencia_desde: '', vigencia_hasta: '', poliza_vence: '',
+      estado: 'ACTIVA', aviso_vencimiento_en: '', activo: true,
+    }, email);
+    empresaId = nueva.id;
+  }
+
+  const usuario = insertar('usuarios', {
+    id: newId('USU'),
+    email: email,
+    nombre: nombre,
+    telefono: telefono,
+    rol: 'CONTRATISTA',
+    empresa_id: empresaId,
+    estado: 'PENDIENTE',
+    acepto_datos_en: ahoraIso(),
+    acepto_datos_version: String(config('version_politica_datos') || '1.0'),
+    ultimo_acceso: '',
+    inactivo_desde: '',
+    suprimido_en: '',
+    activo: true,
+  }, email);
+
+  cacheDel(clave);
+  auditar(email, 'USUARIO_REGISTRADO', 'usuario', usuario.id, null,
+    { empresa: empresaId || null, acepto: true });
+
+  return { estado: 'PENDIENTE', mensaje: 'Tu cuenta quedó en revisión. La administración la activará.' };
 }

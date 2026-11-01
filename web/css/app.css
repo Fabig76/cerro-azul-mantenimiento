@@ -320,3 +320,21 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 }
 .tabla-empresa { font-weight: 700; }
 .texto-danger { color: var(--danger-ink); font-weight: 700; }
+
+/* Registro con autorización de datos */
+.casilla-datos {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  margin: 18px 0 4px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--card-2);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #334155;
+  cursor: pointer;
+}
+[data-theme="dark"] .casilla-datos { color: var(--muted); }
+.casilla-datos input { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--brand); flex: 0 0 18px; }

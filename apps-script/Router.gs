@@ -16,6 +16,7 @@ const ACCIONES = {
   'auth.google': { fn: authGoogle, publica: true },
   'auth.enlace.solicitar': { fn: authEnlaceSolicitar, publica: true },
   'auth.enlace.canjear': { fn: authEnlaceCanjear, publica: true },
+  'auth.registrar': { fn: authRegistrar, publica: true },
   'auth.me': { fn: authMe, sesion: true },
   'auth.salir': { fn: authSalir, sesion: true },
 

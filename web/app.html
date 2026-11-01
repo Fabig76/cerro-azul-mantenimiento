@@ -66,6 +66,43 @@
     </div>
   </section>
 
+  <!-- Registro con autorización de datos -->
+  <section id="pantallaRegistro" class="acceso oculto">
+    <div class="card">
+      <h1>Completa tu registro</h1>
+      <p class="bajada">Este es tu primer ingreso. Necesitamos tus datos y tu autorización para tratarlos.</p>
+
+      <form id="formRegistro" novalidate>
+        <div class="campo">
+          <label for="regNombre">Nombre completo</label>
+          <input id="regNombre" type="text" maxlength="120" required>
+        </div>
+        <div class="campo">
+          <label for="regTelefono">Teléfono</label>
+          <input id="regTelefono" type="tel" maxlength="30" placeholder="300 000 0000">
+        </div>
+        <div class="campo">
+          <label for="regEmpresa">Empresa</label>
+          <input id="regEmpresa" type="text" maxlength="160" placeholder="Nombre de la empresa contratista">
+        </div>
+        <div class="campo">
+          <label for="regNit">NIT de la empresa (opcional)</label>
+          <input id="regNit" type="text" maxlength="30">
+        </div>
+        <label class="casilla-datos" for="regAcepta">
+          <input id="regAcepta" type="checkbox">
+          <span>Autorizo el tratamiento de mis datos personales según la
+            <a href="./legal/politica.html" target="_blank" rel="noopener">política de tratamiento de datos</a>
+            de la Urbanización Cerro Azul.</span>
+        </label>
+        <div class="campo">
+          <button class="btn primary bloque" id="btnRegistro" type="submit" disabled>Enviar registro</button>
+        </div>
+        <div class="msg" id="avisoRegistro" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+  </section>
+
   <!-- Cuenta en revisión -->
   <section id="pantallaPendiente" class="acceso oculto">
     <div class="card">

@@ -8,6 +8,7 @@
   function $(sel) { return document.querySelector(sel); }
 
   let rolActual = 'CONTRATISTA';
+  let registroToken = null;
   let nodosActuales = [];
 
   function ver(id, visible) {
@@ -52,6 +53,16 @@
 
   function procesarIngreso(data) {
     if (!data) return false;
+    if (data.estado === 'NO_REGISTRADO') {
+      registroToken = data.registro_token;
+      const correo = document.getElementById('regCorreo');
+      if (correo) correo.textContent = data.email || '';
+      ver('pantallaLogin', false);
+      ver('pantallaPanel', false);
+      ver('pantallaPendiente', false);
+      ver('pantallaRegistro', true);
+      return true;
+    }
     if (data.estado === 'PENDIENTE') {
       const quien = document.getElementById('pendienteNombre');
       if (quien) quien.textContent = (data.usuario && data.usuario.email) || '';
@@ -334,6 +345,37 @@
     ver('pantallaLogin', true);
     ver('pantallaPanel', false);
     ver('pantallaPendiente', false);
+    ver('pantallaRegistro', false);
+  }
+
+  async function enviarRegistro(ev) {
+    ev.preventDefault();
+    const caja = document.getElementById('avisoRegistro');
+    const acepta = document.getElementById('regAcepta');
+    if (!acepta || !acepta.checked) {
+      caja.textContent = 'Debes autorizar el tratamiento de tus datos para continuar.';
+      caja.className = 'msg mostrar error';
+      return;
+    }
+    const boton = document.getElementById('btnRegistro');
+    boton.disabled = true;
+    const empresa = document.getElementById('regEmpresa').value.trim();
+    const nit = document.getElementById('regNit').value.trim();
+    const r = await API.llamar('auth.registrar', {
+      registro_token: registroToken,
+      nombre: document.getElementById('regNombre').value.trim(),
+      telefono: document.getElementById('regTelefono').value.trim(),
+      empresa_nueva: empresa ? { razon_social: empresa, nit: nit } : null,
+      acepta_datos: true,
+    }, { idempotente: true });
+    boton.disabled = false;
+    if (!r.ok) {
+      caja.textContent = r.message || 'No se pudo completar el registro.';
+      caja.className = 'msg mostrar error';
+      return;
+    }
+    caja.textContent = r.data.mensaje || 'Registro enviado. La administración lo revisará.';
+    caja.className = 'msg mostrar ok';
   }
 
   async function pedirEnlace(ev) {
@@ -421,6 +463,14 @@
 
     const form = document.getElementById('formLogin');
     if (form) form.addEventListener('submit', pedirEnlace);
+
+    const formRegistro = document.getElementById('formRegistro');
+    if (formRegistro) formRegistro.addEventListener('submit', enviarRegistro);
+    const acepta = document.getElementById('regAcepta');
+    const botonRegistro = document.getElementById('btnRegistro');
+    if (acepta && botonRegistro) {
+      acepta.addEventListener('change', function () { botonRegistro.disabled = !acepta.checked; });
+    }
 
     const bs = document.getElementById('btnSalir');
     if (bs) bs.addEventListener('click', salir);
