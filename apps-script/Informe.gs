@@ -186,21 +186,28 @@ function generarActaActividad(actividadId, usuario) {
   const nodo = buscarPorId('nodos', act.nodo_id);
   const empresa = act.empresa_id ? buscarPorId('empresas', act.empresa_id) : null;
   const responsable = act.responsable_id ? buscarPorId('usuarios', act.responsable_id) : null;
-  const items = filtrar('checklist_items', function (i) { return String(i.actividad_id) === String(act.id); })
-    .sort(function (a, b) { return Number(a.orden) - Number(b.orden); });
+  const plantilla = act.plantilla_id ? plantillaConItems_(act.plantilla_id, act.plantilla_version) : null;
+  const items = plantilla ? plantilla.items : [];
   const evidencias = filtrar('evidencias', function (e) {
     return String(e.actividad_id) === String(act.id) && bool(e.activo);
   });
   const reporte = filtrar('reportes', function (r) { return String(r.actividad_id) === String(act.id); })
-    .sort(function (a, b) { return String(a.fecha_envio) < String(b.fecha_envio) ? 1 : -1; })[0];
+    .sort(function (a, b) { return String(a.fecha) < String(b.fecha) ? 1 : -1; })[0];
+  const respuestas = reporte
+    ? filtrar('respuestas', function (r) { return String(r.reporte_id) === String(reporte.id); })
+    : [];
+  const porItem = {};
+  respuestas.forEach(function (r) { porItem[r.item_id] = r; });
 
   const filasItems = items.map(function (i) {
-    const ok = evaluarItem_(i, i.respuesta);
+    const r = porItem[i.id];
+    const valor = r ? String(r.valor || '') : '';
+    const ok = evaluarItem_(i, valor);
     const marca = ok === true ? 'Cumple' : ok === false ? 'No cumple' : '—';
     return filaTabla_([
       esc_(i.grupo || ''),
       esc_(i.pregunta),
-      esc_(i.respuesta || 'sin responder'),
+      esc_(valor || 'sin responder'),
       marca,
     ]);
   }).join('');
@@ -253,6 +260,7 @@ function generarActaActividad(actividadId, usuario) {
 
     (reporte ? '<h2>Revisión</h2><dl>' +
       '<dt>Resultado</dt><dd>' + esc_(reporte.estado_revision) + '</dd>' +
+      '<dt>Enviado</dt><dd>' + esc_(String(reporte.fecha || '').replace('T', ' ').slice(0, 16)) + '</dd>' +
       '<dt>Observación</dt><dd>' + esc_(reporte.comentario_admin || '—') + '</dd>' +
       '</dl>' : '') +
 

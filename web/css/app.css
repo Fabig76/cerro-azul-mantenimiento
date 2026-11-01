@@ -370,3 +370,5 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 .lista-fotos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
 .fila-foto { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
 .fila-foto-fecha { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+
+.separador-sistema { border: 0; border-top: 1px solid var(--line); margin: 24px 0 16px; }
