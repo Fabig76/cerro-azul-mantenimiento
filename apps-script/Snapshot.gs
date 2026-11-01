@@ -439,7 +439,9 @@ function publicNodo(param) {
   };
   if (!id) return json({ error: 'sin nodo' });
 
-  const clave = 'nodo:' + id;
+  // La clave incluye la versión de los datos: al cambiar algo, se recalcula.
+  const version = cacheGet('datos:version') || '0';
+  const clave = 'nodo:' + id + ':' + version;
   const enCache = cacheGet(clave);
   if (enCache) return ContentService.createTextOutput(enCache).setMimeType(ContentService.MimeType.JSON);
 

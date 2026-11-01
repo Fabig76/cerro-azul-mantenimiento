@@ -157,6 +157,8 @@ function doPost(e) {
     const esLectura = /\.(listar|get|panel|me|arbol|ver)$/.test(accion) || accion === 'ping';
     if (!esLectura && !def.crudo) {
       cachePut('snap:obsoleto', '1', 7200);
+      // Cambia la versión de los datos: las cachés por nodo dejan de servir.
+      cachePut('datos:version', String(Date.now()), 7200);
     }
 
     // La cola de correos se vacía fuera del ciclo de la acción (RN-20).
