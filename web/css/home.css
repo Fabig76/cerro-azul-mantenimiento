@@ -262,3 +262,5 @@
 .meta-novedad { font-size: 12px !important; color: var(--text-3, #86868b) !important; margin-top: 3px !important; }
 .vacio-linea { margin: 0; font-size: 13.5px; color: var(--muted); }
 #resumenImportante .card .btn { margin-top: 14px; }
+
+.seccion-sin-puntaje { font-size: 12.5px; color: var(--muted); font-style: italic; }

@@ -107,7 +107,9 @@ function construirSnapshot() {
     let estado = dist.CRITICO > 0 ? 'CRITICO' : (dist.ATENCION > 0 ? 'ATENCION' : (hijos.length ? 'AL_DIA' : 'SIN_DATOS'));
     if (!hijos.length && programadas > 0) {
       const listas = ejecutadas + reportadas;
-      estado = listas >= programadas ? 'AL_DIA' : 'ATENCION';
+      if (ejecutadas >= programadas) estado = 'AL_DIA';
+      else if (listas >= programadas) estado = 'EN_REVISION';
+      else estado = 'ATENCION';
     }
 
     return {
@@ -128,7 +130,7 @@ function construirSnapshot() {
       id: n.id, codigo: n.codigo, nombre: n.nombre,
       sensible: bool(n.sensible),
       salud: { puntaje: ag.puntaje, estado: ag.estado, distribucion: ag.distribucion, elementos: ag.elementos },
-      mes: { programadas: ag.programadas, ejecutadas: ag.ejecutadas },
+      mes: { programadas: ag.programadas, ejecutadas: ag.ejecutadas, reportadas: ag.reportadas },
       novedades: ag.novedades,
       ultimo_mant: (function () {
         const aprobadas = actividades.filter(function (a) {

@@ -12,7 +12,8 @@
   }
 
   const ESTADOS = {
-    AL_DIA: ['Al día', 'ok'], ATENCION: ['Con atención', 'warn'],
+    AL_DIA: ['Al día', 'ok'],
+    EN_REVISION: ['En revisión', 'warn'], ATENCION: ['Con atención', 'warn'],
     CRITICO: ['Crítico', 'danger'], SIN_DATOS: ['Sin datos', 'gray'],
   };
 
@@ -142,9 +143,14 @@
       card.appendChild(el('p', 'seccion-codigo', s.codigo));
 
       const fila = el('div', 'seccion-datos');
-      fila.appendChild(el('span', 'seccion-puntaje', s.salud.puntaje === null ? '—' : String(s.salud.puntaje)));
-      fila.appendChild(el('span', 'seccion-puntaje-l', 'puntaje'));
-      if (s.salud.elementos) fila.appendChild(el('span', 'seccion-puntaje-l', s.salud.elementos + ' equipo(s)'));
+      if (s.salud.puntaje === null || s.salud.puntaje === undefined) {
+        fila.appendChild(el('span', 'seccion-sin-puntaje',
+          s.salud.elementos ? 'Sin mediciones todavía' : 'Sin equipos registrados'));
+      } else {
+        fila.appendChild(el('span', 'seccion-puntaje', String(s.salud.puntaje)));
+        fila.appendChild(el('span', 'seccion-puntaje-l', 'puntaje'));
+        fila.appendChild(el('span', 'seccion-puntaje-l', s.salud.elementos + ' equipo(s)'));
+      }
       card.appendChild(fila);
 
       card.appendChild(barraDistribucion(s.salud.distribucion || {}));
@@ -475,7 +481,7 @@
       hijos.textContent = '';
       (d.hijos || []).forEach(function (h) {
         const e = ESTADOS[h.estado] || ['', 'gray'];
-        const acento = { AL_DIA: 'ok', ATENCION: 'warn', CRITICO: 'danger' }[h.estado] || 'neutro';
+        const acento = { AL_DIA: 'ok', EN_REVISION: 'warn', ATENCION: 'warn', CRITICO: 'danger' }[h.estado] || 'neutro';
         const card = el('article', 'card seccion-card acento-' + acento);
         card.tabIndex = 0;
         card.setAttribute('role', 'link');
