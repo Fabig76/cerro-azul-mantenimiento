@@ -52,15 +52,29 @@ function hitosGuardar(ctx, payload) {
 }
 
 /** Avance aprobado de una actividad con hitos: suma de pesos aprobados. */
-function avancePorHitos_(actividadId) {
+/**
+ * Avance por etapas. Con `incluirReportadas` también cuenta las que el contratista
+ * ya marcó como hechas, aunque la administración no las haya aprobado todavía.
+ */
+function avancePorHitos_(actividadId, incluirReportadas) {
   const hitos = filtrar('hitos', function (h) {
     return String(h.actividad_id) === String(actividadId) && bool(h.activo);
   });
   if (!hitos.length) return null;
+
+  const cuenta = function (h) {
+    const e = String(h.estado);
+    if (e === 'APROBADO') return true;
+    return incluirReportadas && e === 'REPORTADO';
+  };
   const total = hitos.reduce(function (s, h) { return s + (Number(h.peso) || 1); }, 0);
-  const aprobado = hitos.filter(function (h) { return String(h.estado) === 'APROBADO'; })
-    .reduce(function (s, h) { return s + (Number(h.peso) || 1); }, 0);
-  return { pct: total ? Math.round((aprobado / total) * 100) : 0, hitos: hitos.length, aprobados: hitos.filter(function (h) { return String(h.estado) === 'APROBADO'; }).length };
+  const hechas = hitos.filter(cuenta).reduce(function (s, h) { return s + (Number(h.peso) || 1); }, 0);
+  return {
+    pct: total ? Math.round((hechas / total) * 100) : 0,
+    hitos: hitos.length,
+    aprobados: hitos.filter(function (h) { return String(h.estado) === 'APROBADO'; }).length,
+    reportados: hitos.filter(function (h) { return String(h.estado) === 'REPORTADO'; }).length,
+  };
 }
 
 /**

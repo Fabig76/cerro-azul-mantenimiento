@@ -673,6 +673,31 @@
       cajaTexto.appendChild(texto);
       caja.appendChild(cajaTexto);
 
+      const btnAvance = el('button', 'btn', 'Guardar avance de hoy');
+      btnAvance.type = 'button';
+      btnAvance.addEventListener('click', async function () {
+        const respuestas = [];
+        document.querySelectorAll('.item-input[data-item]').forEach(function (i) {
+          if (i.value) respuestas.push({ item_id: i.dataset.item, valor: i.value });
+        });
+        btnAvance.disabled = true;
+        btnAvance.textContent = 'Guardando…';
+        const rAv = await API.llamar('reportes.crear', {
+          actividad_id: a.id,
+          tipo: 'AVANCE',
+          respuestas: respuestas,
+          descripcion: (document.getElementById('descripcionReporte') || {}).value || '',
+        }, { token: Sesion.token(), idempotente: true });
+        btnAvance.disabled = false;
+        btnAvance.textContent = 'Guardar avance de hoy';
+        if (!rAv.ok) return aviso(rAv.message || 'No se pudo guardar el avance.', 'error');
+        aviso('Avance guardado: ' + rAv.data.avance_reportado_pct + ' %. La actividad sigue abierta.', 'ok');
+        abrir(a.id, rol);
+      });
+      caja.appendChild(btnAvance);
+      caja.appendChild(el('p', 'bajada-tarjeta',
+        'Guarda lo que llevas hecho sin cerrar el trabajo. Sirve para que la administración vea el avance día a día.'));
+
       const btn = el('button', 'btn primary', 'Enviar reporte final');
       btn.type = 'button';
       btn.addEventListener('click', async function () {

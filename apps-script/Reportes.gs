@@ -158,9 +158,16 @@ function reportesCrear(ctx, payload) {
     });
   });
   // Sin checklist no hay pesos: un reporte FINAL significa trabajo terminado.
-  const avance = pesoTotal
-    ? Math.round((pesoCumple / pesoTotal) * 100)
-    : (tipo === 'FINAL' ? 100 : Number(payload.pct_declarado || 0));
+  let avance;
+  if (tipo === 'AVANCE') {
+    // Mientras se ejecuta: cuenta lo avanzado, no lo aprobado.
+    const porEtapas = avancePorHitos_(actividadId, true);
+    if (porEtapas && porEtapas.hitos) avance = porEtapas.pct;
+    else if (pesoTotal || items.length) avance = Math.round((pesoCumple / pesoTotal) * 100);
+    else avance = Number(payload.pct_declarado || 0);
+  } else {
+    avance = pesoTotal ? Math.round((pesoCumple / pesoTotal) * 100) : 100;
+  }
 
   const reporte = conBloqueo(function () {
     const cabecera = insertar('reportes', {
