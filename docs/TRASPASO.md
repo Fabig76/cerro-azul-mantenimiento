@@ -15,6 +15,35 @@ computador. Está escrito para que otra persona pueda hacerse cargo sin ayuda.
 
 **Todo el sistema cabe en dos cuentas.** Si se pierde el acceso a alguna, se pierde el portal.
 
+## 1 bis. Propiedad: el software y los datos son cosas distintas
+
+Esta separación es deliberada y conviene mantenerla:
+
+| Qué | De quién es | Dónde está |
+| --- | --- | --- |
+| **Software**: código, diseño, método, plantillas, sistema visual | De quien lo construyó (el administrador) | Repositorio personal `Fabig76/cerro-azul-mantenimiento` |
+| **Información del conjunto**: libro, fotos, actas, historial | De la copropiedad | Cuenta de Google del conjunto, carpeta `/Portal` |
+
+**Por qué así.**
+- El administrador puede llevarse la herramienta a otro conjunto, replicarla o cobrarla como
+  servicio; el código es su trabajo.
+- La información no puede quedarse fuera de la copropiedad: la Ley 675 obliga a entregar los
+  documentos de la administración al terminar el encargo, y la Ley 1581 pone en cabeza de la
+  copropiedad el tratamiento de los datos de contratistas y de las imágenes.
+
+**El riesgo de invertirlo.** Si el libro y las fotos vivieran en la cuenta personal del
+administrador, el conjunto quedaría sin su historial el día que él se vaya, y él quedaría como
+custodio de datos ajenos ante cualquier reclamación. Eso no es propiedad: es responsabilidad.
+
+**Cómo dejarlo por escrito.** Un párrafo en el contrato de administración o un acta del consejo:
+«el software de control de mantenimientos es del administrador y su uso se concede a la
+copropiedad; la información producida es de la copropiedad y se entrega en formato abierto al
+finalizar la administración». Con eso, cada parte conserva lo suyo sin discusión posterior.
+
+**Herramienta de entrega.** El panel tiene la acción `entrega.exportar`, que copia el libro completo
+a `/Portal/Documentos/Entregas/` con la fecha y devuelve los enlaces a la carpeta de evidencias y a
+la de actas. Ese es el paquete que se entrega al saliente o al entrante.
+
 ## 2. Traspaso en cinco pasos
 
 1. **Entregar la cuenta de Google.** Transferir la contraseña y el segundo factor de

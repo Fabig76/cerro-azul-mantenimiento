@@ -63,6 +63,7 @@ const ACCIONES = {
   'hitos.guardar': { fn: hitosGuardar, sesion: true, roles: ['ADMIN'] },
   'kpi.panel': { fn: accionKpi, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'informes.mensual': { fn: accionInforme, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
+  'entrega.exportar': { fn: accionEntrega, sesion: true, roles: ['ADMIN'] },
   'respaldos.listar': { fn: accionRespaldos, sesion: true, roles: ['ADMIN'] },
   'respaldos.crear': { fn: accionRespaldo, sesion: true, roles: ['ADMIN'] },
   'archivo.ejecutar': { fn: accionArchivo, sesion: true, roles: ['ADMIN'] },
@@ -176,6 +177,10 @@ function accionPing() {
 function accionSetup(ctx, payload, requestId, parametros) {
   const clave = (payload && payload.key) || '';
   return arranqueProtegido(clave, setup);
+}
+
+function accionEntrega(ctx) {
+  return exportarEntrega(ctx.usuario.email);
 }
 
 function accionRespaldos(ctx) {
