@@ -200,7 +200,10 @@ function reportesCrear(ctx, payload) {
 
     const cambiosAct = {
       avance_reportado_pct: avance,
-      estado: tipo === 'FINAL' ? 'REPORTADA' : 'EN_EJECUCION',
+      // Un avance parcial no devuelve a «en ejecución» un trabajo ya entregado.
+      estado: tipo === 'FINAL'
+        ? 'REPORTADA'
+        : (String(act.estado) === 'REPORTADA' ? 'REPORTADA' : 'EN_EJECUCION'),
     };
     if (tipo === 'FINAL') cambiosAct.fecha_reporte_final = ahoraIso();
     actualizar('actividades', actividadId, cambiosAct, ctx.usuario.email);
@@ -230,7 +233,11 @@ function reportesCrear(ctx, payload) {
   auditar(ctx.usuario.email, tipo === 'FINAL' ? 'REPORTE_FINAL' : 'REPORTE_AVANCE',
     'reporte', reporte.id, null, { actividad: actividadId, avance: avance });
 
-  return { reporte_id: reporte.id, avance_reportado_pct: avance, estado: tipo === 'FINAL' ? 'REPORTADA' : 'EN_EJECUCION' };
+  return {
+    reporte_id: reporte.id,
+    avance_reportado_pct: avance,
+    estado: tipo === 'FINAL' ? 'REPORTADA' : (String(act.estado) === 'REPORTADA' ? 'REPORTADA' : 'EN_EJECUCION'),
+  };
 }
 
 function falarEstadoCondicion_() {
