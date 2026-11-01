@@ -152,6 +152,13 @@ function doPost(e) {
       }
     }
     const salida = def.fn(ctx, cuerpo.payload || {}, cuerpo.requestId || null);
+    // Una escritura deja el portal público desactualizado hasta la próxima visita.
+    // Las lecturas no lo marcan, para no regenerar el snapshot en cada consulta.
+    const esLectura = /\.(listar|get|panel|me|arbol|ver)$/.test(accion) || accion === 'ping';
+    if (!esLectura && !def.crudo) {
+      cachePut('snap:obsoleto', '1', 7200);
+    }
+
     // La cola de correos se vacía fuera del ciclo de la acción (RN-20).
     quizasEnviarCorreos_();
 

@@ -317,10 +317,14 @@ function snapshotPublico_() {
     } catch (e) { edadMin = Infinity; }
   }
 
-  if (texto && edadMin <= minutos) {
+  // Alguien cambió datos desde el panel: se regenera en la siguiente visita.
+  const obsoleto = cacheGet('snap:obsoleto') === '1';
+
+  if (texto && edadMin <= minutos && !obsoleto) {
     if (!cacheGet('snap')) cachePut('snap', texto, 600);
     return texto;
   }
+  if (obsoleto) cacheDel('snap:obsoleto');
 
   // Nunca dos regeneraciones a la vez: si otro la está haciendo, se sirve la copia anterior.
   const bloqueo = LockService.getScriptLock();
@@ -331,8 +335,8 @@ function snapshotPublico_() {
   try {
     const nuevo = JSON.stringify(construirSnapshot());
     const hoja_ = hoja('public_snapshot');
-    hoja_.clearContents();
-    hoja_.appendRow(['snapshot', nuevo, ahoraIso()]);
+    if (hoja_.getLastRow() < 1) hoja_.appendRow(['snapshot', nuevo, ahoraIso()]);
+    else hoja_.getRange(1, 1, 1, 3).setValues([['snapshot', nuevo, ahoraIso()]]);
     cachePut('snap', nuevo, 3600);
     return nuevo;
   } catch (e) {
