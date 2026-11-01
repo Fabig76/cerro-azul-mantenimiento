@@ -78,3 +78,49 @@ function limpiarDemostracion(usuario) {
     return resumen;
   });
 }
+
+/** Retira todas las actividades activas con su rastro, para empezar de cero. */
+function borrarTodasActividades(usuario) {
+  const quien = usuario || 'sistema';
+  return conBloqueo(function () {
+    const lista = filtrar('actividades', function (a) { return bool(a.activo); });
+    const titulos = lista.map(function (a) { return a.titulo; });
+
+    lista.forEach(function (a) {
+      filtrar('reportes', function (r) {
+        return String(r.actividad_id) === String(a.id) && bool(r.activo);
+      }).forEach(function (r) {
+        filtrar('respuestas', function (x) {
+          return String(x.reporte_id) === String(r.id) && bool(x.activo);
+        }).forEach(function (x) { actualizar('respuestas', x.id, { activo: false }, quien); });
+        actualizar('reportes', r.id, { activo: false }, quien);
+      });
+
+      filtrar('evidencias', function (e) {
+        return String(e.actividad_id) === String(a.id) && bool(e.activo);
+      }).forEach(function (e) { actualizar('evidencias', e.id, { activo: false, publicable: false }, quien); });
+
+      filtrar('hitos', function (h) {
+        return String(h.actividad_id) === String(a.id) && bool(h.activo);
+      }).forEach(function (h) { actualizar('hitos', h.id, { activo: false }, quien); });
+
+      actualizar('actividades', a.id, { activo: false, publicable: false }, quien);
+    });
+
+    // Los equipos de demostración vuelven a quedar sin historial.
+    filtrar('nodos', function (n) {
+      return bool(n.activo) && String(n.nombre).toLowerCase().indexOf('demostraci') >= 0;
+    }).forEach(function (n) {
+      actualizar('nodos', n.id, {
+        activo: false, salud_puntaje: '', salud_estado: 'SIN_DATOS',
+        salud_calculada_en: '', ultimo_mant_en: '',
+      }, quien);
+    });
+
+    limpiarCache('');
+    recalcularTodo(quien);
+    regenerarSnapshot();
+    auditar(quien, 'ACTIVIDADES_RETIRADAS', 'sistema', 'todas', null, { cantidad: lista.length });
+    return { borradas: lista.length, titulos: titulos };
+  });
+}
