@@ -39,8 +39,15 @@
     const r = await API.llamar('actividades.get', { id: id }, { token: Sesion.token() });
     if (!r.ok) return aviso(r.message || 'No se pudo abrir la actividad.', 'error');
     datos = r.data;
-    fotosAntes = [];
-    fotosDespues = [];
+
+    // Las fotos ya subidas se recuperan del servidor: al reabrir deben seguir ahí.
+    const evidencias = r.data.evidencias || [];
+    function recuperar(momento) {
+      return evidencias.filter(function (e) { return String(e.momento) === momento; })
+        .map(function (e) { return { id: e.id, kb: Math.round((Number(e.bytes) || 0) / 1024) }; });
+    }
+    fotosAntes = recuperar('ANTES');
+    fotosDespues = recuperar('DESPUES');
     pintar();
     mostrar(true);
   }
@@ -130,7 +137,7 @@
         n: 4,
         titulo: 'Sube la foto de después y envía',
         detalle: 'La misma toma, ya terminado. Al enviar, la administración revisa y aprueba.',
-        hecho: cerrada,
+        hecho: entregada,
         actual: enCurso && fotosDespues.length > 0,
       },
     ];
@@ -260,6 +267,8 @@
 
   function bloqueActa() {
     const a = datos.actividad;
+    // El acta la genera la administración; el contratista no puede ni debe verla.
+    if (['ADMIN', 'SUPERVISOR'].indexOf(String(rol)) < 0) return null;
     const listo = ['REPORTADA', 'APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
     if (!listo) return null;
 

@@ -157,7 +157,10 @@ function reportesCrear(ctx, payload) {
       activo: true,
     });
   });
-  const avance = pesoTotal ? Math.round((pesoCumple / pesoTotal) * 100) : Number(payload.pct_declarado || 0);
+  // Sin checklist no hay pesos: un reporte FINAL significa trabajo terminado.
+  const avance = pesoTotal
+    ? Math.round((pesoCumple / pesoTotal) * 100)
+    : (tipo === 'FINAL' ? 100 : Number(payload.pct_declarado || 0));
 
   const reporte = conBloqueo(function () {
     const cabecera = insertar('reportes', {
