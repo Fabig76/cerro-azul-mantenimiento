@@ -361,3 +361,34 @@ footer.pie b { color: #334155; }
 }
 [data-theme="dark"] .pestana.activa { background: var(--acento-suave, var(--brand-soft)); }
 
+
+/* Tarjetas de cifras (compartidas por el portal público y el panel) */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 12px; }
+.kpi {
+  min-height: 96px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--acento, var(--line));
+  border-radius: var(--radius-m);
+  background: linear-gradient(180deg, var(--acento-suave, transparent) 0%, var(--card) 72%);
+  box-shadow: var(--shadow);
+  transition: transform .15s, box-shadow .15s;
+}
+.kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-alto, var(--shadow)); }
+.kpi-n { font-size: 27px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; color: var(--ink); }
+.kpi-l { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.kpi .badge { margin-top: 8px; }
+[data-theme="dark"] .kpi { background: linear-gradient(180deg, var(--acento-suave, transparent) 0%, var(--card) 85%); }
+
+/* Paleta de acentos: la usan las cifras, las tarjetas y las pestañas */
+.acento-ok { --acento: var(--ok); --acento-suave: var(--ok-soft); }
+.acento-warn { --acento: var(--warn); --acento-suave: var(--warn-soft); }
+.acento-danger { --acento: var(--danger); --acento-suave: var(--danger-soft); }
+.acento-indigo { --acento: var(--brand); --acento-suave: var(--brand-soft); }
+.acento-cian { --acento: #0ea5e9; --acento-suave: rgba(14, 165, 233, .14); }
+.acento-violeta { --acento: #7c3aed; --acento-suave: rgba(124, 58, 237, .14); }
+.acento-neutro { --acento: #94a3b8; --acento-suave: rgba(148, 163, 184, .12); }
+
+@media (max-width: 640px) { .kpis { grid-template-columns: repeat(2, 1fr); } } }
+.kpi-n { font-size: 27px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; color: var(--ink); }
+.kpi-l { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
