@@ -206,6 +206,7 @@
       if (window.Respaldo) { Respaldo.cargar(); Respaldo.preparar(); }
       if (window.Empresas) { Empresas.preparar(); Empresas.cargar(); }
       if (window.Plan) { Plan.cargar(); Plan.preparar(); }
+      if (window.Catalogo) { Catalogo.cargar(); Catalogo.preparar(); }
       if (window.Alertas) { Alertas.cargar(); Alertas.preparar(); }
       if (window.Usuarios) {
         Usuarios.cargar();

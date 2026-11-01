@@ -131,6 +131,7 @@
       <button type="button" class="pestana acento-warn" data-pestana="novedades" data-roles="ADMIN,SUPERVISOR,CONTRATISTA">Novedades</button>
       <button type="button" class="pestana acento-violeta" data-pestana="plan" data-roles="ADMIN">Plan</button>
       <button type="button" class="pestana acento-ok" data-pestana="empresas" data-roles="ADMIN,SUPERVISOR">Empresas</button>
+      <button type="button" class="pestana acento-cian" data-pestana="catalogo" data-roles="ADMIN">Catálogo</button>
       <button type="button" class="pestana acento-indigo" data-pestana="usuarios" data-roles="ADMIN">Usuarios</button>
       <button type="button" class="pestana acento-danger" data-pestana="alertas" data-roles="ADMIN">Alertas</button>
       <button type="button" class="pestana acento-neutro" data-pestana="sistema" data-roles="ADMIN">Sistema</button>
@@ -329,6 +330,71 @@
       <div class="msg" id="avisoRespaldo" role="status" aria-live="polite"></div>
     </div>
 
+    <div class="card seccion-panel oculto" id="tarjetaCatalogo" data-panel="catalogo">
+      <div class="cabecera-seccion"><h2>Catálogo de tipos y plantillas</h2></div>
+      <p class="bajada-tarjeta">Un tipo describe qué es un equipo y qué campos tiene. La plantilla es el checklist con que se le hace mantenimiento.</p>
+      <div id="listaTipos" class="lista-novedades"></div>
+
+      <form id="formTipo" class="form-actividad" novalidate>
+        <div class="kicker">Nuevo tipo de elemento</div>
+        <div class="campo">
+          <label for="tipNombre">Nombre</label>
+          <input id="tipNombre" type="text" maxlength="80" placeholder="Panel solar" required>
+        </div>
+        <div class="campo">
+          <label for="tipAtributos">Campos de la ficha (uno por línea: clave | etiqueta | tipo)</label>
+          <textarea id="tipAtributos" class="item-input" placeholder="marca | Marca | texto&#10;paneles | Número de paneles | numero&#10;potencia | Potencia (kW) | numero"></textarea>
+        </div>
+        <div class="campo">
+          <label for="tipCondiciones">Estados posibles (uno por línea: valor | OK o ATENCION o FALLA)</label>
+          <textarea id="tipCondiciones" class="item-input" placeholder="Operativo | OK&#10;Con suciedad | ATENCION&#10;Fuera de servicio | FALLA"></textarea>
+        </div>
+        <label class="casilla-datos" for="tipSensible">
+          <input id="tipSensible" type="checkbox">
+          <span>Es un sistema sensible: su detalle nunca se publica en el portal de propietarios.</span>
+        </label>
+        <div class="acciones-form">
+          <button class="btn primary" type="submit">Crear tipo</button>
+        </div>
+      </form>
+
+      <div class="cabecera-seccion" ><h2>Plantillas</h2></div>
+      <div id="listaPlantillas" class="lista-novedades"></div>
+
+      <form id="formPlantilla" class="form-actividad" novalidate>
+        <div class="kicker">Nueva plantilla o versión</div>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="plaNombre">Nombre</label>
+            <input id="plaNombre" type="text" maxlength="120" placeholder="Revisión de panel solar" required>
+          </div>
+          <div class="campo">
+            <label for="plaTipo">Tipo</label>
+            <select id="plaTipo" class="item-input"></select>
+          </div>
+          <div class="campo">
+            <label for="plaMetodo">Avance</label>
+            <select id="plaMetodo" class="item-input">
+              <option value="CHECKLIST">Checklist</option>
+              <option value="HITOS">Por etapas</option>
+            </select>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="plaNorma">Norma o referencia (opcional)</label>
+          <input id="plaNorma" type="text" maxlength="160">
+        </div>
+        <div class="campo">
+          <label for="plaItems">Ítems (uno por línea: grupo | pregunta | tipo | peso | foto)</label>
+          <textarea id="plaItems" class="item-input" placeholder="Limpieza | Paneles limpios y sin sombras | SI_NO | 2 | foto&#10;Eléctrico | Voltaje de salida | NUMERO | 2&#10;Documento | Certificado del inversor | FOTO | 1"></textarea>
+        </div>
+        <div class="acciones-form">
+          <button class="btn primary" type="submit">Guardar plantilla</button>
+        </div>
+        <div class="msg" id="avisoCatalogo" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+
     <div class="card seccion-panel oculto" id="tarjetaUsuarios" data-panel="usuarios">
       <div class="cabecera-seccion">
         <h2>Usuarios</h2>
@@ -471,6 +537,7 @@
 <script src="./js/novedades.js?v=58"></script>
 <script src="./js/alertas.js?v=58"></script>
 <script src="./js/plan.js?v=58"></script>
+<script src="./js/catalogo.js?v=58"></script>
 <script src="./js/empresas.js?v=58"></script>
 <script src="./js/respaldo.js?v=58"></script>
 <script src="./js/pruebas.js?v=58"></script>
