@@ -381,7 +381,15 @@ function limpiarEjemplo(usuario) {
       try {
         const fila = buscarPorId(tabla, id);
         if (fila) {
-          actualizar(tabla, id, { activo: false }, usuario || 'sistema');
+          const cambios = { activo: false };
+          // Al retirar un elemento de ejemplo, su salud vuelve a quedar vacía.
+          if (tabla === 'nodos') {
+            cambios.ultimo_mant_en = '';
+            cambios.salud_puntaje = '';
+            cambios.salud_estado = 'SIN_DATOS';
+            cambios.salud_calculado_en = '';
+          }
+          actualizar(tabla, id, cambios, usuario || 'sistema');
           total++;
         }
       } catch (e) {
@@ -392,6 +400,7 @@ function limpiarEjemplo(usuario) {
 
   prop('EJEMPLO_IDS', '[]');
   prop('EJEMPLO_HECHO', '');
+  prop('EJEMPLO_FOTOS', '');
   limpiarCache('');
   recalcularTodo(usuario || 'sistema');
   regenerarSnapshot();
