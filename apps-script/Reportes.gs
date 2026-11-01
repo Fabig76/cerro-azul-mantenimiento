@@ -193,8 +193,27 @@ function reportesCrear(ctx, payload) {
       estado: tipo === 'FINAL' ? 'REPORTADA' : 'EN_EJECUCION',
     };
     if (tipo === 'FINAL') cambiosAct.fecha_reporte_final = ahoraIso();
-    if (payload.condicion_operativa) cambiosAct.condicion_operativa = String(payload.condicion_operativa);
     actualizar('actividades', actividadId, cambiosAct, ctx.usuario.email);
+
+    // La condición operativa es del equipo, no de la actividad.
+    if (payload.condicion_operativa) {
+      const nodoAct = buscarPorId('nodos', act.nodo_id);
+      if (nodoAct) {
+        const condicion = String(payload.condicion_operativa).slice(0, 80);
+        insertar('lecturas_estado', {
+          id: newId('LEC'),
+          nodo_id: nodoAct.id,
+          fecha: hoyIso(),
+          condicion_operativa: condicion,
+          origen: 'REPORTE',
+          reporte_id: cabecera.id,
+          usuario_id: ctx.usuario.id,
+          nota: '',
+          activo: true,
+        }, ctx.usuario.email);
+        actualizar('nodos', nodoAct.id, { condicion_operativa: condicion }, ctx.usuario.email);
+      }
+    }
     return cabecera;
   });
 

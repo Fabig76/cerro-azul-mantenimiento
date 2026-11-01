@@ -5,7 +5,8 @@
 (function () {
   'use strict';
 
-  let datos = null;      // respuesta de actividades.get
+  let datos = null;
+  const borrador = {};      // respuesta de actividades.get
   let rol = 'CONTRATISTA';
   let fotosAntes = [];   // evidencias subidas en esta sesión
   let fotosDespues = [];
@@ -186,6 +187,31 @@
     img.src = 'data:' + r.data.mime + ';base64,' + r.data.base64;
   }
 
+  function guardarBorrador(input) {
+    if (!datos || !datos.actividad) return;
+    const id = datos.actividad.id;
+    borrador[id] = borrador[id] || { respuestas: {}, condicion: '', descripcion: '' };
+    if (input.dataset.item) borrador[id].respuestas[input.dataset.item] = input.value;
+    else if (input.id === 'condicionFinal') borrador[id].condicion = input.value;
+    else if (input.id === 'descripcionReporte') borrador[id].descripcion = input.value;
+  }
+
+  function borradorDe(id) {
+    borrador[id] = borrador[id] || { respuestas: {}, condicion: '', descripcion: '' };
+    return borrador[id];
+  }
+
+  function aplicarBorrador(input) {
+    if (!datos || !datos.actividad) return;
+    const b = borradorDe(datos.actividad.id);
+    if (input.dataset.item && b.respuestas[input.dataset.item] !== undefined) {
+      input.value = b.respuestas[input.dataset.item];
+      return;
+    }
+    if (input.id === 'condicionFinal' && b.condicion) input.value = b.condicion;
+    if (input.id === 'descripcionReporte' && b.descripcion) input.value = b.descripcion;
+  }
+
   function bloqueChecklist(editable) {
     const caja = el('div', 'bloque');
     caja.appendChild(el('div', 'kicker', 'Checklist'));
@@ -224,6 +250,13 @@
         inp.dataset.item = item.id;
         inp.placeholder = 'Observación';
         fila.appendChild(inp);
+      }
+
+      const control = fila.querySelector('.item-input');
+      if (control) {
+        aplicarBorrador(control);
+        control.addEventListener('input', function () { guardarBorrador(control); });
+        control.addEventListener('change', function () { guardarBorrador(control); });
       }
 
       if (item.criterio) {
@@ -444,6 +477,19 @@
     }
 
     if (a.estado === 'EN_EJECUCION') {
+      const cajaTexto = el('div', 'item-check');
+      const etiquetaTexto = el('label', 'item-pregunta', '¿Qué se hizo?');
+      etiquetaTexto.htmlFor = 'descripcionReporte';
+      cajaTexto.appendChild(etiquetaTexto);
+      const texto = el('textarea', 'item-input');
+      texto.id = 'descripcionReporte';
+      texto.rows = 3;
+      texto.placeholder = 'Describe el trabajo realizado, las piezas cambiadas y lo que quede pendiente.';
+      aplicarBorrador(texto);
+      texto.addEventListener('input', function () { guardarBorrador(texto); });
+      cajaTexto.appendChild(texto);
+      caja.appendChild(cajaTexto);
+
       const btn = el('button', 'btn primary', 'Enviar reporte final');
       btn.type = 'button';
       btn.addEventListener('click', async function () {
@@ -459,6 +505,7 @@
           respuestas: respuestas,
           evidencia_ids: fotosDespues.map(function (f) { return f.id; }),
           condicion_operativa: cond ? cond.value : '',
+          descripcion: (document.getElementById('descripcionReporte') || {}).value || '',
         }, { token: Sesion.token(), idempotente: true });
         btn.disabled = false;
         if (!r.ok) return aviso(r.message || 'No se pudo enviar el reporte.', 'error');
@@ -660,7 +707,6 @@
     if (!cont) return;
     cont.textContent = '';
     cont.appendChild(cabecera());
-    cont.appendChild(bloqueEvidencias());
     const hitos = bloqueHitos();
     if (hitos) cont.appendChild(hitos);
 
@@ -674,7 +720,8 @@
     if (a.estado === 'REPORTADA' || a.estado === 'APROBADA' || a.estado === 'CERRADA') {
       cont.appendChild(bloqueChecklist(false));
     }
-    // El acta cierra el expediente: siempre al final.
+    // La evidencia cargada y el acta cierran el expediente.
+    cont.appendChild(bloqueEvidencias());
     const acta = bloqueActa();
     if (acta) cont.appendChild(acta);
     cont.appendChild(acciones());

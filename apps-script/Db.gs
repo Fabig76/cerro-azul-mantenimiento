@@ -257,6 +257,8 @@ function config(clave) {
 
 function configNumero(clave, porDefecto) {
   const v = config(clave);
-  const n = Number(v);
+  // Un valor vacío no es cero: es ausencia de configuración.
+  if (v === null || v === undefined || String(v).trim() === '') return porDefecto;
+  const n = Number(String(v).replace(',', '.'));
   return isNaN(n) ? porDefecto : n;
 }

@@ -433,3 +433,5 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 }
 .btn.cargada { border-color: var(--ok); color: var(--ok-ink, #0f7b47); background: var(--ok-soft); }
 .aviso-error { color: var(--danger-ink) !important; font-weight: 600; }
+
+textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; line-height: 1.5; }
