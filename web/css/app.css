@@ -338,3 +338,20 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 }
 [data-theme="dark"] .casilla-datos { color: var(--muted); }
 .casilla-datos input { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--brand); flex: 0 0 18px; }
+
+/* Pruebas del sistema */
+.lista-pruebas {
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--card-2);
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+.lista-pruebas:not(.oculto) { display: block; }
+.linea-prueba { color: var(--muted); white-space: pre-wrap; }
+.linea-prueba.falla { color: var(--danger-ink); font-weight: 700; }

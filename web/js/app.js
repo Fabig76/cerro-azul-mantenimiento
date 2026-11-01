@@ -131,6 +131,9 @@
         formElemento.classList.remove('oculto');
         if (window.Elementos) { Elementos.cargar(); Elementos.preparar(); }
       }
+      const tarjetaPruebas = document.getElementById('tarjetaPruebas');
+      if (tarjetaPruebas) tarjetaPruebas.classList.remove('oculto');
+      if (window.Pruebas) Pruebas.preparar();
       const tarjetaRespaldo = document.getElementById('tarjetaRespaldo');
       if (tarjetaRespaldo) tarjetaRespaldo.classList.remove('oculto');
       if (window.Respaldo) { Respaldo.cargar(); Respaldo.preparar(); }

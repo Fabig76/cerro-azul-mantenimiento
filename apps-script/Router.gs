@@ -55,6 +55,7 @@ const ACCIONES = {
   'kpi.panel': { fn: accionKpi, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'informes.mensual': { fn: accionInforme, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'entrega.exportar': { fn: accionEntrega, sesion: true, roles: ['ADMIN'] },
+  'tests.ejecutar': { fn: accionTests, sesion: true, roles: ['ADMIN'] },
   'respaldos.listar': { fn: accionRespaldos, sesion: true, roles: ['ADMIN'] },
   'respaldos.crear': { fn: accionRespaldo, sesion: true, roles: ['ADMIN'] },
   'archivo.ejecutar': { fn: accionArchivo, sesion: true, roles: ['ADMIN'] },
@@ -177,6 +178,15 @@ function accionPing() {
   return { app: 'cerro-azul', en: ahoraIso(), setup: !!prop('SHEET_ID') };
 }
 
+
+function accionTests(ctx) {
+  const r = runAllTests();
+  return {
+    pasadas: r.pasadas,
+    fallidas: r.fallidas,
+    detalle: r.detalle,
+  };
+}
 
 function accionEntrega(ctx) {
   return exportarEntrega(ctx.usuario.email);

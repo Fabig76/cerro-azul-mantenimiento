@@ -298,6 +298,16 @@
       </form>
     </div>
 
+    <div class="card seccion-panel oculto" id="tarjetaPruebas">
+      <div class="cabecera-seccion"><h2>Estado del sistema</h2></div>
+      <p class="bajada-tarjeta">Comprueba que la lógica, los permisos y el portal público respondan como se espera. No modifica datos.</p>
+      <div class="acciones-form">
+        <button class="btn" id="btnPruebas" type="button">Ejecutar pruebas</button>
+      </div>
+      <div class="msg" id="resumenPruebas" role="status" aria-live="polite"></div>
+      <div class="lista-pruebas oculto" id="detallePruebas"></div>
+    </div>
+
     <div class="card seccion-panel oculto" id="tarjetaRespaldo">
       <div class="cabecera-seccion"><h2>Respaldos</h2></div>
       <p class="bajada-tarjeta">Copias del libro en Drive. Se conservan las últimas ocho; la más reciente es la que sirve para restaurar.</p>
@@ -452,6 +462,7 @@
 <script src="./js/plan.js"></script>
 <script src="./js/empresas.js"></script>
 <script src="./js/respaldo.js"></script>
+<script src="./js/pruebas.js"></script>
 <script src="./js/app.js"></script>
 </body>
 </html>
