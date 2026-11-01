@@ -60,7 +60,8 @@ function construirSnapshot() {
   }).length;
 
   const novedadesAbiertas = filtrar('novedades', function (n) {
-    return ['ABIERTA', 'EN_ATENCION'].indexOf(String(n.estado)) >= 0 && bool(n.publicable);
+    return bool(n.activo) && bool(n.publicable) &&
+      ['ABIERTA', 'EN_ATENCION'].indexOf(String(n.estado)) >= 0;
   });
 
   const en7 = sumarDias(hoyIso(), 7);
