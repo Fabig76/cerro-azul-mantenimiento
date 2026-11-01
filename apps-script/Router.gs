@@ -62,8 +62,6 @@ const ACCIONES = {
   'actividades.acta': { fn: accionActa, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'entrega.exportar': { fn: accionEntrega, sesion: true, roles: ['ADMIN'] },
   'tests.ejecutar': { fn: accionTests, sesion: true, roles: ['ADMIN'] },
-  'auditoria.sesion': { fn: auditoriaSesion, publica: true },
-  'auditoria.limpiar': { fn: auditoriaLimpiar, publica: true },
   'config.get': { fn: configGet, sesion: true, roles: ['ADMIN'] },
   'auditoria.listar': { fn: auditoriaListar, sesion: true, roles: ['ADMIN'] },
   'lecturas.crear': { fn: lecturasCrear, sesion: true },

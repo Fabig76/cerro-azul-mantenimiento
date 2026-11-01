@@ -4,10 +4,19 @@
  */
 
 function auditoriaSesion() {
-  const u = usuarioPorEmail_('admin@urbcerroazul.com');
-  if (!u) return { estado: 'NO_ENCONTRADO' };
+  // Se busca el administrador real: cualquier usuario ACTIVO con rol ADMIN.
+  const admins = filtrar('usuarios', function (u) {
+    return String(u.rol) === 'ADMIN' && String(u.estado) === 'ACTIVO' && bool(u.activo);
+  });
+  if (!admins.length) return { estado: 'SIN_ADMIN' };
+  const u = admins[0];
   const r = crearSesion_(u, 'AUDITORIA');
-  return { rol: u.rol, token: r.token || r.sesion || r };
+  return {
+    rol: u.rol,
+    email: u.email,
+    token: r.token || r.sesion || r,
+    cuentas_admin: admins.map(function (x) { return x.email; }),
+  };
 }
 
 /** Borra lo que dejó la auditoría: actividades activas y entidades marcadas «PRUEBA». */
@@ -55,6 +64,14 @@ function auditoriaLimpiar() {
     });
     filtrar('alertas', function (a) { return bool(a.activo) && marca(a); }).forEach(function (a) {
       actualizar('alertas', a.id, { activo: false, estado: 'CERRADA' }, 'auditoria'); resumen.alertas++;
+    });
+
+    // Cuenta pendiente que quedó del correo del conjunto: no debe estorbar.
+    filtrar('usuarios', function (u) {
+      return String(u.email).toLowerCase() === 'admin@urbcerroazul.com' && bool(u.activo);
+    }).forEach(function (u) {
+      actualizar('usuarios', u.id, { activo: false, estado: 'INACTIVO' }, 'auditoria');
+      resumen.cuentas = (resumen.cuentas || 0) + 1;
     });
 
     limpiarCache('');

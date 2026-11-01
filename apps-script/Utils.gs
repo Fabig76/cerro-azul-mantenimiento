@@ -157,9 +157,16 @@ function cacheDel(clave) {
 }
 
 /** Contador con ventana: devuelve el valor acumulado y lo incrementa. */
+/**
+ * Contador con ventana fija. Antes renovaba su vencimiento en cada llamada,
+ * así que quien llegaba al límite podía quedar bloqueado de forma indefinida.
+ */
 function cacheContar(clave, ventanaSegundos) {
-  const actual = Number(cacheGet(clave) || 0) + 1;
-  cachePut(clave, String(actual), ventanaSegundos || 3600);
+  const segundos = ventanaSegundos || 60;
+  const marca = Math.floor(Date.now() / (segundos * 1000));
+  const conVentana = clave + ':' + marca;
+  const actual = Number(cacheGet(conVentana) || 0) + 1;
+  cachePut(conVentana, String(actual), segundos + 5);
   return actual;
 }
 
