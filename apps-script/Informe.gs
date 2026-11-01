@@ -178,7 +178,10 @@ function generarInformeMensual(mes, usuario) {
   return { mes: m, archivo_id: archivo.getId(), nombre: nombre, url: archivo.getUrl(), bytes: blob.getBytes().length };
 }
 
-/** Acta de una actividad: checklist respondido, evidencias y aprobación. */
+/**
+ * Acta de una actividad: qué se hizo, etapas, checklist, evidencias,
+ * revisión y espacio para la firma del administrador.
+ */
 function generarActaActividad(actividadId, usuario) {
   const act = buscarPorId('actividades', actividadId);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
@@ -186,18 +189,51 @@ function generarActaActividad(actividadId, usuario) {
   const nodo = buscarPorId('nodos', act.nodo_id);
   const empresa = act.empresa_id ? buscarPorId('empresas', act.empresa_id) : null;
   const responsable = act.responsable_id ? buscarPorId('usuarios', act.responsable_id) : null;
+
   const plantilla = act.plantilla_id ? plantillaConItems_(act.plantilla_id, act.plantilla_version) : null;
   const items = plantilla ? plantilla.items : [];
-  const evidencias = filtrar('evidencias', function (e) {
-    return String(e.actividad_id) === String(act.id) && bool(e.activo);
-  });
-  const reporte = filtrar('reportes', function (r) { return String(r.actividad_id) === String(act.id); })
-    .sort(function (a, b) { return String(a.fecha) < String(b.fecha) ? 1 : -1; })[0];
+
+  const reportes = filtrar('reportes', function (r) {
+    return String(r.actividad_id) === String(act.id) && bool(r.activo);
+  }).sort(function (a, b) { return String(a.fecha) < String(b.fecha) ? 1 : -1; });
+
+  const finales = reportes.filter(function (r) { return String(r.tipo) === 'FINAL'; });
+  const reporte = finales[0] || reportes[0] || null;
+
   const respuestas = reporte
-    ? filtrar('respuestas', function (r) { return String(r.reporte_id) === String(reporte.id); })
+    ? filtrar('respuestas', function (r) {
+        return String(r.reporte_id) === String(reporte.id) && bool(r.activo);
+      })
     : [];
   const porItem = {};
   respuestas.forEach(function (r) { porItem[r.item_id] = r; });
+
+  const hitos = filtrar('hitos', function (h) {
+    return String(h.actividad_id) === String(act.id) && bool(h.activo);
+  }).sort(function (a, b) { return Number(a.orden) - Number(b.orden); });
+
+  const evidencias = filtrar('evidencias', function (e) {
+    return String(e.actividad_id) === String(act.id) && bool(e.activo);
+  }).sort(function (a, b) { return String(a.momento) < String(b.momento) ? -1 : 1; });
+
+  const quienReporto = reporte && reporte.usuario_id ? buscarPorId('usuarios', reporte.usuario_id) : null;
+  const quienAprobo = reporte && reporte.revisado_por ? usuarioPorEmail_(reporte.revisado_por) : null;
+
+  const estadoTxt = {
+    PROGRAMADA: 'Programada', EN_EJECUCION: 'En ejecución', REPORTADA: 'Reportada',
+    APROBADA: 'Aprobada', CERRADA: 'Cerrada', CANCELADA: 'Cancelada', RECHAZADA: 'Rechazada',
+  }[String(act.estado)] || String(act.estado);
+
+  // --- Tablas ---
+  const filasEtapas = hitos.map(function (h) {
+    const est = { PENDIENTE: 'Pendiente', REPORTADO: 'Reportada', APROBADO: 'Aprobada' }[String(h.estado)] || h.estado;
+    return filaTabla_([
+      esc_(h.nombre),
+      String(Number(h.peso) || 1),
+      esc_(fechaIso_(h.fecha_plan) || '—'),
+      esc_(est),
+    ]);
+  }).join('');
 
   const filasItems = items.map(function (i) {
     const r = porItem[i.id];
@@ -214,58 +250,89 @@ function generarActaActividad(actividadId, usuario) {
 
   const filasEvidencias = evidencias.map(function (e) {
     return filaTabla_([
-      esc_(e.momento),
+      esc_(e.momento === 'ANTES' ? 'Antes' : e.momento === 'DESPUES' ? 'Después' : e.momento),
       esc_(String(e.fecha_subida || '').replace('T', ' ').slice(0, 16)),
-      esc_(bool(e.contiene_personas) ? 'Con personas · no publicable' : 'Sin personas'),
-      esc_(e.drive_file_id ? 'Archivo en Drive' : '—'),
+      esc_(e.contiene_personas ? 'Sí (no publicable)' : 'No'),
     ]);
   }).join('');
 
   const html = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><style>' +
     '@page { size: Letter; margin: 16mm 14mm; }' +
-    'body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color:#0f172a; font-size:11pt; line-height:1.5; margin:0 }' +
-    '.cab { border-bottom:3px solid #4f46e5; padding-bottom:12px; margin-bottom:18px }' +
-    '.cab h1 { margin:0; font-size:19pt; letter-spacing:-.02em }' +
-    '.cab .sub { color:#5b6b84; font-size:9.5pt; margin-top:4px }' +
-    'h2 { font-size:11pt; margin:20px 0 6px; color:#4f46e5; text-transform:uppercase; letter-spacing:.05em }' +
-    'table { width:100%; border-collapse:collapse; font-size:9.5pt; margin-top:4px }' +
-    'th { background:#f5f7fb; text-align:left; padding:6px 8px; font-size:8.5pt; text-transform:uppercase; color:#5b6b84 }' +
-    'td { padding:6px 8px; border-top:1px solid #e3e8f0 }' +
-    'dl { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; margin:0; font-size:10pt }' +
+    'body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color:#0f172a; font-size:10.5pt; line-height:1.5; margin:0 }' +
+    '.cab { border-bottom:3px solid #4f46e5; padding-bottom:12px; margin-bottom:16px }' +
+    '.cab h1 { margin:0; font-size:20pt; letter-spacing:-.02em }' +
+    '.cab .sub { color:#5b6b84; font-size:9pt; margin-top:4px }' +
+    'h2 { font-size:10.5pt; margin:18px 0 6px; color:#4f46e5; text-transform:uppercase; letter-spacing:.06em }' +
+    'table { width:100%; border-collapse:collapse; font-size:9pt; margin-top:4px }' +
+    'th { background:#f5f7fb; text-align:left; padding:5px 7px; font-size:8pt; text-transform:uppercase; color:#5b6b84 }' +
+    'td { padding:5px 7px; border-top:1px solid #e3e8f0 }' +
+    'dl { display:grid; grid-template-columns:38% 1fr; gap:3px 12px; margin:0; font-size:9.5pt }' +
     'dt { color:#5b6b84 } dd { margin:0; font-weight:600 }' +
-    '.pie { margin-top:26px; padding-top:10px; border-top:1px solid #e3e8f0; font-size:8.5pt; color:#5b6b84 }' +
+    '.destacado { background:#f5f7fb; border-left:3px solid #4f46e5; padding:8px 12px; margin:6px 0 0; font-size:10pt }' +
+    '.firma { margin-top:26px; display:grid; grid-template-columns:1fr 1fr; gap:26px; page-break-inside:avoid }' +
+    '.firma div { border-top:1px solid #94a3b8; padding-top:6px; font-size:9pt; color:#5b6b84 }' +
+    '.firma b { display:block; color:#0f172a; font-size:10pt; margin-bottom:2px }' +
+    '.pie { margin-top:22px; padding-top:8px; border-top:1px solid #e3e8f0; font-size:8pt; color:#5b6b84 }' +
     '</style></head><body>' +
-    '<div class="cab"><h1>Acta de mantenimiento</h1>' +
-    '<div class="sub">Urbanización Cerro Azul · ' + esc_(ahoraIso()) + '</div></div>' +
 
-    '<h2>Actividad</h2>' +
-    '<dl>' +
-      '<dt>Actividad</dt><dd>' + esc_(act.titulo) + '</dd>' +
+    '<div class="cab"><h1>Acta de mantenimiento</h1>' +
+    '<div class="sub">Urbanización Cerro Azul · ' + esc_(nombreMes_(mesDe_(hoyIso()))) + ' · emitida el ' +
+    esc_(ahoraIso().replace('T', ' ').slice(0, 16)) + '</div></div>' +
+
+    '<h2>Trabajo realizado</h2>' +
+    '<div class="destacado"><b>' + esc_(act.titulo) + '</b>' +
+    (act.descripcion ? '<br>' + esc_(act.descripcion) : '') + '</div>' +
+    '<dl style="margin-top:10px">' +
       '<dt>Sección</dt><dd>' + esc_(nodo ? nodo.codigo + ' · ' + nodo.nombre : '—') + '</dd>' +
-      '<dt>Empresa</dt><dd>' + esc_(empresa ? empresa.razon_social : '—') + '</dd>' +
-      '<dt>Responsable</dt><dd>' + esc_(responsable ? responsable.nombre : '—') + '</dd>' +
-      '<dt>Estado</dt><dd>' + esc_(act.estado) + '</dd>' +
+      '<dt>Empresa</dt><dd>' + esc_(empresa ? empresa.razon_social : 'Sin empresa asignada') + '</dd>' +
+      '<dt>Responsable</dt><dd>' + esc_(responsable ? responsable.nombre : (quienReporto ? quienReporto.nombre : 'Sin asignar')) + '</dd>' +
+      '<dt>Estado</dt><dd>' + esc_(estadoTxt) + '</dd>' +
+      '<dt>Prioridad</dt><dd>' + esc_(act.prioridad || '—') + '</dd>' +
       '<dt>Planificada</dt><dd>' + esc_(fechaIso_(act.fecha_inicio_plan) + ' a ' + fechaIso_(act.fecha_fin_plan)) + '</dd>' +
       '<dt>Ejecutada</dt><dd>' + esc_((String(act.fecha_inicio_real || '').slice(0, 10) || '—') + ' a ' + (String(act.fecha_reporte_final || '').slice(0, 10) || '—')) + '</dd>' +
       '<dt>Avance aprobado</dt><dd>' + esc_(String(act.avance_aprobado_pct || 0) + ' %') + '</dd>' +
+      '<dt>Afecta el servicio</dt><dd>' + esc_(bool(act.afecta_uso) ? 'Sí' : 'No') + '</dd>' +
+      '<dt>Obligatoria por norma</dt><dd>' + esc_(bool(act.obligatoria_legal) ? 'Sí' : 'No') + '</dd>' +
     '</dl>' +
 
-    '<h2>Checklist</h2>' +
-    '<table><thead>' + filaTabla_(['Grupo', 'Ítem', 'Respuesta', 'Cumple'], true) +
-    '</thead><tbody>' + (filasItems || filaTabla_(['Sin checklist registrado', '', '', ''])) + '</tbody></table>' +
+    (reporte && reporte.descripcion
+      ? '<h2>Qué se hizo</h2><div class="destacado">' + esc_(reporte.descripcion) + '</div>'
+      : '') +
+
+    (hitos.length
+      ? '<h2>Etapas del trabajo</h2><table><thead>' +
+        filaTabla_(['Etapa', 'Peso', 'Fecha prevista', 'Estado'], true) +
+        '</thead><tbody>' + filasEtapas + '</tbody></table>'
+      : '') +
+
+    (items.length
+      ? '<h2>Checklist</h2><table><thead>' +
+        filaTabla_(['Grupo', 'Ítem', 'Respuesta', 'Cumple'], true) +
+        '</thead><tbody>' + filasItems + '</tbody></table>'
+      : '<h2>Checklist</h2><p style="font-size:9.5pt;color:#5b6b84;margin:0">' +
+        'Esta actividad se registró por etapas, sin checklist.' + '</p>') +
 
     '<h2>Evidencias</h2>' +
-    '<table><thead>' + filaTabla_(['Momento', 'Subida', 'Personas', 'Archivo'], true) +
-    '</thead><tbody>' + (filasEvidencias || filaTabla_(['Sin evidencias', '', '', ''])) + '</tbody></table>' +
+    '<table><thead>' + filaTabla_(['Momento', 'Subida', 'Personas'], true) +
+    '</thead><tbody>' + (filasEvidencias || filaTabla_(['Sin evidencias', '', ''])) + '</tbody></table>' +
 
-    (reporte ? '<h2>Revisión</h2><dl>' +
-      '<dt>Resultado</dt><dd>' + esc_(reporte.estado_revision) + '</dd>' +
-      '<dt>Enviado</dt><dd>' + esc_(String(reporte.fecha || '').replace('T', ' ').slice(0, 16)) + '</dd>' +
-      '<dt>Observación</dt><dd>' + esc_(reporte.comentario_admin || '—') + '</dd>' +
-      '</dl>' : '') +
+    '<h2>Revisión de la administración</h2>' +
+    '<dl>' +
+      '<dt>Resultado</dt><dd>' + esc_(reporte ? reporte.estado_revision : 'Pendiente') + '</dd>' +
+      '<dt>Enviado</dt><dd>' + esc_(reporte ? String(reporte.fecha || '').replace('T', ' ').slice(0, 16) : '—') + '</dd>' +
+      '<dt>Observación</dt><dd>' + esc_(reporte && reporte.comentario_admin ? reporte.comentario_admin : 'Sin observaciones') + '</dd>' +
+    '</dl>' +
 
-    '<div class="pie">Documento generado desde el Portal de Control de Mantenimientos. ' +
-    'Las fotografías originales quedan archivadas en la carpeta de evidencias de la copropiedad.</div>' +
+    '<div class="firma">' +
+      '<div><b>' + esc_(quienAprobo ? quienAprobo.nombre : 'Administrador de la copropiedad') + '</b>' +
+        'Administrador<br>C.C. ____________________<br><br>Firma: ______________________________</div>' +
+      '<div><b>' + esc_(empresa ? empresa.razon_social : 'Contratista') + '</b>' +
+        'Contratista<br>C.C. ____________________<br><br>Firma: ______________________________</div>' +
+    '</div>' +
+
+    '<div class="pie">Documento generado desde el Portal de Control de Mantenimientos de la copropiedad. ' +
+    'Las fotografías originales y los soportes quedan archivados en la carpeta de evidencias. ' +
+    'Este acta no sustituye los documentos técnicos que exija la norma aplicable.</div>' +
     '</body></html>';
 
   const carpeta = subcarpeta_(subcarpeta_(carpetaRaiz_(), 'Documentos'), 'Actas');
@@ -278,14 +345,14 @@ function generarActaActividad(actividadId, usuario) {
   const archivo = carpeta.createFile(blob);
   archivo.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
 
-  auditar(usuario || 'sistema', 'ACTA_GENERADA', 'actividad', act.id, null, { archivo: nombre });
+  auditar(usuario || 'sistema', 'ACTA_GENERADA', 'actividad', act.id, null,
+    { archivo: nombre, etapas: hitos.length, items: items.length });
 
-  // El PDF viaja en la respuesta: no depende de permisos de Drive ni de qué
-  // cuenta de Google esté abierta en el navegador.
   return {
     nombre: nombre,
     base64: Utilities.base64Encode(blob.getBytes()),
     items: items.length,
+    etapas: hitos.length,
     evidencias: evidencias.length,
   };
 }
