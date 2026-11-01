@@ -44,7 +44,7 @@
       <span class="marca"><span class="mark">CA</span> Cerro Azul</span>
       <a href="#secciones">Qué se controla</a>
       <a href="#verificacion">Cómo se verifica</a>
-      <a href="#estado">Estado del portal</a>
+      <a href="#/resumen" data-ir="resumen">Estado del portal</a>
       <span class="sp"></span>
       <button id="btnTema" type="button">Claro / Oscuro</button>
       <a class="btn primary" href="./app.html">Ingresar</a>
@@ -53,7 +53,19 @@
 </div>
 
 <main>
-  <section id="estado">
+  <nav class="wrap" aria-label="Secciones del portal">
+    <div class="pestanas" id="pestanasPublico">
+      <button type="button" class="pestana acento-indigo" data-gtab="resumen">Resumen</button>
+      <button type="button" class="pestana acento-cian" data-gtab="secciones">Secciones</button>
+      <button type="button" class="pestana acento-cian" data-gtab="historico">Histórico</button>
+      <button type="button" class="pestana acento-violeta" data-gtab="agenda">Agenda</button>
+      <button type="button" class="pestana acento-warn" data-gtab="novedades">Daños y fallas <span class="cuenta-pestana oculto" id="cuentaNovedades"></span></button>
+      <button type="button" class="pestana acento-indigo" data-gtab="obligaciones">Obligaciones</button>
+      <button type="button" class="pestana acento-neutro" data-gtab="como-funciona">Cómo se verifica</button>
+    </div>
+  </nav>
+
+  <section id="estado" data-gpanel="resumen">
     <div class="wrap">
       <div class="sec-head">
         <div>
@@ -67,7 +79,7 @@
     </div>
   </section>
 
-  <section id="secciones">
+  <section id="secciones" data-gpanel="secciones">
     <div class="wrap">
       <div class="sec-head">
         <div>
@@ -80,7 +92,7 @@
     </div>
   </section>
 
-  <section id="avance">
+  <section id="avance" data-gpanel="historico">
     <div class="wrap">
       <div class="sec-head">
         <div>
@@ -145,7 +157,7 @@
     </div>
   </section>
 
-  <section id="agenda">
+  <section id="agenda" data-gpanel="agenda">
     <div class="wrap">
       <div class="sec-head">
         <div>
@@ -158,7 +170,7 @@
     </div>
   </section>
 
-  <section id="recientes">
+  <section id="recientes" data-gpanel="agenda">
     <div class="wrap">
       <div class="sec-head">
         <div>
@@ -171,7 +183,7 @@
     </div>
   </section>
 
-  <section id="novedades-seccion">
+  <section id="novedades-seccion" data-gpanel="novedades">
     <div class="wrap">
       <div class="sec-head">
         <div>
@@ -184,7 +196,7 @@
     </div>
   </section>
 
-  <section id="normativo-seccion">
+  <section id="normativo-seccion" data-gpanel="obligaciones">
     <div class="wrap">
       <div class="sec-head">
         <div>
@@ -194,6 +206,50 @@
         </div>
       </div>
       <div class="card con-acento acento-indigo"><ul class="lista-filas" id="lista-normativo"></ul></div>
+    </div>
+  </section>
+  <section id="como-funciona" class="oculto" data-gpanel="como-funciona">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="kicker">Cómo se verifica</div>
+          <h2>Cada trabajo deja cuatro pruebas</h2>
+          <p>No se califica la palabra de la empresa: se revisa la evidencia. Este es el recorrido de un mantenimiento.</p>
+        </div>
+      </div>
+
+      <div class="pasos">
+        <article class="card con-acento acento-warn">
+          <span class="paso-num">1</span>
+          <h3>Foto de antes</h3>
+          <p>La empresa no puede empezar sin subir una o dos fotos del área tal como la encuentra. El sistema rechaza fotos viejas: deben ser del momento.</p>
+        </article>
+        <article class="card con-acento acento-indigo">
+          <span class="paso-num">2</span>
+          <h3>Checklist técnico</h3>
+          <p>Cada tipo de equipo tiene su propio cuestionario: niveles, presión, voltaje, estado de piezas. Cada ítem tiene peso y criterio de aceptación.</p>
+        </article>
+        <article class="card con-acento acento-ok">
+          <span class="paso-num">3</span>
+          <h3>Foto de después</h3>
+          <p>Al terminar, la misma toma. El antes y el después se comparan lado a lado, no se aceptan fotos de otro lugar.</p>
+        </article>
+        <article class="card con-acento acento-cian">
+          <span class="paso-num">4</span>
+          <h3>Aprobación</h3>
+          <p>La administración revisa el reporte y lo aprueba o lo rechaza con el motivo. El avance solo cuenta cuando está aprobado.</p>
+        </article>
+      </div>
+
+      <div class="card con-acento acento-neutro">
+        <h3 class="titulo-tarjeta">Qué significa el semáforo</h3>
+        <div class="leyenda-estados">
+          <div class="estado-fila"><span class="badge ok">Al día</span><p>El plan se cumple y el equipo opera normalmente.</p></div>
+          <div class="estado-fila"><span class="badge warn">En atención</span><p>Hay un atraso en el plan o una novedad abierta que todavía no afecta el servicio.</p></div>
+          <div class="estado-fila"><span class="badge danger">Crítico</span><p>El equipo no está operando, o una novedad grave está abierta.</p></div>
+          <div class="estado-fila"><span class="badge gray">Sin datos</span><p>Todavía no hay mantenimiento registrado para ese equipo. No significa que esté mal: significa que aún no se ha medido.</p></div>
+        </div>
+      </div>
     </div>
   </section>
 </main>

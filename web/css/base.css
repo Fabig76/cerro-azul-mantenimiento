@@ -320,3 +320,44 @@ footer.pie b { color: #334155; }
 
 .hero-compacta::after { display: none; }
 [data-theme="dark"] .hero::after { display: none; }
+
+/* Pestañas (paneles del portal y del público) */
+
+.pestanas {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px;
+  margin: 16px 0 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill, 999px);
+  box-shadow: var(--shadow);
+  scrollbar-width: none;
+}
+.pestanas::-webkit-scrollbar { display: none; }
+.pestana {
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: .15s;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+}
+.pestana:hover { background: var(--card-2); color: var(--ink); }
+.pestana.activa {
+  color: var(--acento, var(--brand));
+  background: var(--acento-suave, var(--brand-soft));
+  border-color: color-mix(in srgb, var(--acento, var(--brand)) 40%, transparent);
+  border-bottom-color: var(--acento, var(--brand));
+}
+[data-theme="dark"] .pestana.activa { background: var(--acento-suave, var(--brand-soft)); }
+

@@ -52,6 +52,7 @@
     pintarRecientes(snap);
     pintarAlertas(snap);
     pintarNovedades(snap);
+    pintarCuentaNovedades(snap);
     pintarNormativo(snap);
     const sello = document.getElementById('actualizado');
     if (sello) sello.textContent = 'Actualizado ' + (snap.generado_en || '').replace('T', ' ').slice(0, 16);
@@ -279,6 +280,16 @@
     }
   }
 
+  function pintarCuentaNovedades(snap) {
+    const cuenta = document.getElementById('cuentaNovedades');
+    if (!cuenta) return;
+    const abiertas = (snap.novedades || []).length;
+    cuenta.textContent = String(abiertas);
+    cuenta.classList.toggle('oculto', abiertas === 0);
+    const pestana = cuenta.closest('.pestana');
+    if (pestana) pestana.classList.toggle('con-alerta', abiertas > 0);
+  }
+
   function pintarNovedades(snap) {
     const cont = document.getElementById('lista-novedades');
     if (!cont) return;
@@ -311,21 +322,34 @@
     });
   }
 
-  // --- Navegación por niveles ---
-  const SECCIONES_PORTADA = ['estado', 'secciones', 'avance', 'agenda', 'recientes',
-    'novedades-seccion', 'normativo-seccion'];
+  // --- Pestañas del portal público ---
+  const TABS = ['resumen', 'secciones', 'historico', 'agenda', 'novedades', 'obligaciones', 'como-funciona'];
 
-  function mostrarPortada(visible) {
-    SECCIONES_PORTADA.forEach(function (id) {
-      const el_ = document.getElementById(id);
-      if (el_) el_.classList.toggle('oculto', !visible);
-    });
+  function ocultarTodo() {
+    document.querySelectorAll('[data-gpanel]').forEach(function (p) { p.classList.add('oculto'); });
     const det = document.getElementById('detalle');
-    if (det) det.classList.toggle('oculto', visible);
+    if (det) det.classList.add('oculto');
+    const al = document.getElementById('pantallaAlertas');
+    if (al) al.classList.add('oculto');
+  }
+
+  function mostrarTab(id) {
+    ocultarTodo();
+    document.querySelectorAll('[data-gpanel="' + id + '"]').forEach(function (p) {
+      p.classList.remove('oculto');
+    });
+    document.querySelectorAll('#pestanasPublico .pestana').forEach(function (b) {
+      b.classList.toggle('activa', b.dataset.gtab === id);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function mostrarPortada() {
+    mostrarTab('resumen');
   }
 
   async function verNodo(id) {
-    mostrarPortada(false);
+    ocultarTodo();
     const r = await fetch(window.CFG.API_URL + '?action=public.nodo&id=' + encodeURIComponent(id), { redirect: 'follow' });
     const d = await r.json();
     if (d.error) {
@@ -447,9 +471,7 @@
   }
 
   function verAlertas(snap) {
-    mostrarPortada(false);
-    const det = document.getElementById('detalle');
-    if (det) det.classList.add('oculto');
+    ocultarTodo();
     const pantalla = document.getElementById('pantallaAlertas');
     if (pantalla) pantalla.classList.remove('oculto');
 
@@ -483,18 +505,31 @@
 
   function ruta(snap) {
     const h = window.location.hash || '';
-    const pantalla = document.getElementById('pantallaAlertas');
-    if (pantalla) pantalla.classList.add('oculto');
     const m = h.match(/^#\/nodo\/([A-Z0-9_]+)/i);
     if (m) return verNodo(m[1]);
     if (h.indexOf('#/alertas') === 0) return verAlertas(snap);
-    mostrarPortada(true);
+    const t = h.replace('#/', '');
+    mostrarTab(TABS.indexOf(t) >= 0 ? t : 'resumen');
   }
 
   let ultimoSnap = null;
   window.addEventListener('hashchange', function () { ruta(ultimoSnap); });
 
   document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('#pestanasPublico .pestana').forEach(function (b) {
+      b.addEventListener('click', function () {
+        window.location.hash = '#/' + b.dataset.gtab;
+        mostrarTab(b.dataset.gtab);
+      });
+    });
+    document.querySelectorAll('[data-ir]').forEach(function (a) {
+      a.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        window.location.hash = '#/' + a.dataset.ir;
+        mostrarTab(a.dataset.ir);
+      });
+    });
+
     cargar().then(function () {
       ultimoSnap = null;
       ruta(ultimoSnap);
