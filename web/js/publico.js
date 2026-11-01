@@ -403,12 +403,21 @@
 
   async function verNodo(id) {
     ocultarTodo();
-    const r = await fetch(window.CFG.API_URL + '?action=public.nodo&id=' + encodeURIComponent(id), { redirect: 'follow' });
-    const d = await r.json();
-    if (d.error) {
-      window.location.hash = '';
+    const detalle = document.getElementById('detalle');
+    let d;
+    try {
+      const r = await fetch(window.CFG.API_URL + '?action=public.nodo&id=' + encodeURIComponent(id), { redirect: 'follow' });
+      d = await r.json();
+    } catch (e) {
+      mostrarError('No pudimos cargar esta sección. Revisa tu conexión.');
       return;
     }
+    if (!d || d.error) {
+      mostrarError('Esa sección no está disponible.');
+      window.location.hash = '#/secciones';
+      return;
+    }
+    if (detalle) detalle.classList.remove('oculto');
 
     const migas = document.getElementById('migas');
     if (migas) {
