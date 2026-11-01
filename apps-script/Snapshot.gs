@@ -500,26 +500,31 @@ function publicNodo(param) {
   });
 
   const en30 = sumarDias(hoyIso(), 30);
-  const proximos = sensible ? [] : propias.filter(function (a) {
+  // En una sección sensible el trabajo se ve, pero sin revelar el equipo.
+  const proximos = propias.filter(function (a) {
     const f = fechaIso_(a.fecha_inicio_plan);
     return f >= hoyIso() && f <= en30 && ['PROGRAMADA', 'EN_EJECUCION'].indexOf(String(a.estado)) >= 0;
   }).sort(function (a, b) { return String(a.fecha_inicio_plan) < String(b.fecha_inicio_plan) ? -1 : 1; })
     .slice(0, 15)
     .map(function (a) {
-      return { fecha: fechaIso_(a.fecha_inicio_plan), titulo: a.titulo, afecta_uso: bool(a.afecta_uso) };
+      return {
+        fecha: fechaIso_(a.fecha_inicio_plan),
+        titulo: sensible ? 'Mantenimiento programado en sistema sensible' : a.titulo,
+        afecta_uso: bool(a.afecta_uso),
+      };
     });
 
   const empresas = {};
   filas('empresas').forEach(function (e) { empresas[e.id] = e.razon_social; });
-  const recientes = sensible ? [] : propias.filter(function (a) {
+  const recientes = propias.filter(function (a) {
     return ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
   }).sort(function (a, b) {
     return String(b.fecha_aprobacion || '') > String(a.fecha_aprobacion || '') ? 1 : -1;
   }).slice(0, 10).map(function (a) {
     return {
       fecha: fechaIso_(a.fecha_aprobacion || a.fecha_reporte_final),
-      titulo: a.titulo,
-      empresa: empresas[a.empresa_id] || '',
+      titulo: sensible ? 'Trabajo terminado en sistema sensible' : a.titulo,
+      empresa: sensible ? '' : (empresas[a.empresa_id] || ''),
     };
   });
 
