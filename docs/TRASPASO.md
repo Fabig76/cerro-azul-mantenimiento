@@ -77,6 +77,24 @@ la de actas. Ese es el paquete que se entrega al saliente o al entrante.
 - Las fotos no se respaldan aparte: viven en Drive y siguen el ciclo de vida de la cuenta. Si se
   quiere una copia externa, se descarga la carpeta `/Portal/Evidencias`.
 
+## 4 bis. Respaldo del proyecto (el código, no los datos)
+
+El respaldo de los **datos** es la acción `respaldos.crear` del portal. El respaldo del
+**proyecto** es un archivo comprimido del repositorio:
+
+```bash
+cd cerro-azul-mantenimiento
+mkdir -p backup
+zip -rq backup/cerro-azul-mantenimiento-$(date +%Y-%m-%d).zip . \
+  -x "backup/*" -x "*/node_modules/*" -x "*/.DS_Store"
+```
+
+Se sube a Drive en una carpeta por fecha y se comparte con la cuenta personal del administrador,
+para que el proyecto no dependa solo de GitHub.
+
+Los `.zip` no se versionan (están en `backup/.gitignore`): el repositorio guarda el código, Drive
+guarda las copias fechadas.
+
 ## 5. Qué NO está en el repositorio, a propósito
 
 - El `SHEET_ID`, los ids de carpetas y las credenciales: están en las **propiedades del script**.
