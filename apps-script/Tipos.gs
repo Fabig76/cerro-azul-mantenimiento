@@ -92,7 +92,7 @@ function plantillasGet(ctx, payload) {
   const items = filtrar('plantilla_items', function (i) {
     return String(i.plantilla_id) === String(p.id) && Number(i.version) === Number(p.version);
   }).sort(function (a, b) { return Number(a.orden) - Number(b.orden); });
-  return { plantilla: p, items: items };
+  return { plantilla: p, items: items, etapas: fromJson(p.etapas_json, []) };
 }
 
 /**
@@ -107,6 +107,16 @@ function plantillasGuardar(ctx, payload) {
   const metodo = exigirEnEnum(payload.metodo_avance || 'CHECKLIST', 'metodo_avance', ['CHECKLIST', 'HITOS']);
   const items = Array.isArray(payload.items) ? payload.items : [];
   if (!items.length) fallar_('VALIDACION', 'La plantilla necesita al menos un ítem.');
+
+  // Etapas sugeridas: cada actividad de este tipo nace con ellas y las ajusta.
+  const etapas = (Array.isArray(payload.etapas) ? payload.etapas : [])
+    .filter(function (e) { return e && String(e.nombre || '').trim(); })
+    .map(function (e) {
+      return { nombre: String(e.nombre).trim().slice(0, 120), peso: Math.max(1, Math.min(10, Number(e.peso) || 1)) };
+    });
+
+  // Asegura que la hoja tenga la columna de etapas antes de escribirla.
+  asegurarPestañas(hojaCalculo());
 
   return conBloqueo(function () {
     let plantilla;
@@ -126,6 +136,7 @@ function plantillasGuardar(ctx, payload) {
         norma_referencia: payload.norma_referencia || '',
         activa: true,
         activo: true,
+        etapas_json: toJson(etapas),
       }, ctx.usuario.email);
     } else {
       plantilla = insertar('plantillas', {
@@ -137,6 +148,7 @@ function plantillasGuardar(ctx, payload) {
         norma_referencia: payload.norma_referencia || '',
         activa: true,
         activo: true,
+        etapas_json: toJson(etapas),
       }, ctx.usuario.email);
     }
 
@@ -164,8 +176,8 @@ function plantillasGuardar(ctx, payload) {
     }), ctx.usuario.email);
 
     auditar(ctx.usuario.email, 'PLANTILLA_GUARDADA', 'plantilla', plantilla.id, null,
-      { nombre: nombre, version: version, items: items.length });
-    return { plantilla: plantilla, version: version, items: items.length };
+      { nombre: nombre, version: version, items: items.length, etapas: etapas.length });
+    return { plantilla: plantilla, version: version, items: items.length, etapas: etapas.length };
   });
 }
 

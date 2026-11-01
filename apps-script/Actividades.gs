@@ -86,6 +86,17 @@ function actividadesCrear(ctx, payload) {
     if (!plantilla) fallar_('VALIDACION', 'La plantilla no existe.');
   }
 
+  // Sin etapas propias, se heredan las de la plantilla del tipo (se pueden ajustar después).
+  let etapasBase = Array.isArray(payload.hitos) ? payload.hitos : [];
+  if (!etapasBase.length && plantilla) {
+    etapasBase = fromJson(plantilla.plantilla.etapas_json, []);
+    if (etapasBase.length) {
+      etapasBase = etapasBase.map(function (e) {
+        return { nombre: e.nombre, peso: e.peso, fecha_plan: '' };
+      });
+    }
+  }
+
   const actividad = insertar('actividades', {
     id: newId('ACT'),
     titulo: titulo,
@@ -118,9 +129,9 @@ function actividadesCrear(ctx, payload) {
     activo: true,
   }, ctx.usuario.email);
 
-  // Hitos opcionales para actividades de varios días.
-  const hitos = Array.isArray(payload.hitos) ? payload.hitos : [];
-  if (tipo === 'MULTIDIA' && hitos.length) {
+  // Etapas: las que trajo la petición o, si no, las de la plantilla del tipo.
+  const hitos = etapasBase;
+  if (hitos.length) {
     insertarVarias('hitos', hitos.map(function (h, i) {
       return {
         id: newId('HIT'),

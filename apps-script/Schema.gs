@@ -24,6 +24,7 @@ const SCHEMA = {
 
   plantillas: [
     'id', 'nombre', 'tipo_elemento_id', 'version', 'metodo_avance', 'norma_referencia', 'activa',
+    'etapas_json',
   ].concat(CAMPOS_AUDITORIA),
 
   plantilla_items: [

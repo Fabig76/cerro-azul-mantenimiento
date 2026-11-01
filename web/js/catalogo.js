@@ -6,6 +6,7 @@
 
   let tipos = [];
   let plantillas = [];
+  let leerEtapasPlantilla = null;
 
   function el(tag, clase, texto) {
     const n = document.createElement(tag);
@@ -95,7 +96,15 @@
     });
   }
 
+  function montarEtapasPlantilla(iniciales) {
+    const cont = document.getElementById('etapasPlantilla');
+    if (!cont || !window.Etapas) return;
+    cont.textContent = '';
+    leerEtapasPlantilla = window.Etapas.crear(cont, iniciales || []);
+  }
+
   function preparar() {
+    montarEtapasPlantilla([]);
     const formTipo = document.getElementById('formTipo');
     if (formTipo) {
       formTipo.addEventListener('submit', async function (ev) {
@@ -148,10 +157,15 @@
           metodo_avance: document.getElementById('plaMetodo').value,
           norma_referencia: document.getElementById('plaNorma').value.trim(),
           items: items,
+          etapas: (leerEtapasPlantilla ? leerEtapasPlantilla() : []).map(function (e) {
+            return { nombre: e.nombre, peso: e.peso };
+          }),
         }, { token: Sesion.token(), idempotente: true });
         if (!r.ok) return aviso(r.message || 'No se pudo guardar la plantilla.', 'error');
-        aviso('Plantilla guardada en la versión ' + r.data.version + ' con ' + r.data.items + ' ítems.', 'ok');
+        aviso('Plantilla guardada en la versión ' + r.data.version + ' con ' + r.data.items +
+          ' ítems y ' + r.data.etapas + ' etapas.', 'ok');
         document.getElementById('plaItems').value = '';
+        montarEtapasPlantilla([]);
         cargar();
       });
     }
