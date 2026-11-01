@@ -74,7 +74,10 @@ function evidenciasUpload(ctx, payload) {
   let miniId = '';
   if (payload.base64_mini) {
     const miniBytes = decodificarBase64_(payload.base64_mini);
-    if (miniBytes.length <= 120 * 1024) {
+    if (miniBytes.length > 55 * 1024) {
+      fallar_('ARCHIVO_GRANDE', 'La miniatura supera 55 KB. Vuelve a tomarla: debe quedar más liviana.');
+    }
+    if (miniBytes.length > 0) {
       const mini = carpetaAct.createFile(Utilities.newBlob(miniBytes, 'image/jpeg', nombre + '_mini.jpg'));
       mini.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
       miniId = mini.getId();

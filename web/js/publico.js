@@ -108,6 +108,9 @@
       const estado = ESTADOS[s.salud.estado] || ['', 'gray'];
       cab.appendChild(titulo);
       cab.appendChild(el('span', 'badge ' + estado[1], estado[0]));
+      card.tabIndex = 0;
+      card.setAttribute('role', 'link');
+      card.addEventListener('click', function () { window.location.hash = '#/nodo/' + s.id; });
       card.appendChild(cab);
       card.appendChild(el('p', 'seccion-codigo', s.codigo));
 
@@ -290,5 +293,151 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', cargar);
+  // --- Navegación por niveles ---
+  const SECCIONES_PORTADA = ['estado', 'secciones', 'avance', 'agenda', 'recientes',
+    'novedades-seccion', 'normativo-seccion'];
+
+  function mostrarPortada(visible) {
+    SECCIONES_PORTADA.forEach(function (id) {
+      const el_ = document.getElementById(id);
+      if (el_) el_.classList.toggle('oculto', !visible);
+    });
+    const det = document.getElementById('detalle');
+    if (det) det.classList.toggle('oculto', visible);
+  }
+
+  async function verNodo(id) {
+    mostrarPortada(false);
+    const r = await fetch(window.CFG.API_URL + '?action=public.nodo&id=' + encodeURIComponent(id), { redirect: 'follow' });
+    const d = await r.json();
+    if (d.error) {
+      window.location.hash = '';
+      return;
+    }
+
+    const migas = document.getElementById('migas');
+    if (migas) {
+      migas.textContent = '';
+      const inicio = el('a', null, 'Inicio');
+      inicio.href = '#';
+      migas.appendChild(inicio);
+      (d.migas || []).forEach(function (m) {
+        migas.appendChild(el('span', 'miga-sep', '›'));
+        const a = el('a', null, m.nombre);
+        a.href = '#/nodo/' + m.id;
+        migas.appendChild(a);
+      });
+    }
+
+    const nombre = document.getElementById('detalleNombre');
+    if (nombre) nombre.textContent = d.nombre + (d.sensible ? ' · sistema sensible' : '');
+    const estado = document.getElementById('detalleEstado');
+    if (estado) {
+      const e = ESTADOS[d.salud.estado] || ['', 'gray'];
+      estado.textContent = e[0] + ' · ' + (d.salud.elementos || 0) + ' equipo(s) · ' +
+        (d.salud.puntaje === null ? 'sin puntaje' : 'puntaje ' + d.salud.puntaje);
+    }
+
+    const kpis = document.getElementById('detalleKpis');
+    if (kpis) {
+      kpis.textContent = '';
+      const mes = (d.meses || []).filter(function (m) { return m.mes === d.mes_actual; })[0] || {};
+      [
+        { n: mes.programadas || 0, l: 'Programadas del mes', a: 'indigo' },
+        { n: mes.ejecutadas || 0, l: 'Ejecutadas', a: 'ok' },
+        { n: mes.cumplimiento_pct === null || mes.cumplimiento_pct === undefined ? '—' : mes.cumplimiento_pct + '%', l: 'Cumplimiento', a: 'ciber' },
+        { n: (d.proximos || []).length, l: 'Próximos 30 días', a: 'violeta' },
+      ].forEach(function (k) {
+        const caja = el('div', 'kpi acento-' + (k.a === 'ciber' ? 'cian' : k.a));
+        caja.appendChild(el('div', 'kpi-n', String(k.n)));
+        caja.appendChild(el('div', 'kpi-l', k.l));
+        kpis.appendChild(caja);
+      });
+    }
+
+    const hijos = document.getElementById('detalleHijos');
+    if (hijos) {
+      hijos.textContent = '';
+      (d.hijos || []).forEach(function (h) {
+        const e = ESTADOS[h.estado] || ['', 'gray'];
+        const acento = { AL_DIA: 'ok', ATENCION: 'warn', CRITICO: 'danger' }[h.estado] || 'neutro';
+        const card = el('article', 'card seccion-card acento-' + acento);
+        card.tabIndex = 0;
+        card.setAttribute('role', 'link');
+        const cab = el('div', 'seccion-card-cab');
+        cab.appendChild(el('h3', null, h.nombre));
+        cab.appendChild(el('span', 'badge ' + e[1], e[0]));
+        card.appendChild(cab);
+        card.appendChild(el('p', 'seccion-codigo', h.codigo));
+        const datos = el('div', 'seccion-datos');
+        datos.appendChild(el('span', 'seccion-puntaje', h.puntaje === null ? '—' : String(h.puntaje)));
+        datos.appendChild(el('span', 'seccion-puntaje-l', (h.elementos || 0) + ' equipo(s)'));
+        card.appendChild(datos);
+        card.addEventListener('click', function () { window.location.hash = '#/nodo/' + h.id; });
+        hijos.appendChild(card);
+      });
+      if (!(d.hijos || []).length) hijos.appendChild(el('div', 'vacio', 'Esta sección no tiene subsecciones.'));
+    }
+
+    pintarMesesEn('detalleGrafica', { meses: d.meses || [] });
+
+    const prox = document.getElementById('detalleProximos');
+    if (prox) {
+      prox.textContent = '';
+      if (!(d.proximos || []).length) prox.appendChild(el('li', 'vacio', 'Sin mantenimientos programados.'));
+      (d.proximos || []).forEach(function (p) {
+        const li = el('li', 'fila-lista');
+        li.appendChild(el('span', 'fila-fecha', p.fecha));
+        li.appendChild(el('span', 'fila-texto', p.titulo));
+        prox.appendChild(li);
+      });
+    }
+
+    const rec = document.getElementById('detalleRecientes');
+    if (rec) {
+      rec.textContent = '';
+      if (!(d.recientes || []).length) rec.appendChild(el('li', 'vacio', 'Todavía no hay trabajos aprobados aquí.'));
+      (d.recientes || []).forEach(function (x) {
+        const li = el('li', 'fila-lista');
+        li.appendChild(el('span', 'fila-fecha', x.fecha));
+        li.appendChild(el('span', 'fila-texto', x.titulo));
+        if (x.empresa) li.appendChild(el('span', 'fila-meta', x.empresa));
+        rec.appendChild(li);
+      });
+    }
+  }
+
+  function pintarMesesEn(id, snap) {
+    const cont = document.getElementById(id);
+    if (!cont) return;
+    cont.textContent = '';
+    const maximo = Math.max(1, Math.max.apply(null, (snap.meses || []).map(function (m) { return m.programadas || 0; })));
+    (snap.meses || []).forEach(function (m) {
+      const col = el('div', 'mes');
+      const barras = el('div', 'mes-barras');
+      const prog = el('span', 'mes-barra programadas');
+      prog.style.height = Math.max(2, ((m.programadas || 0) / maximo) * 100) + '%';
+      const ejec = el('span', 'mes-barra ejecutadas');
+      ejec.style.height = Math.max(2, ((m.ejecutadas || 0) / maximo) * 100) + '%';
+      barras.appendChild(prog);
+      barras.appendChild(ejec);
+      col.appendChild(barras);
+      col.appendChild(el('span', 'mes-etiqueta', m.etiqueta));
+      col.appendChild(el('span', 'mes-pct', m.cumplimiento_pct === null ? '—' : m.cumplimiento_pct + '%'));
+      cont.appendChild(col);
+    });
+  }
+
+  function ruta() {
+    const h = window.location.hash || '';
+    const m = h.match(/^#\/nodo\/([A-Z0-9_]+)/i);
+    if (m) return verNodo(m[1]);
+    mostrarPortada(true);
+  }
+
+  window.addEventListener('hashchange', ruta);
+
+  document.addEventListener('DOMContentLoaded', function () {
+    cargar().then(ruta);
+  });
 })();

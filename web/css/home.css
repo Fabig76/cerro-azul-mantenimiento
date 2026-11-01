@@ -216,3 +216,12 @@
 [data-theme="dark"] .card.con-acento {
   background: linear-gradient(100deg, var(--acento-suave, transparent) 0%, var(--card) 58%);
 }
+
+/* Migas de pan y detalle de sección */
+.migas { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 26px 0 6px; font-size: 13px; color: var(--muted); }
+.migas a { color: var(--brand); }
+.miga-sep { color: var(--text-3, #86868b); }
+#detalle .card + .card { margin-top: 0; }
+#detalleGraficaCaja { margin-top: 16px; }
+.seccion-card[role="link"] { cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.seccion-card[role="link"]:hover { transform: translateY(-2px); box-shadow: var(--shadow-alto, var(--shadow)); }

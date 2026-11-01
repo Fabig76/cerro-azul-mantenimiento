@@ -35,6 +35,10 @@
     return { dataUrl: dataUrl, base64: dataUrl.split(',')[1] || '', ancho: ancho, alto: alto };
   }
 
+  function tamanoKB(imagen) {
+    return (imagen.base64.length * 0.75) / 1024;
+  }
+
   async function sha256(base64) {
     try {
       const bin = atob(base64);
@@ -54,13 +58,18 @@
     const dataUrl = await leerArchivo(file);
     const img = await cargarImagen(dataUrl);
     const principal = escalar(img, 1600, 0.7);
-    const mini = escalar(img, 640, 0.5);
+
+    // La miniatura debe caber en la caché del servidor: se recodifica hasta bajar de 50 KB.
+    let mini = escalar(img, 640, 0.5);
+    if (tamanoKB(mini) > 50) mini = escalar(img, 640, 0.4);
+    if (tamanoKB(mini) > 50) mini = escalar(img, 560, 0.4);
+    if (tamanoKB(mini) > 55) mini = escalar(img, 480, 0.35);
     return {
       base64: principal.base64,
       base64_mini: mini.base64,
       sha256: await sha256(principal.base64),
       kb: Math.round((principal.base64.length * 0.75) / 1024),
-      kb_mini: Math.round((mini.base64.length * 0.75) / 1024),
+      kb_mini: Math.round(tamanoKB(mini)),
     };
   }
 

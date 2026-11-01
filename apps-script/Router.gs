@@ -12,6 +12,7 @@ const ACCIONES = {
   'snapshot.regenerar': { fn: accionRegenerarSnapshot, sesion: true, roles: ['ADMIN'] },
   'public.snapshot': { fn: publicSnapshot, publica: true, crudo: true },
   'public.foto': { fn: publicFoto, publica: true, crudo: true },
+  'public.nodo': { fn: publicNodo, publica: true, crudo: true },
 
   'auth.google': { fn: authGoogle, publica: true },
   'auth.enlace.solicitar': { fn: authEnlaceSolicitar, publica: true },
@@ -76,7 +77,7 @@ const ACCIONES = {
 // Entradas HTTP
 // ---------------------------------------------------------------------------
 
-const ACCIONES_PUBLICAS_GET = ['ping', 'public.snapshot', 'public.foto'];
+const ACCIONES_PUBLICAS_GET = ['ping', 'public.snapshot', 'public.foto', 'public.nodo'];
 
 function doGet(e) {
   const p = (e && e.parameter) || {};
