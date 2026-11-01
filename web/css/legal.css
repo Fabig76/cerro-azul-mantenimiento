@@ -29,3 +29,16 @@
   color: var(--muted);
 }
 [data-theme="dark"] .legal p, [data-theme="dark"] .legal li { color: var(--muted); }
+
+.legal-tabla { width: 100%; border-collapse: collapse; margin: 14px 0 18px; font-size: 14.5px; }
+.legal-tabla th, .legal-tabla td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.legal-tabla th {
+  width: 34%;
+  font-size: 12px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 800;
+}
+.legal-tabla td { color: #334155; font-weight: 500; }
+[data-theme="dark"] .legal-tabla td { color: var(--muted); }
