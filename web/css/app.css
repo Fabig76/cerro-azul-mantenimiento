@@ -296,3 +296,27 @@ textarea.item-input { min-height: 74px; resize: vertical; }
   border-radius: 2px;
 }
 .hito-cab { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+
+/* Tabla de empresas */
+.tabla-envoltura { margin-top: 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--card); }
+.tabla-empresas { min-width: 720px; }
+.tabla-fila {
+  display: grid;
+  grid-template-columns: 2fr repeat(6, 1fr) 1.2fr;
+  gap: 8px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+  align-items: center;
+}
+.tabla-fila:first-child { border-top: 0; }
+.tabla-cab {
+  background: var(--card-2);
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--muted);
+}
+.tabla-empresa { font-weight: 700; }
+.texto-danger { color: var(--danger-ink); font-weight: 700; }

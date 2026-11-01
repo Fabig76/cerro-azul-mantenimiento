@@ -61,6 +61,7 @@ const ACCIONES = {
   'snapshot.refrescar': { fn: accionSnapshotRefrescar, publica: true },
   'disparadores.instalar': { fn: accionInstalarDisparadores, publica: true },
   'hitos.guardar': { fn: hitosGuardar, sesion: true, roles: ['ADMIN'] },
+  'kpi.panel': { fn: accionKpi, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'config.guardar': { fn: configGuardar, sesion: true, roles: ['ADMIN'] },
   'ajustes.aplicar': { fn: accionAjustes, publica: true },
   'recurrencias.listar': { fn: recurrenciasListar, sesion: true },
@@ -162,6 +163,10 @@ function accionPing() {
 function accionSetup(ctx, payload, requestId, parametros) {
   const clave = (payload && payload.key) || '';
   return arranqueProtegido(clave, setup);
+}
+
+function accionKpi(ctx, payload) {
+  return kpisMes(payload && payload.mes ? String(payload.mes) : null);
 }
 
 function accionAjustes() {
