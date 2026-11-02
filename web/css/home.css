@@ -264,3 +264,20 @@
 #resumenImportante .card .btn { margin-top: 14px; }
 
 .seccion-sin-puntaje { font-size: 12.5px; color: var(--muted); font-style: italic; }
+
+/* Esqueleto mientras llegan los datos */
+.esqueleto { display: grid; gap: 14px; margin-bottom: 8px; }
+.esq-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(138px, 1fr)); gap: 12px; }
+.esq-tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-top: 8px; }
+.esq {
+  border-radius: var(--radius-m);
+  background: linear-gradient(100deg, var(--card-2) 30%, #eef2f8 45%, var(--card-2) 60%);
+  background-size: 250% 100%;
+  animation: latido 1.2s ease-in-out infinite;
+  border: 1px solid var(--line);
+}
+[data-theme="dark"] .esq { background: linear-gradient(100deg, #1b2230 30%, #232c3d 45%, #1b2230 60%); background-size: 250% 100%; }
+.esq-kpi { height: 96px; }
+.esq-tarjeta { height: 150px; }
+@keyframes latido { 0% { background-position: 120% 0; } 100% { background-position: -20% 0; } }
+@media (prefers-reduced-motion: reduce) { .esq { animation: none; } }

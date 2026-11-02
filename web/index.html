@@ -6,11 +6,13 @@
 <meta name="theme-color" content="#0b1120">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Portal de Control de Mantenimientos de la Urbanización Cerro Azul: avance del mantenimiento por sección y por mes.">
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="dns-prefetch" href="https://script.googleusercontent.com">
 <title>Portal de Control de Mantenimientos — Cerro Azul</title>
-<link rel="stylesheet" href="./css/tokens.css?v=93">
-<link rel="stylesheet" href="./css/base.css?v=93">
-<link rel="stylesheet" href="./css/home.css?v=93">
-<script src="./js/tema.js?v=93"></script>
+<link rel="stylesheet" href="./css/tokens.css?v=94">
+<link rel="stylesheet" href="./css/base.css?v=94">
+<link rel="stylesheet" href="./css/home.css?v=94">
+<script src="./js/tema.js?v=94"></script>
 </head>
 <body>
 
@@ -72,6 +74,15 @@
           <div class="kicker">Estado general</div>
           <h2>Cómo está el conjunto</h2>
           <p id="actualizado">Cargando información…</p>
+        </div>
+      </div>
+      <div class="esqueleto" id="esqueleto">
+        <div class="esq-kpis">
+          <div class="esq esq-kpi"></div><div class="esq esq-kpi"></div><div class="esq esq-kpi"></div>
+          <div class="esq esq-kpi"></div><div class="esq esq-kpi"></div>
+        </div>
+        <div class="esq-tarjetas">
+          <div class="esq esq-tarjeta"></div><div class="esq esq-tarjeta"></div><div class="esq esq-tarjeta"></div>
         </div>
       </div>
       <div class="kpis" id="kpis"></div>
@@ -267,8 +278,8 @@
   </div>
 </footer>
 
-<script src="./config.js?v=93"></script>
-<script src="./js/publico.js?v=93"></script>
-<script src="./js/index.js?v=93"></script>
+<script src="./config.js?v=94"></script>
+<script src="./js/publico.js?v=94"></script>
+<script src="./js/index.js?v=94"></script>
 </body>
 </html>

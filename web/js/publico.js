@@ -17,6 +17,14 @@
     CRITICO: ['Crítico', 'danger'], SIN_DATOS: ['Sin datos', 'gray'],
   };
 
+  function mostrarAviso(mensaje) {
+    const aviso = document.getElementById('avisoPortal');
+    if (aviso) {
+      aviso.textContent = mensaje;
+      aviso.className = 'msg mostrar info';
+    }
+  }
+
   function mostrarError(mensaje) {
     const aviso = document.getElementById('avisoPortal');
     if (aviso) {
@@ -25,16 +33,57 @@
     }
   }
 
+  // --- Copia local: la portada se pinta al instante y luego se actualiza ---
+  const CLAVE_CACHE = 'portal:snapshot';
+
+  function leerCache() {
+    try {
+      const crudo = localStorage.getItem(CLAVE_CACHE);
+      if (!crudo) return null;
+      const d = JSON.parse(crudo);
+      if (!d || !d.generado_en || !d.arbol) return null;
+      // Una copia de más de 7 días no sirve: puede haber cambiado todo.
+      if (Date.now() - new Date(d.generado_en).getTime() > 7 * 86400000) return null;
+      return d;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function guardarCache(d) {
+    try { localStorage.setItem(CLAVE_CACHE, JSON.stringify(d)); } catch (e) { /* sin espacio */ }
+  }
+
+  function ocultarEsqueleto() {
+    const esq = document.getElementById('esqueleto');
+    if (esq) esq.remove();
+  }
+
   async function cargar() {
     const url = (window.CFG && window.CFG.API_URL ? window.CFG.API_URL : '') + '?action=public.snapshot';
+
+    // Primero lo último que se vio: cero espera.
+    const guardado = leerCache();
+    if (guardado) {
+      ultimoSnap = guardado;
+      try { pintarTodo(guardado); ocultarEsqueleto(); } catch (e) { /* se reintenta al llegar */ }
+    }
+
     let snap;
     try {
       const r = await fetch(url, { redirect: 'follow' });
       snap = await r.json();
     } catch (e) {
+      if (guardado) {
+        mostrarAviso('Mostrando la última información guardada. No hay conexión con el servidor.');
+        return;
+      }
       mostrarError('No pudimos cargar la información del portal.');
       return;
     }
+
+    guardarCache(snap);
+    ocultarEsqueleto();
     ultimoSnap = snap;
     try {
       pintarTodo(snap);
