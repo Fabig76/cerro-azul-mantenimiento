@@ -110,6 +110,7 @@
     const enCurso = ['EN_EJECUCION'].indexOf(String(a.estado)) >= 0;
     const entregada = ['REPORTADA', 'APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
     const cerrada = ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0;
+    const rechazada = String(a.estado) === 'RECHAZADA';
 
     const pasos = [
       {
@@ -137,8 +138,8 @@
         n: 4,
         titulo: 'Sube la foto de después y envía',
         detalle: 'La misma toma, ya terminado. Al enviar, la administración revisa y aprueba.',
-        hecho: entregada,
-        actual: enCurso && fotosDespues.length > 0,
+        hecho: entregada && !rechazada,
+        actual: (enCurso || rechazada) && fotosDespues.length > 0,
       },
     ];
 
@@ -159,7 +160,10 @@
     caja.appendChild(lista);
 
     const siguiente = pasos.filter(function (p) { return !p.hecho; })[0];
-    if (siguiente) {
+    if (rechazada) {
+      caja.appendChild(el('p', 'guia-ahora',
+        'Ahora: corrige lo que pidió la administración y vuelve a enviar.'));
+    } else if (siguiente) {
       caja.appendChild(el('p', 'guia-ahora', 'Ahora: ' + siguiente.titulo.toLowerCase() + '.'));
     } else if (String(a.estado) === 'REPORTADA') {
       caja.appendChild(el('p', 'guia-ahora', 'Enviado. Está en revisión de la administración.'));
@@ -409,14 +413,49 @@
     const caja = el('div', 'bloque');
     caja.appendChild(el('div', 'kicker', 'Checklist'));
     if (!datos.plantilla || !datos.plantilla.items.length) {
-      caja.appendChild(el('p', 'bajada-tarjeta', 'Esta actividad no tiene checklist: se reporta con la descripción y las fotos.'));
+      caja.appendChild(el('p', 'bajada-tarjeta',
+        'Esta actividad se registró por etapas, sin checklist.'));
       return caja;
     }
+
+    const respuestas = {};
+    (datos.respuestas || []).forEach(function (r) { respuestas[r.item_id] = r; });
+
     datos.plantilla.items.forEach(function (item) {
       const fila = el('div', 'item-check');
       const etiqueta = el('label', 'item-pregunta', item.pregunta);
       etiqueta.htmlFor = 'item_' + item.id;
       fila.appendChild(etiqueta);
+
+      const previa = respuestas[item.id];
+      const valorPrevio = previa ? String(previa.valor === null || previa.valor === undefined ? '' : previa.valor) : '';
+
+      if (!editable) {
+        // Modo lectura: lo que respondió el contratista, con su marca de cumplimiento.
+        const lineaLectura = el('div', 'item-lectura');
+        let texto = valorPrevio || 'sin responder';
+        if (valorPrevio === 'SI') texto = 'Sí';
+        if (valorPrevio === 'NO') texto = 'No';
+        if (valorPrevio === 'NA') texto = 'No aplica';
+        if (item.unidad && valorPrevio && valorPrevio !== 'SI' && valorPrevio !== 'NO' && valorPrevio !== 'NA') {
+          texto = valorPrevio + ' ' + item.unidad;
+        }
+        lineaLectura.appendChild(el('strong', null, texto));
+
+        if (previa) {
+          if (previa.cumple === true) lineaLectura.appendChild(el('span', 'badge ok', 'Cumple'));
+          else if (previa.cumple === false) {
+            lineaLectura.appendChild(el('span', 'badge danger', 'No cumple'));
+            fila.classList.add('item-falla');
+          } else lineaLectura.appendChild(el('span', 'badge gray', 'Sin rango'));
+        }
+        fila.appendChild(lineaLectura);
+
+        if (item.criterio) fila.appendChild(el('span', 'item-criterio', item.criterio));
+        if (previa && previa.observacion) fila.appendChild(el('span', 'item-observacion', previa.observacion));
+        caja.appendChild(fila);
+        return;
+      }
 
       if (item.tipo_respuesta === 'SI_NO') {
         const sel = el('select', 'item-input');
@@ -427,6 +466,7 @@
           op.value = o[0];
           sel.appendChild(op);
         });
+        if (valorPrevio) sel.value = valorPrevio;
         fila.appendChild(sel);
       } else if (item.tipo_respuesta === 'NUMERO') {
         const inp = el('input', 'item-input');
@@ -435,6 +475,7 @@
         inp.step = 'any';
         inp.dataset.item = item.id;
         inp.placeholder = item.unidad ? 'Valor en ' + item.unidad : 'Valor';
+        inp.value = valorPrevio;
         fila.appendChild(inp);
       } else {
         const inp = el('input', 'item-input');
@@ -442,6 +483,7 @@
         inp.type = 'text';
         inp.dataset.item = item.id;
         inp.placeholder = 'Observación';
+        inp.value = valorPrevio;
         fila.appendChild(inp);
       }
 
@@ -461,77 +503,27 @@
     return caja;
   }
 
-  function bloqueFotos(momento, destino, maximo) {
+  /** Lo que el contratista reportó: descripción, condición y revisión anterior. */
+  function bloqueReportado() {
+    const r = datos.ultimo_final;
+    if (!r) return null;
     const caja = el('div', 'bloque');
-    caja.appendChild(el('div', 'kicker', momento === 'ANTES' ? 'Fotos de antes' : 'Fotos de después'));
-    caja.appendChild(el('p', 'bajada-tarjeta',
-      momento === 'ANTES'
-        ? 'Toma 1 o 2 fotos del estado en que encuentras el área antes de trabajar.'
-        : 'Toma 1 o 2 fotos del trabajo terminado, con el mismo encuadre del antes.'));
-
-    const cont = el('div', 'fotos');
-    destino.forEach(function (f) {
-      const chip = el('span', 'badge ok', 'Foto lista (' + f.kb + ' KB)');
-      cont.appendChild(chip);
-    });
-    caja.appendChild(cont);
-
-    if (destino.length >= maximo) return caja;
-
-    const inp = el('input');
-    inp.type = 'file';
-    inp.accept = 'image/*';
-    inp.setAttribute('capture', 'environment');
-    inp.className = 'oculto';
-    inp.id = 'file_' + momento;
-
-    const esPrimerPaso = momento === 'ANTES' && destino.length === 0;
-    const btn = el('button', esPrimerPaso ? 'btn primary' : 'btn',
-      esPrimerPaso ? '1. Tomar la foto de antes' : 'Tomar foto');
-    btn.type = 'button';
-    btn.addEventListener('click', function () { inp.click(); });
-
-    inp.addEventListener('change', async function () {
-      const file = inp.files && inp.files[0];
-      if (!file) return;
-      btn.disabled = true;
-      btn.textContent = 'Comprimiendo la foto…';
-      try {
-        const prep = await Fotos.preparar(file);
-        const r = await API.llamar('evidencias.upload', {
-          actividad_id: datos.actividad.id,
-          momento: momento,
-          base64: prep.base64,
-          base64_mini: prep.base64_mini,
-          mime: 'image/jpeg',
-          sha256: prep.sha256,
-        }, { token: Sesion.token(), idempotente: true });
-        if (!r.ok) throw new Error(r.message || 'No se pudo subir la foto.');
-        destino.push({ id: r.data.evidencia_id, kb: prep.kb });
-
-        // Confirmación visible: la foto queda a la vista, no solo un mensaje.
-        const previa = document.createElement('img');
-        previa.className = 'foto-previa';
-        previa.alt = 'Foto de ' + momento.toLowerCase() + ' cargada';
-        previa.src = 'data:image/jpeg;base64,' + prep.base64_mini;
-        const ya = caja.querySelector('.foto-previa');
-        if (ya) ya.remove();
-        caja.appendChild(previa);
-
-        btn.disabled = false;
-        btn.textContent = 'Foto de ' + momento.toLowerCase() + ' lista ✓ (tocar para reemplazar)';
-        btn.classList.add('cargada');
-        aviso('Foto de ' + momento.toLowerCase() + ' cargada (' + prep.kb + ' KB).', 'ok');
-        pintar();
-      } catch (err) {
-        aviso(err.message || 'No se pudo subir la foto.', 'error');
-        btn.disabled = false;
-        btn.textContent = 'Tomar foto';
-      }
-    });
-
-    caja.appendChild(btn);
-    caja.appendChild(inp);
+    caja.appendChild(el('div', 'kicker', 'Lo que reportó el contratista'));
+    caja.appendChild(el('p', 'bajada-tarjeta', 'Enviado el ' +
+      (String(r.fecha || '').replace('T', ' ').slice(0, 16) || '—')));
+    if (r.descripcion) {
+      const texto = el('p', 'texto-reportado');
+      texto.textContent = r.descripcion;
+      caja.appendChild(texto);
+    } else {
+      caja.appendChild(el('p', 'bajada-tarjeta', 'No escribió descripción del trabajo.'));
+    }
+    if (r.condicion_operativa) {
+      caja.appendChild(el('p', 'bajada-tarjeta', 'Condición en que quedó el equipo: ' + r.condicion_operativa));
+    }
+    if (r.comentario_admin) {
+      caja.appendChild(el('p', 'bajada-tarjeta', 'Observación de la revisión: ' + r.comentario_admin));
+    }
     return caja;
   }
 
@@ -674,7 +666,7 @@
       }
     }
 
-    if (a.estado === 'EN_EJECUCION') {
+    if (a.estado === 'EN_EJECUCION' || a.estado === 'RECHAZADA') {
       const cajaTexto = el('div', 'item-check');
       const etiquetaTexto = el('label', 'item-pregunta', '¿Qué se hizo?');
       etiquetaTexto.htmlFor = 'descripcionReporte';
@@ -940,13 +932,30 @@
 
   function pintarDetalle(cont) {
     cont.appendChild(cabecera());
+
+    // Un trabajo rechazado tiene que decir por qué y qué hacer.
+    const a0 = datos.actividad;
+    if (String(a0.estado) === 'RECHAZADA') {
+      const r = datos.ultimo_final || {};
+      const caja = el('div', 'aviso-rechazo');
+      caja.appendChild(el('strong', null, 'La administración devolvió este trabajo'));
+      if (r.comentario_admin) caja.appendChild(el('p', null, 'Motivo: ' + r.comentario_admin));
+      if (r.revisado_en) {
+        caja.appendChild(el('p', 'aviso-rechazo-fecha',
+          'Revisado el ' + String(r.revisado_en).replace('T', ' ').slice(0, 16)));
+      }
+      caja.appendChild(el('p', 'aviso-rechazo-fecha',
+        'Corrige lo indicado, sube una foto de después nueva y vuelve a enviar.'));
+      cont.appendChild(caja);
+    }
+
     cont.appendChild(bloqueGuia());
     const hitos = bloqueHitos();
     if (hitos) cont.appendChild(hitos);
 
     const a = datos.actividad;
     if (a.estado === 'PROGRAMADA') cont.appendChild(bloqueFotos('ANTES', fotosAntes, 2));
-    if (a.estado === 'EN_EJECUCION') {
+    if (a.estado === 'EN_EJECUCION' || a.estado === 'RECHAZADA') {
       cont.appendChild(bloqueChecklist(true));
       cont.appendChild(condicionSelect());
       cont.appendChild(bloqueFotos('DESPUES', fotosDespues, 2));
@@ -957,6 +966,9 @@
     // Novedades encontradas durante el trabajo
     const novedades = bloqueNovedad();
     if (novedades) cont.appendChild(novedades);
+
+    const reportado = bloqueReportado();
+    if (reportado) cont.appendChild(reportado);
 
     // La evidencia cargada va al final del trabajo.
     cont.appendChild(bloqueEvidencias());

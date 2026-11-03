@@ -118,7 +118,23 @@ function reportesCrear(ctx, payload) {
 
     const ev = evidenciasDe_(actividadId);
     const vinculo = Array.isArray(payload.evidencia_ids) ? payload.evidencia_ids : [];
-    const despues = ev.despues.filter(function (e) { return !vinculo.length || vinculo.indexOf(e.id) >= 0; });
+    let despues = ev.despues.filter(function (e) { return !vinculo.length || vinculo.indexOf(e.id) >= 0; });
+
+    // Tras un rechazo, la foto del envío anterior no cuenta: hay que mostrar el cambio.
+    if (String(act.estado) === 'RECHAZADA') {
+      const rechazado = filtrar('reportes', function (r) {
+        return String(r.actividad_id) === String(actividadId) && String(r.estado_revision) === 'RECHAZADO';
+      }).sort(function (a, b) { return String(a.revisado_en) < String(b.revisado_en) ? 1 : -1; })[0];
+      const corte = rechazado && rechazado.revisado_en ? String(rechazado.revisado_en) : '';
+      if (corte) {
+        despues = despues.filter(function (e) {
+          return String(e.fecha_subida) > corte;
+        });
+      }
+      if (!despues.length) {
+        fallar_('VALIDACION', 'Sube al menos una foto de después nueva: la del envío anterior ya fue revisada.');
+      }
+    }
     if (!ev.antes.length && String(act.estado) !== 'EN_EJECUCION') {
       fallar_('VALIDACION', 'No hay foto de ANTES: inicia la actividad con evidencia primero.');
     }
@@ -230,8 +246,17 @@ function reportesCrear(ctx, payload) {
     return cabecera;
   });
 
-  auditar(ctx.usuario.email, tipo === 'FINAL' ? 'REPORTE_FINAL' : 'REPORTE_AVANCE',
-    'reporte', reporte.id, null, { actividad: actividadId, avance: avance });
+  const reenvio = tipo === 'FINAL' && String(act.estado) === 'RECHAZADA';
+  auditar(ctx.usuario.email, reenvio ? 'REPORTE_REENVIADO' : (tipo === 'FINAL' ? 'REPORTE_FINAL' : 'REPORTE_AVANCE'),
+    'reporte', reporte.id, null, { actividad: actividadId, avance: avance, reenvio: reenvio });
+
+  if (reenvio) {
+    // La administración tiene que enterarse de que hay algo nuevo por revisar.
+    adminsEmails_().forEach(function (adm) {
+      const admin = usuarioPorEmail_(adm);
+      if (admin) encolar_(admin.id, 'REPORTE_REENVIADO', actividadId);
+    });
+  }
 
   return {
     reporte_id: reporte.id,

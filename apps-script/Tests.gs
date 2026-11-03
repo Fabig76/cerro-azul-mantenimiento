@@ -50,6 +50,7 @@ function runAllTests() {
   pruebasChecklist_();
   pruebasRitmo_();
   pruebasSuperficiePublica_();
+  pruebasRechazoYReenvio_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -123,6 +124,61 @@ function pruebasRitmo_() {
 
   const cerrada = Object.assign({}, base, { estado: 'CERRADA' });
   verdadero_(!calcularRitmo_(cerrada).en_riesgo, 'ritmo: cerrada nunca queda en riesgo');
+}
+
+/**
+ * Ciclo de rechazo y reenvío (falla 3): el contratista tiene que poder corregir.
+ * Se ejecuta sobre una actividad temporal que se retira al final.
+ */
+function pruebasRechazoYReenvio_() {
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo) && String(n.clase) === 'ELEMENTO'; })[0]
+    || filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · rechazo y reenvío · sin nodos'); return; }
+
+  const hoy = hoyIso();
+  const act = insertar('actividades', {
+    id: newId('ACT'), titulo: 'PRUEBA rechazo y reenvío', descripcion: '',
+    nodo_id: nodo.id, plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: '',
+    tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+    fecha_inicio_plan: hoy, fecha_fin_plan: sumarDias(hoy, 2), dias_plan: 3,
+    prioridad: 'MEDIA', estado: 'RECHAZADA', vencida: false, en_riesgo: false,
+    avance_reportado_pct: 100, avance_aprobado_pct: 0,
+    fecha_inicio_real: hoy, fecha_reporte_final: hoy, fecha_aprobacion: '',
+    obligatoria_legal: false, afecta_uso: false, publicable: false, acta_file_id: '',
+    inicio_sin_foto_motivo: '', activo: true,
+  }, 'prueba');
+
+  const rechazo = insertar('reportes', {
+    id: newId('REP'), actividad_id: act.id, hito_id: '', usuario_id: '',
+    fecha: hoy + 'T08:00:00-05:00', tipo: 'FINAL', pct_declarado: 100,
+    descripcion: 'Primer envío', horas: 1, estado_revision: 'RECHAZADO',
+    comentario_admin: 'Falta la foto del detalle', revisado_por: 'prueba@urbcerroazul.com',
+    revisado_en: hoy + 'T09:00:00-05:00', activo: true,
+  }, 'prueba');
+
+  // Reporte anterior: la foto vieja no debe contar para el reenvío
+  insertar('evidencias', {
+    id: newId('EVI'), reporte_id: rechazo.id, actividad_id: act.id, nodo_id: nodo.id,
+    momento: 'DESPUES', drive_file_id: 'x', mini_file_id: 'x', mime: 'image/jpeg', bytes: 1,
+    sha256: 'x', fecha_captura: '', fecha_subida: hoy + 'T08:00:00-05:00', lat: '', lng: '',
+    contiene_personas: false, publicable: false, public_file_id: '', activo: true,
+  }, 'prueba');
+
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  let codigo = '';
+  try {
+    reportesCrear(ctx, { actividad_id: act.id, tipo: 'FINAL', descripcion: 'Reenvío', condicion_operativa: 'Operativo' });
+  } catch (e) {
+    codigo = String(e.message);
+  }
+  verdadero_(codigo.indexOf('VALIDACION') === 0, 'reenvío sin foto nueva se rechaza');
+
+  // Limpieza
+  filtrar('reportes', function (r) { return String(r.actividad_id) === String(act.id); })
+    .forEach(function (r) { actualizar('reportes', r.id, { activo: false }, 'prueba'); });
+  filtrar('evidencias', function (e) { return String(e.actividad_id) === String(act.id); })
+    .forEach(function (e) { actualizar('evidencias', e.id, { activo: false }, 'prueba'); });
+  actualizar('actividades', act.id, { activo: false }, 'prueba');
 }
 
 function pruebasSuperficiePublica_() {

@@ -62,7 +62,10 @@
       .slice()
       .sort(function (a, b) {
         const orden = { PENDIENTE: 0, ACTIVO: 1, INACTIVO: 2 };
-        return (orden[a.estado] || 9) - (orden[b.estado] || 9);
+        const pa = a.estado in orden ? orden[a.estado] : 9;
+        const pb = b.estado in orden ? orden[b.estado] : 9;
+        if (pa !== pb) return pa - pb;
+        return String(a.nombre || a.email || '').localeCompare(String(b.nombre || b.email || ''), 'es');
       })
       .forEach(function (u) { cont.appendChild(fila(u)); });
   }

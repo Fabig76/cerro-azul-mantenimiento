@@ -222,8 +222,24 @@ function actividadesGet(ctx, payload) {
     return String(h.actividad_id) === String(act.id) && bool(h.activo);
   }).sort(function (a, b) { return Number(a.orden) - Number(b.orden); });
   const reportes = filtrar('reportes', function (r) {
-    return String(r.actividad_id) === String(act.id);
-  });
+    return String(r.actividad_id) === String(act.id) && bool(r.activo);
+  }).sort(function (a, b) { return String(a.fecha) < String(b.fecha) ? 1 : -1; });
+
+  // Lo que el contratista reportó: la revisión necesita verlo, no solo el resumen.
+  const finales = reportes.filter(function (r) { return String(r.tipo) === 'FINAL'; });
+  const ultimoFinal = finales[0] || null;
+  const respuestasUltimo = ultimoFinal
+    ? filtrar('respuestas', function (x) {
+        return String(x.reporte_id) === String(ultimoFinal.id) && bool(x.activo);
+      }).map(function (x) {
+        return {
+          item_id: x.item_id,
+          valor: x.valor,
+          cumple: x.cumple === '' ? null : bool(x.cumple),
+          observacion: x.observacion || '',
+        };
+      })
+    : [];
   const evidencias = filtrar('evidencias', function (e) {
     return String(e.actividad_id) === String(act.id) && bool(e.activo);
   }).map(function (e) {
@@ -260,6 +276,23 @@ function actividadesGet(ctx, payload) {
     } : null,
     hitos: hitos,
     reportes: reportes,
+    ultimo_final: ultimoFinal ? {
+      id: ultimoFinal.id,
+      fecha: ultimoFinal.fecha,
+      descripcion: ultimoFinal.descripcion || '',
+      // La condición vive en lecturas_estado, ligada al reporte que la declaró.
+      condicion_operativa: (function () {
+        const lectura = filtrar('lecturas_estado', function (l) {
+          return String(l.reporte_id) === String(ultimoFinal.id) && bool(l.activo);
+        })[0];
+        if (lectura) return lectura.condicion_operativa;
+        return nodo ? (nodo.condicion_operativa || '') : '';
+      })(),
+      estado_revision: ultimoFinal.estado_revision,
+      comentario_admin: ultimoFinal.comentario_admin || '',
+      revisado_en: ultimoFinal.revisado_en || '',
+    } : null,
+    respuestas: respuestasUltimo,
     evidencias: evidencias,
   };
 }

@@ -75,6 +75,23 @@ function textoNotificacion_(tipo, entidadId) {
       ].join('\n'),
     };
   }
+  if (tipo === 'REPORTE_REENVIADO') {
+    const a = buscarPorId('actividades', entidadId);
+    if (!a) return null;
+    const nodo = buscarPorId('nodos', a.nodo_id);
+    return {
+      asunto: 'Reenvío pendiente de revisión: ' + a.titulo,
+      cuerpo: [
+        'El contratista corrigió y volvió a enviar un trabajo que había sido rechazado.',
+        'Actividad: ' + a.titulo,
+        'Sección: ' + (nodo ? nodo.codigo + ' · ' + nodo.nombre : '—'),
+        '',
+        'Revísalo aquí: ' + base + '/app.html#/actividades',
+        '',
+        'Administración — Urbanización Cerro Azul',
+      ].join('\n'),
+    };
+  }
   if (tipo === 'USUARIO_NUEVO') {
     return {
       asunto: 'Nuevo registro esperando activación',
