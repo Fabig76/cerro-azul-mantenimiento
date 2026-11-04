@@ -527,6 +527,128 @@
     return caja;
   }
 
+  /**
+   * Fotos de antes y de después. Cada una deja su miniatura a la vista:
+   * el contratista necesita saber que la foto quedó, no solo leer un aviso.
+   * En un trabajo rechazado, las fotos del envío anterior se ven pero no cuentan.
+   */
+  function bloqueFotos(momento, destino, maximo) {
+    const a = datos.actividad;
+    const rechazada = String(a.estado) === 'RECHAZADA';
+    const corte = rechazada && datos.ultimo_final ? String(datos.ultimo_final.revisado_en || '') : '';
+
+    const previas = (datos.evidencias || []).filter(function (e) {
+      return String(e.momento) === momento && corte && String(e.fecha_subida) <= corte;
+    });
+    const nuevas = destino.filter(function (f) { return !corte || String(f.fecha_subida || '') > corte; });
+    const total = nuevas.length;
+
+    const caja = el('div', 'bloque');
+    caja.appendChild(el('div', 'kicker', momento === 'ANTES' ? 'Fotos de antes' : 'Fotos de después'));
+    caja.appendChild(el('p', 'bajada-tarjeta',
+      momento === 'ANTES'
+        ? 'Toma 1 o 2 fotos del estado en que encuentras el área antes de trabajar.'
+        : 'Toma 1 o 2 fotos del trabajo terminado, con el mismo encuadre del antes.'));
+
+    const cont = el('div', 'fotos');
+
+    function miniatura(etiqueta, pie, mini) {
+      const figura = el('figure', 'foto-item');
+      const hueco = el('div', 'foto-hueco');
+      const img = document.createElement('img');
+      img.className = 'foto-mini';
+      img.alt = etiqueta;
+      img.loading = 'lazy';
+      if (mini) img.src = 'data:image/jpeg;base64,' + mini;
+      hueco.appendChild(img);
+      figura.appendChild(hueco);
+      figura.appendChild(el('figcaption', 'foto-pie', pie));
+      cont.appendChild(figura);
+      return img;
+    }
+
+    // Las del envío rechazado: solo para ver.
+    previas.forEach(function (e, i) {
+      const nombre = (momento === 'ANTES' ? 'Antes' : 'Después') + ' ' + (i + 1) + ' · envío anterior';
+      const img = miniatura(nombre, nombre, null);
+      API.llamar('evidencias.get', { id: e.id, tam: 'mini' }, { token: Sesion.token() })
+        .then(function (r) {
+          if (r.ok && r.data && r.data.base64) {
+            img.src = 'data:' + (r.data.mime || 'image/jpeg') + ';base64,' + r.data.base64;
+          }
+        })
+        .catch(function () { /* queda el hueco */ });
+    });
+
+    // Las de este envío: con su miniatura inmediata.
+    nuevas.forEach(function (f, i) {
+      const nombre = (momento === 'ANTES' ? 'Antes' : 'Después') + ' ' + (previas.length + i + 1);
+      const img = miniatura(nombre, nombre + ' · ' + f.kb + ' KB', f.mini || null);
+      if (!f.mini && f.id) {
+        API.llamar('evidencias.get', { id: f.id, tam: 'mini' }, { token: Sesion.token() })
+          .then(function (r) {
+            if (r.ok && r.data && r.data.base64) {
+              img.src = 'data:' + (r.data.mime || 'image/jpeg') + ';base64,' + r.data.base64;
+            }
+          })
+          .catch(function () { /* queda el hueco */ });
+      }
+    });
+
+    caja.appendChild(cont);
+
+    if (total >= maximo) return caja;
+
+    const inp = el('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    inp.setAttribute('capture', 'environment');
+    inp.className = 'oculto';
+    inp.id = 'file_' + momento;
+
+    const esPrimerPaso = momento === 'ANTES' && total === 0 && !previas.length;
+    const btn = el('button', esPrimerPaso ? 'btn primary' : 'btn',
+      esPrimerPaso ? '1. Tomar la foto de antes' : 'Tomar foto');
+
+    btn.type = 'button';
+    btn.addEventListener('click', function () { inp.click(); });
+
+    inp.addEventListener('change', async function () {
+      const file = inp.files && inp.files[0];
+      if (!file) return;
+      btn.disabled = true;
+      btn.textContent = 'Comprimiendo la foto…';
+      try {
+        const prep = await Fotos.preparar(file);
+        const r = await API.llamar('evidencias.upload', {
+          actividad_id: a.id,
+          momento: momento,
+          base64: prep.base64,
+          base64_mini: prep.base64_mini,
+          mime: 'image/jpeg',
+        }, { token: Sesion.token(), idempotente: true });
+        if (!r.ok) throw new Error(r.message || 'No se pudo subir la foto.');
+
+        destino.push({
+          id: r.data.evidencia_id,
+          kb: prep.kb,
+          mini: prep.base64_mini,
+          fecha_subida: new Date().toISOString(),
+        });
+        aviso('Foto de ' + momento.toLowerCase() + ' cargada (' + prep.kb + ' KB).', 'ok');
+        pintar();
+      } catch (err) {
+        aviso(err.message || 'No se pudo subir la foto.', 'error');
+        btn.disabled = false;
+        btn.textContent = esPrimerPaso ? '1. Tomar la foto de antes' : 'Tomar foto';
+      }
+    });
+
+    caja.appendChild(btn);
+    caja.appendChild(inp);
+    return caja;
+  }
+
   function bloqueHitos() {
     const a = datos.actividad;
     const hitos = datos.hitos || [];
