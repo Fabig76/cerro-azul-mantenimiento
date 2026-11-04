@@ -68,3 +68,24 @@ comprobaciones estáticas **y** el recorrido del nivel que se tocó.
 Las acciones `auditoria.sesion` y `auditoria.limpiar` **no quedan desplegadas**: se agregan al
 router solo durante la auditoría y se retiran al terminar. El respaldo de ese código está en
 `tools/auditoria-servidor.gs.bak`.
+
+## 6. Desplegar el servidor sin el token caducable
+
+`clasp` depende de un token que la política del Workspace de `urbcerroazul.com` invalida cada
+pocos días (`invalid_rant`). La vía estable es el cliente OAuth propio:
+
+```bash
+cd ~/Documents/deepseek-harness/default-workspace/google-cerroazul
+node desplegar.mjs          # sube apps-script/ y actualiza el despliegue del Web App
+node desplegar.mjs --estado # solo comprueba el acceso
+```
+
+Requiere tres cosas, una sola vez:
+
+1. `~/.config/dsh/google/oauth-client.json` con el cliente de escritorio.
+2. Token con los alcances `script.projects` y `script.deployments`:
+   `./pedir-permisos.sh` (pide también Drive y Gmail).
+3. La **API de Google Apps Script habilitada** en el proyecto de Cloud
+   `37422559984` (Consola → APIs y servicios → Biblioteca → Google Apps Script API).
+
+Si falta el punto 3, la API responde `Apps Script API has not been used in project ... or it is disabled`.
