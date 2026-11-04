@@ -51,6 +51,39 @@ window.App = { pestana: function () {} };
     }
   });
 
+  // Caso 1: en RECHAZADA el paso 2 («marca el inicio») debe estar hecho
+  (function () {
+    const datos = {
+      actividad: { id: 'ACT_2', titulo: 'T', estado: 'RECHAZADA', nodo_id: 'NOD_1',
+        fecha_inicio_plan: '2026-11-01', fecha_fin_plan: '2026-11-05', prioridad: 'MEDIA',
+        avance_aprobado_pct: 0, afecta_uso: false, obligatoria_legal: false },
+      nodo: { id: 'NOD_1', codigo: 'CA-T1', nombre: 'Torre 1', sensible: false },
+      plantilla: { id: 'P', nombre: 'X', metodo_avance: 'CHECKLIST', items: [
+        { id: 'I1', orden: 1, grupo: 'G', pregunta: '¿Está bien?', tipo_respuesta: 'SI_NO',
+          obligatorio: true, peso: 1, requiere_foto: false, criterio: '' } ] },
+      hitos: [], reportes: [], respuestas: [],
+      ultimo_final: { id: 'R', fecha: '2026-11-01T08:00:00-05:00', descripcion: 'Trabajo',
+        condicion_operativa: 'Operativo', estado_revision: 'RECHAZADO',
+        comentario_admin: 'Falta foto', revisado_en: '2026-11-01T09:00:00-05:00' },
+      evidencias: [
+        { id: 'E_VIEJA', momento: 'DESPUES', fecha_subida: '2026-11-01T08:00:00-05:00', bytes: 1000 },
+        { id: 'E_NUEVA', momento: 'DESPUES', fecha_subida: '2026-11-02T15:00:00-05:00', bytes: 2000 },
+      ],
+    };
+    const cont = document.getElementById('contenidoActividad');
+    cont.textContent = '';
+    Actividad.pintarConDatos(datos, 'CONTRATISTA');
+
+    const pasos = cont.querySelectorAll('.guia-paso');
+    const paso2 = pasos[1];
+    resultados.push(((paso2 && paso2.className.indexOf('hecho') >= 0) ? 'OK   ' : 'FALLA') +
+      ' · RECHAZADA · paso 2 aparece como hecho');
+
+    const miniaturas = cont.querySelectorAll('.foto-mini').length;
+    resultados.push((miniaturas >= 2 ? 'OK   ' : 'FALLA') +
+      ' · RECHAZADA · se ven ' + miniaturas + ' fotos (vieja y nueva)');
+  })();
+
   document.title = resultados.join(' | ');
   console.log(resultados.join('\n'));
 })();

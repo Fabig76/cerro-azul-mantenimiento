@@ -31,6 +31,23 @@
     RECHAZADA: ['Rechazada', 'danger'], CERRADA: ['Cerrada', 'ok'], CANCELADA: ['Cancelada', 'gray'],
   };
 
+  /**
+   * Convierte las evidencias del servidor en fotos del formulario.
+   * Conserva la fecha de subida: es lo que distingue una foto del envío rechazado
+   * de la que se acaba de tomar.
+   */
+  function recuperarFotos(evidencias, momento) {
+    return (evidencias || [])
+      .filter(function (e) { return String(e.momento) === momento; })
+      .map(function (e) {
+        return {
+          id: e.id,
+          kb: Math.round((Number(e.bytes) || 0) / 1024),
+          fecha_subida: e.fecha_subida || '',
+        };
+      });
+  }
+
   async function abrir(id, rolUsuario) {
     rol = rolUsuario || 'CONTRATISTA';
     aviso('', 'info');
@@ -41,13 +58,8 @@
     datos = r.data;
 
     // Las fotos ya subidas se recuperan del servidor: al reabrir deben seguir ahí.
-    const evidencias = r.data.evidencias || [];
-    function recuperar(momento) {
-      return evidencias.filter(function (e) { return String(e.momento) === momento; })
-        .map(function (e) { return { id: e.id, kb: Math.round((Number(e.bytes) || 0) / 1024) }; });
-    }
-    fotosAntes = recuperar('ANTES');
-    fotosDespues = recuperar('DESPUES');
+    fotosAntes = recuperarFotos(r.data.evidencias, 'ANTES');
+    fotosDespues = recuperarFotos(r.data.evidencias, 'DESPUES');
     pintar();
     mostrar(true);
   }
@@ -124,7 +136,7 @@
         n: 2,
         titulo: 'Marca el inicio del trabajo',
         detalle: 'Queda registrada la hora en que empezaste. No cierra nada: solo arranca el trabajo.',
-        hecho: enCurso || entregada,
+        hecho: enCurso || entregada || rechazada,
         actual: String(a.estado) === 'PROGRAMADA' && fotosAntes.length > 0,
       },
       {
@@ -1107,10 +1119,8 @@
     pintarConDatos: function (falsos, rolFalso) {
       datos = falsos;
       rol = rolFalso || 'CONTRATISTA';
-      fotosAntes = (falsos.evidencias || []).filter(function (e) { return e.momento === 'ANTES'; })
-        .map(function (e) { return { id: e.id, kb: 1, fecha_subida: e.fecha_subida }; });
-      fotosDespues = (falsos.evidencias || []).filter(function (e) { return e.momento === 'DESPUES'; })
-        .map(function (e) { return { id: e.id, kb: 1, fecha_subida: e.fecha_subida }; });
+      fotosAntes = recuperarFotos(falsos.evidencias, 'ANTES');
+      fotosDespues = recuperarFotos(falsos.evidencias, 'DESPUES');
       pintar();
     },
   };
