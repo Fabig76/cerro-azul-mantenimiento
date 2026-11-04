@@ -1101,5 +1101,17 @@
     if (acta) cont.appendChild(acta);
   }
 
-  window.Actividad = { abrir: abrir };
+  window.Actividad = {
+    abrir: abrir,
+    // Permite comprobar el dibujado sin servidor (tools/pantalla).
+    pintarConDatos: function (falsos, rolFalso) {
+      datos = falsos;
+      rol = rolFalso || 'CONTRATISTA';
+      fotosAntes = (falsos.evidencias || []).filter(function (e) { return e.momento === 'ANTES'; })
+        .map(function (e) { return { id: e.id, kb: 1, fecha_subida: e.fecha_subida }; });
+      fotosDespues = (falsos.evidencias || []).filter(function (e) { return e.momento === 'DESPUES'; })
+        .map(function (e) { return { id: e.id, kb: 1, fecha_subida: e.fecha_subida }; });
+      pintar();
+    },
+  };
 })();

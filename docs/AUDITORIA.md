@@ -6,10 +6,17 @@ Herramientas para verificar el sistema antes de una entrega o después de un cam
 
 ```bash
 node tools/revisar-columnas.mjs     # escrituras del código contra el esquema de la hoja
+node tools/revisar-funciones.mjs    # llamadas a funciones que no existen
 node tools/probar-puras.js          # lógica de salud, fechas, checklist y ritmo
 node tools/auditar-frontend.mjs     # acciones, archivos y campos que el panel espera
+./tools/prueba-pantalla.sh          # dibuja el detalle en cada estado y comprueba que haya input[type=file]
 python3 tools/auditoria.py          # portal público y superficie de seguridad
 ```
+
+`revisar-funciones` y `prueba-pantalla` se agregaron después de que un refactor borrara
+`bloqueFotos`: la sintaxis era válida y ninguna otra prueba lo notó, pero ningún contratista
+podía subir una foto. La prueba de pantalla abre el detalle en PROGRAMADA, EN_EJECUCION,
+RECHAZADA, REPORTADA y APROBADA con dobles de las dependencias, sin sesión.
 
 Las cuatro deben terminar sin problemas. La última prueba también confirma que ninguna
 acción privada responda sin sesión y que las de arranque sigan cerradas.

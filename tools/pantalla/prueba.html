@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title></head>
+<body>
+<div id="contenidoActividad"></div>
+<div class="msg" id="avisoActividad"></div>
+<script>
+// Dobles de las dependencias: la prueba solo mira lo que se dibuja.
+window.Sesion = { token: function () { return 'x'; } };
+window.API = { llamar: function () { return Promise.resolve({ ok: false }); } };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.Etapas = { crear: function () { return function () { return []; }; } };
+window.App = { pestana: function () {} };
+</script>
+<script src="../../web/js/actividad.js"></script>
+<script>
+(function () {
+  const estados = ['PROGRAMADA', 'EN_EJECUCION', 'RECHAZADA', 'REPORTADA', 'APROBADA'];
+  const resultados = [];
+
+  estados.forEach(function (estado) {
+    const datos = {
+      actividad: {
+        id: 'ACT_1', titulo: 'Prueba', estado: estado, nodo_id: 'NOD_1',
+        fecha_inicio_plan: '2026-11-01', fecha_fin_plan: '2026-11-05',
+        prioridad: 'MEDIA', avance_aprobado_pct: 0, afecta_uso: false, obligatoria_legal: false,
+      },
+      nodo: { id: 'NOD_1', codigo: 'CA-T1', nombre: 'Torre 1', sensible: false },
+      plantilla: { id: 'P', nombre: 'X', metodo_avance: 'CHECKLIST', items: [
+        { id: 'I1', orden: 1, grupo: 'G', pregunta: '¿Está bien?', tipo_respuesta: 'SI_NO', obligatorio: true, peso: 1, requiere_foto: false, criterio: '' },
+      ] },
+      hitos: [], reportes: [], evidencias: [],
+      respuestas: [], ultimo_final: estado === 'RECHAZADA'
+        ? { id: 'R', fecha: '2026-11-01T08:00:00-05:00', descripcion: 'Trabajo', condicion_operativa: 'Operativo',
+            estado_revision: 'RECHAZADO', comentario_admin: 'Falta foto', revisado_en: '2026-11-01T09:00:00-05:00' }
+        : null,
+    };
+
+    // Se inyecta el estado en el módulo abriendo la actividad con datos falsos
+    const cont = document.getElementById('contenidoActividad');
+    cont.textContent = '';
+    try {
+      window.__datos = datos;
+      Actividad.pintarConDatos(datos, 'CONTRATISTA');
+      const hayArchivo = !!cont.querySelector('input[type=file]');
+      const hayError = (cont.textContent || '').indexOf('No se pudo mostrar') >= 0;
+      let esperado = estado === 'PROGRAMADA' || estado === 'EN_EJECUCION' || estado === 'RECHAZADA';
+      resultados.push((hayArchivo === esperado && !hayError ? 'OK   ' : 'FALLA') +
+        ' · ' + estado + ' · input file: ' + hayArchivo + (hayError ? ' · error al pintar' : ''));
+    } catch (e) {
+      resultados.push('FALLA · ' + estado + ' · ' + e.message);
+    }
+  });
+
+  document.title = resultados.join(' | ');
+  console.log(resultados.join('\n'));
+})();
+</script>
+</body></html>
