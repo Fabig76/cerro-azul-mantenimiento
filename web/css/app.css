@@ -642,3 +642,8 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 .propuesta-motivo { margin: 6px 0 0; font-size: 13px; color: var(--danger-ink); }
 .fila-propuesta { cursor: pointer; transition: .15s; }
 .fila-propuesta:hover { border-color: var(--brand); }
+
+/* Acción principal de una tarjeta, en su propia fila y visible también en celular. */
+.acciones-tarjeta { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 2px; }
+.acciones-tarjeta .btn { width: auto; }
+@media (max-width: 560px) { .acciones-tarjeta .btn { width: 100%; } }
