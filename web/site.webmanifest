@@ -1,6 +1,6 @@
 {
-  "name": "Cerro Azul — Portal de Mantenimientos",
-  "short_name": "Cerro Azul",
+  "name": "Mantenimiento Cerro Azul",
+  "short_name": "Mantenimiento",
   "description": "Control de mantenimientos de la Urbanización Cerro Azul",
   "start_url": "./index.html",
   "scope": "./",
