@@ -82,6 +82,7 @@ function propuestasCrear(ctx, payload) {
     fallar_('CONFLICTO', 'Ya tienes ' + pendientes + ' propuestas pendientes. Espera a que las revisen.');
   }
 
+  if (!String(payload.titulo || '').trim()) fallar_('VALIDACION', 'Escribe un título para la actividad.');
   const titulo = exigirTexto(payload.titulo, 'titulo', 120);
   const hallazgo = exigirTexto(payload.hallazgo, 'hallazgo', 2000);
   if (hallazgo.trim().length < 20) fallar_('VALIDACION', 'Cuenta con al menos 20 caracteres qué encontraste.');
@@ -163,6 +164,21 @@ function propuestasListar(ctx, payload) {
   return { propuestas: lista.map(propuestaResumen_), total: lista.length };
 }
 
+/** Secciones activas dentro de las asignaciones vigentes de una persona. */
+function seccionesPosibles_(usuarioId) {
+  const raices = nodosAsignados_(usuarioId).map(function (n) { return n.ruta_ids + '/' + n.id; });
+  if (!raices.length) return [];
+  return filtrar('nodos', function (n) {
+    if (!bool(n.activo)) return false;
+    const suyo = n.ruta_ids + '/' + n.id;
+    return raices.some(function (r) { return suyo === r || suyo.indexOf(r + '/') === 0; });
+  })
+    .sort(function (a, b) { return String(a.codigo) < String(b.codigo) ? -1 : 1; })
+    .map(function (n) {
+      return { id: n.id, codigo: n.codigo, nombre: n.nombre, profundidad: Number(n.profundidad) || 0 };
+    });
+}
+
 function propuestasGet(ctx, payload) {
   desdePortal_(payload);
   asegurarEsquema_();
@@ -184,6 +200,7 @@ function propuestasGet(ctx, payload) {
 
     // Ayuda visual: el estado puede cambiar antes de aprobar. La comprobación
     // válida es la de propuestasAprobar, dentro del bloqueo.
+    salida.secciones_posibles = seccionesPosibles_(p.propuesta_por);
     salida.verificacion = {
       usuario_activo: usuario ? String(usuario.estado) === 'ACTIVO' : false,
       asignacion_vigente: usuario ? nodosAsignados_(usuario.id).some(function (a) {
@@ -214,6 +231,9 @@ function propuestasAprobar(ctx, payload) {
     if (String(p.estado) !== 'PENDIENTE') fallar_('ESTADO_INVALIDO', 'Esa propuesta ya fue revisada.');
 
     const nodoId = payload.nodo_id || p.nodo_id;
+    if (payload.titulo !== undefined && !String(payload.titulo).trim()) {
+      fallar_('VALIDACION', 'Escribe un título para la actividad.');
+    }
     const titulo = payload.titulo ? exigirTexto(payload.titulo, 'titulo', 120) : p.titulo;
     const descripcion = payload.descripcion !== undefined
       ? String(payload.descripcion).slice(0, 2000) : p.alcance;
@@ -380,13 +400,15 @@ function propuestasFotoSubir(ctx, payload) {
     limpiarCache('propuestas');
     const fresca = buscarPorId('propuestas', p.id);
     if (!fresca || String(fresca.estado) !== 'PENDIENTE') {
-      // La propuesta cambió mientras subía: se retira el archivo recién creado.
+      // La propuesta cambió mientras subía: se retiran los archivos recién creados.
       principal.setTrashed(true);
+      if (miniId) { try { DriveApp.getFileById(miniId).setTrashed(true); } catch (e) {} }
       fallar_('ESTADO_INVALIDO', 'La propuesta ya fue revisada; la foto no se guardó.');
     }
     const lista = fromJson(fresca.fotos_json, []);
     if (lista.length >= PROPUESTAS_FOTOS_MAX) {
       principal.setTrashed(true);
+      if (miniId) { try { DriveApp.getFileById(miniId).setTrashed(true); } catch (e) {} }
       fallar_('VALIDACION', 'La propuesta ya tiene ' + PROPUESTAS_FOTOS_MAX + ' fotos.');
     }
     const foto = {

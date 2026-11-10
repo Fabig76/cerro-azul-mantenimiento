@@ -23,7 +23,8 @@ window.API = {
 <script>
 (function () {
   const resultados = [];
-  const nodo = { id: 'NOD_1', codigo: 'CA-T1', nombre: 'Torre 1' };
+  const nodo = { id: 'NOD_1', codigo: 'CA-T1', nombre: 'Torre 1', profundidad: 1 };
+  const nodoHijo = { id: 'NOD_2', codigo: 'CA-T1-CAM', nombre: 'Cámaras', profundidad: 2 };
 
   function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function textoAviso() {
@@ -48,9 +49,10 @@ window.API = {
   }
 
   (async function () {
+    try {
     // 1. El contratista abre su bloque: el aviso debe estar a la vista
     window.__respuestas['propuestas.listar'] = { ok: true, data: { propuestas: [] } };
-    await Propuestas.cargar('CONTRATISTA', [nodo]);
+    await Propuestas.cargar('CONTRATISTA', [nodo, nodoHijo]);
     const cajaAviso = document.getElementById('avisoPropuestas');
     resultados.push((cajaAviso && visible(cajaAviso) ? 'OK   ' : 'FALLA') +
       ' · el aviso del contratista queda a la vista');
@@ -59,13 +61,30 @@ window.API = {
     const abrir = porTexto('Proponer una actividad');
     abrir.click();
     await esperar(30);
+
+    const sel = document.getElementById('prNodo');
+    resultados.push((sel && sel.value === '' ? 'OK   ' : 'FALLA') +
+      ' · con varias secciones, el formulario abre sin elegir');
+
     escribir('prHallazgo', 'corto');
     escribir('prAlcance', 'Esto sí tiene más de veinte caracteres de largo.');
     escribir('prInicio', '2026-12-01');
     porTexto('Enviar propuesta').click();
     await esperar(60);
+    resultados.push((textoAviso().indexOf('Elige la sección') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · sin sección avisa («' + textoAviso().slice(0, 40) + '»)');
+
+    escribir('prNodo', nodo.id);
+    porTexto('Enviar propuesta').click();
+    await esperar(60);
+    resultados.push((textoAviso().indexOf('título') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · sin título avisa («' + textoAviso().slice(0, 40) + '»)');
+
+    escribir('prTitulo', 'Cambio de empaque del domo');
+    porTexto('Enviar propuesta').click();
+    await esperar(60);
     resultados.push((textoAviso().indexOf('20 caracteres') >= 0 ? 'OK   ' : 'FALLA') +
-      ' · hallazgo corto avisa («' + textoAviso().slice(0, 40) + '»)');
+      ' · hallazgo corto avisa («' + textoAviso().slice(0, 40) + ')»');
 
     // 3. El servidor rechaza: el mensaje del servidor debe verse
     window.__respuestas['propuestas.crear'] = { ok: false, code: 'CONFLICTO', message: 'Ya tienes 10 propuestas pendientes.' };
@@ -83,6 +102,24 @@ window.API = {
     resultados.push((textoAviso().indexOf('Propuesta enviada') >= 0 ? 'OK   ' : 'FALLA') +
       ' · el envío correcto confirma');
 
+    // Con una sola sección posible, el formulario la deja elegida
+    window.__respuestas['propuestas.listar'] = { ok: true, data: { propuestas: [] } };
+    await Propuestas.cargar('CONTRATISTA', [nodo]);
+    const abrir2 = porTexto('Proponer una actividad');
+    if (!abrir2) {
+      resultados.push('FALLA · no apareció el botón de proponer');
+      document.title = resultados.join(' | ');
+      return;
+    }
+    abrir2.click();
+    await esperar(30);
+    const sel2 = document.getElementById('prNodo');
+    resultados.push((sel2 && sel2.value === nodo.id ? 'OK   ' : 'FALLA') +
+      ' · con una sola sección queda elegida');
+
+    } catch (e) {
+      resultados.push('FALLA · excepción: ' + e.message);
+    }
     document.title = resultados.join(' | ');
   })();
 })();

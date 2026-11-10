@@ -143,6 +143,39 @@
         });
         card.appendChild(ver);
       }
+      if (p.estado === 'PENDIENTE' && !soloLectura && p.fotos.length < 3) {
+        const agregar = boton('Agregar foto', 'btn-mini');
+        const inp = el('input');
+        inp.type = 'file';
+        inp.accept = 'image/*';
+        inp.setAttribute('capture', 'environment');
+        inp.className = 'oculto';
+        agregar.addEventListener('click', function () { inp.click(); });
+        inp.addEventListener('change', async function () {
+          const file = inp.files && inp.files[0];
+          if (!file) return;
+          agregar.disabled = true;
+          agregar.textContent = 'Subiendo…';
+          try {
+            const prep = await Fotos.preparar(file);
+            const r = await API.llamar('propuestas.foto.subir', {
+              propuesta_id: p.id,
+              base64: prep.base64,
+              base64_mini: prep.base64_mini,
+              mime: 'image/jpeg',
+            }, { token: Sesion.token(), idempotente: true });
+            if (!r.ok) throw new Error(r.message || 'No se pudo subir la foto.');
+            aviso('Foto agregada a la propuesta.', 'ok');
+            cargar(rolActual);
+          } catch (e) {
+            aviso(e.message || 'No se pudo subir la foto.', 'error');
+            agregar.disabled = false;
+            agregar.textContent = 'Agregar foto';
+          }
+        });
+        card.appendChild(agregar);
+        card.appendChild(inp);
+      }
       if (p.estado === 'PENDIENTE' && !soloLectura) {
         const retirar = boton('Retirar', 'btn-mini');
         let confirmado = false;
@@ -176,9 +209,22 @@
 
     const sel = el('select', 'item-input');
     sel.id = 'prNodo';
+    const minimo = nodos.reduce(function (m, n) {
+      const p = Number(n.profundidad) || 0;
+      return m === null || p < m ? p : m;
+    }, null);
+
+    const vacia = el('option', null, 'Elige la sección…');
+    vacia.value = '';
+    vacia.selected = nodos.length !== 1;
+    vacia.disabled = true;
+    sel.appendChild(vacia);
+
     nodos.forEach(function (n) {
-      const op = el('option', null, n.codigo + ' · ' + n.nombre);
+      const sangria = '  '.repeat(Math.max(0, (Number(n.profundidad) || 0) - (minimo || 0)));
+      const op = el('option', null, sangria + n.codigo + ' · ' + n.nombre);
       op.value = n.id;
+      if (nodos.length === 1) op.selected = true;
       sel.appendChild(op);
     });
 
@@ -255,6 +301,9 @@
 
     enviar.addEventListener('click', async function () {
       if (!sel.value) return aviso('Elige la sección donde hiciste la visita.', 'error');
+      if (!titulo.value.trim()) {
+        return aviso('Escribe un título corto, por ejemplo «Cambio de empaque del domo».', 'error');
+      }
       if (hallazgo.value.trim().length < 20) return aviso('Cuenta con al menos 20 caracteres qué encontraste.', 'error');
       if (alcance.value.trim().length < 20) return aviso('Cuenta con al menos 20 caracteres qué propones hacer.', 'error');
       if (!inicio.value) return aviso('Indica una fecha de inicio.', 'error');
@@ -293,7 +342,9 @@
       enviar.disabled = false;
       enviar.textContent = 'Enviar propuesta';
       if (fotosNuevas.length && subidas < fotosNuevas.length) {
-        aviso('La propuesta se envió, pero faltan ' + (fotosNuevas.length - subidas) + ' foto(s).', 'info');
+        const faltan = fotosNuevas.length - subidas;
+        aviso('La propuesta se envió, pero falta ' + faltan + (faltan === 1 ? ' foto' : ' fotos') +
+          '. Toca «Agregar foto» en la propuesta para subirla.', 'info');
       } else {
         aviso('Propuesta enviada. La administración la revisará.', 'ok');
       }
@@ -394,19 +445,32 @@
     cont.appendChild(original);
 
     const ver = abierta.verificacion || {};
-    const avisos = [];
-    if (ver.usuario_activo === false) avisos.push('Quien propuso ya no está activo.');
-    if (ver.asignacion_vigente === false) avisos.push('Quien propuso ya no tiene asignada esa sección.');
-    if (ver.empresa_sin_cambios === false) avisos.push('El contratista cambió de empresa desde que propuso.');
-    if (ver.empresa_vigente === false) avisos.push('La empresa tiene el contrato vencido.');
-    if (ver.actividades_abiertas) avisos.push('Ya hay ' + ver.actividades_abiertas + ' actividad(es) abierta(s) en esta sección.');
-    if (avisos.length) {
+
+    // Lo que impedirá aprobar: recuadro rojo.
+    const impedimentos = [];
+    if (ver.usuario_activo === false) impedimentos.push('Quien propuso ya no está activo.');
+    if (ver.asignacion_vigente === false) impedimentos.push('Quien propuso ya no tiene asignada esa sección.');
+    if (ver.empresa_sin_cambios === false) impedimentos.push('El contratista cambió de empresa desde que propuso.');
+    if (ver.empresa_vigente === false) impedimentos.push('La empresa tiene el contrato vencido.');
+
+    if (impedimentos.length) {
       const cajaAvisos = el('div', 'aviso-rechazo');
-      cajaAvisos.appendChild(el('strong', null, 'Revisa esto antes de aprobar'));
-      avisos.forEach(function (a) { cajaAvisos.appendChild(el('p', null, a)); });
+      cajaAvisos.appendChild(el('strong', null, 'No se podrá aprobar'));
+      impedimentos.forEach(function (a) { cajaAvisos.appendChild(el('p', null, a)); });
       cajaAvisos.appendChild(el('p', 'aviso-rechazo-fecha',
-        'Es una ayuda: la comprobación definitiva la hace el servidor al aprobar.'));
+        'La comprobación definitiva la hace el servidor al aprobar.'));
       cont.appendChild(cajaAvisos);
+    }
+
+    // Las actividades abiertas son información, no un impedimento.
+    if (ver.actividades_abiertas) {
+      const cuantas = Number(ver.actividades_abiertas);
+      const texto = cuantas === 1
+        ? 'Ya hay 1 actividad abierta en esta sección. Revisa que no sea el mismo trabajo.'
+        : 'Ya hay ' + cuantas + ' actividades abiertas en esta sección. Revisa que no sea el mismo trabajo.';
+      const info = el('div', 'msg info mostrar');
+      info.textContent = texto;
+      cont.appendChild(info);
     }
 
     const form = el('div', 'bloque');
@@ -420,7 +484,18 @@
 
     const sel = el('select', 'item-input');
     sel.id = 'rvNodo';
-    nodos.forEach(function (n) {
+    const posibles = abierta.secciones_posibles || [];
+    const lista = posibles.slice();
+    if (!lista.some(function (n) { return String(n.id) === String(abierta.propuesta.nodo_id); })) {
+      // La sección original ya no está asignada: se muestra para que se entienda el bloqueo.
+      lista.push({
+        id: abierta.propuesta.nodo_id,
+        codigo: abierta.propuesta.nodo_codigo,
+        nombre: abierta.propuesta.nodo_nombre + ' (ya no asignada)',
+        profundidad: 0,
+      });
+    }
+    lista.forEach(function (n) {
       const op = el('option', null, n.codigo + ' · ' + n.nombre);
       op.value = n.id;
       if (String(n.id) === String(abierta.propuesta.nodo_id)) op.selected = true;
@@ -470,6 +545,9 @@
     form.appendChild(motivo);
 
     aprobar.addEventListener('click', async function () {
+      if (!titulo.value.trim()) {
+        return aviso('Escribe un título corto, por ejemplo «Cambio de empaque del domo».', 'error');
+      }
       aprobar.disabled = true;
       aprobar.textContent = 'Creando…';
       const res = await API.llamar('propuestas.aprobar', {

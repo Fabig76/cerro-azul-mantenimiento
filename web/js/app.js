@@ -192,9 +192,12 @@
     rolActual = me.usuario.rol;
     window.__rol = rolActual;
     construirPestanas(rolActual);
-    const nodosParaPropuestas = await cargarArbol(t, me);
+    // El árbol y las actividades salen a la vez; las propuestas esperan solo al árbol.
+    const arbol = cargarArbol(t, me);
     cargarActividades(t, me);
-    if (window.Propuestas) Propuestas.cargar(rolActual, nodosParaPropuestas);
+    arbol.then(function (nodos) {
+      if (window.Propuestas) Propuestas.cargar(rolActual, nodos);
+    });
     if (window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
     if (rolActual === 'ADMIN') {
       prepararFormulario(t);
