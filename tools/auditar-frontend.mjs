@@ -82,6 +82,30 @@ for (const archivo of ['app.html', 'index.html']) {
   if (/[\u{1F300}-\u{1FAFF}]/u.test(texto)) problemas.push(archivo + ' tiene emoji');
 }
 
+// Las tarjetas que abren y cierran por su cuenta no pueden dejarse abrir por el
+// cambio de pestaña: si una se olvida de data-propia, se le muestra al rol equivocado.
+{
+  const html = leer(path.join(web, 'app.html'));
+  const js = leer(path.join(web, 'js', 'app.js'));
+  const propias = ['tarjetaNuevaActividad', 'tarjetaPropuestas', 'tarjetaMisPropuestas'];
+
+  propias.forEach((id) => {
+    const m = html.match(new RegExp('<div[^>]*id="' + id + '"[^>]*>'));
+    if (!m) { problemas.push(id + ' no existe en app.html'); return; }
+    if (m[0].indexOf('data-propia="1"') < 0) {
+      problemas.push(id + ' no lleva data-propia: la pestaña la abriría para todos');
+    } else {
+      ok.push('data-propia en ' + id);
+    }
+  });
+
+  if (js.indexOf("panel.dataset.propia === '1'") < 0) {
+    problemas.push('app.js no respeta data-propia al cambiar de pestaña');
+  } else {
+    ok.push('app.js respeta data-propia');
+  }
+}
+
 console.log('Comprobaciones correctas: ' + ok.length);
 if (problemas.length) {
   console.log('\nPROBLEMAS (' + problemas.length + '):');

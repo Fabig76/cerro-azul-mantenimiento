@@ -44,6 +44,8 @@
 
     document.querySelectorAll('[data-panel]').forEach(function (panel) {
       const permitido = permitidas.indexOf(panel.dataset.panel) >= 0;
+      // Las tarjetas con estado propio (propuestas, nueva actividad) deciden solas
+      // si se ven: aquí solo se ocultan cuando su pestaña no está permitida.
       if (!permitido) panel.classList.add('oculto');
     });
 
@@ -59,6 +61,12 @@
     });
     document.querySelectorAll('[data-panel]').forEach(function (panel) {
       const visible = panel.dataset.panel === id;
+      // Una tarjeta con estado propio no se abre sola al entrar a la pestaña;
+      // solo se cierra cuando la pestaña deja de ser la suya.
+      if (panel.dataset.propia === '1') {
+        if (!visible) panel.classList.add('oculto');
+        return;
+      }
       panel.classList.toggle('oculto', !visible);
     });
     // El detalle de una actividad solo vive dentro de su pestaña y nunca se duplica con la lista.
