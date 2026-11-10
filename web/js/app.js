@@ -192,8 +192,9 @@
     rolActual = me.usuario.rol;
     window.__rol = rolActual;
     construirPestanas(rolActual);
-    cargarArbol(t, me);
+    const nodosParaPropuestas = await cargarArbol(t, me);
     cargarActividades(t, me);
+    if (window.Propuestas) Propuestas.cargar(rolActual, nodosParaPropuestas);
     if (window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
     if (rolActual === 'ADMIN') {
       prepararFormulario(t);
@@ -465,7 +466,7 @@
 
   async function cargarArbol(t) {
     const cont = document.getElementById('arbol');
-    if (!cont) return;
+    if (!cont) return [];
     cont.textContent = '';
     const r = await API.llamar('nodos.arbol', {}, { token: t });
     if (!r.ok) {
@@ -473,7 +474,7 @@
       p.className = 'msg info mostrar';
       p.textContent = r.message || 'No se pudo cargar el árbol.';
       cont.appendChild(p);
-      return;
+      return [];
     }
     const nodos = r.data.nodos || [];
     const conteo = document.getElementById('conteoNodos');
@@ -481,7 +482,7 @@
 
     if (!nodos.length) {
       ver('sinAsignacion', true);
-      return;
+      return [];
     }
 
     // Un contratista solo recibe su rama: el padre de la raíz de esa rama no viene.
@@ -561,6 +562,9 @@
     cont.appendChild(controles);
 
     cont.appendChild(pintar('RAIZ'));
+
+    // Se devuelve la lista para reutilizarla (el formulario de propuestas).
+    return nodos;
   }
 
   const ESTADOS = {

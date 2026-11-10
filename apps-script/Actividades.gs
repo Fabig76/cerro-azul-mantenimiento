@@ -312,6 +312,21 @@ function actividadesGet(ctx, payload) {
       revisado_en: ultimoFinal.revisado_en || '',
     } : null,
     respuestas: respuestasUltimo,
+    propuesta: (function () {
+      if (!act.propuesta_id) return null;
+      const p = buscarPorId('propuestas', act.propuesta_id);
+      if (!p) return null;
+      const autor = p.propuesta_por ? buscarPorId('usuarios', p.propuesta_por) : null;
+      return {
+        id: p.id,
+        hallazgo: p.hallazgo || '',
+        alcance_original: p.alcance || '',
+        propuesta_por_nombre: autor ? (autor.nombre || autor.email) : '',
+        creado_en: p.creado_en || '',
+        fotos: fromJson(p.fotos_json, []).map(function (f) { return f.id; }),
+        ajustes: fromJson(p.ajustes_json, {}),
+      };
+    })(),
     evidencias: evidencias,
   };
 }

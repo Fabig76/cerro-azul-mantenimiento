@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://script.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://script.googleusercontent.com">
 <title>Ingresar — Portal de Mantenimientos Cerro Azul</title>
-<link rel="stylesheet" href="./css/tokens.css?v=98">
-<link rel="stylesheet" href="./css/base.css?v=98">
-<link rel="stylesheet" href="./css/app.css?v=98">
-<script src="./js/tema.js?v=98"></script>
+<link rel="stylesheet" href="./css/tokens.css?v=99">
+<link rel="stylesheet" href="./css/base.css?v=99">
+<link rel="stylesheet" href="./css/app.css?v=99">
+<script src="./js/tema.js?v=99"></script>
 </head>
 <body>
 
@@ -475,12 +475,17 @@
       </form>
     </div>
 
+    <div class="card seccion-panel oculto" id="tarjetaPropuestas" data-panel="actividades">
+      <div class="msg" id="avisoPropuestas" role="status" aria-live="polite"></div>
+    </div>
+
     <div class="card seccion-panel" id="tarjetaActividades" data-panel="actividades">
       <div class="cabecera-seccion">
         <h2>Actividades</h2>
         <span class="codigo" id="conteoActividades"></span>
       </div>
       <p class="bajada-tarjeta">Trabajos programados y en curso, con sus fechas y su avance aprobado.</p>
+      <div id="bloquePropuestasContratista" class="oculto"></div>
       <div id="listaActividades" class="lista-actividades"></div>
       <div id="sinActividades" class="vacio oculto">Todavía no hay actividades registradas.</div>
 
@@ -541,22 +546,23 @@
 </footer>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="./config.js?v=98"></script>
-<script src="./js/api.js?v=98"></script>
-<script src="./js/sesion.js?v=98"></script>
-<script src="./js/google.js?v=98"></script>
-<script src="./js/fotos.js?v=98"></script>
-<script src="./js/etapas.js?v=98"></script>
-<script src="./js/actividad.js?v=98"></script>
-<script src="./js/usuarios.js?v=98"></script>
-<script src="./js/elemento.js?v=98"></script>
-<script src="./js/novedades.js?v=98"></script>
-<script src="./js/alertas.js?v=98"></script>
-<script src="./js/plan.js?v=98"></script>
-<script src="./js/catalogo.js?v=98"></script>
-<script src="./js/empresas.js?v=98"></script>
-<script src="./js/respaldo.js?v=98"></script>
-<script src="./js/pruebas.js?v=98"></script>
-<script src="./js/app.js?v=98"></script>
+<script src="./config.js?v=99"></script>
+<script src="./js/api.js?v=99"></script>
+<script src="./js/sesion.js?v=99"></script>
+<script src="./js/google.js?v=99"></script>
+<script src="./js/fotos.js?v=99"></script>
+<script src="./js/etapas.js?v=99"></script>
+<script src="./js/propuestas.js?v=99"></script>
+<script src="./js/actividad.js?v=99"></script>
+<script src="./js/usuarios.js?v=99"></script>
+<script src="./js/elemento.js?v=99"></script>
+<script src="./js/novedades.js?v=99"></script>
+<script src="./js/alertas.js?v=99"></script>
+<script src="./js/plan.js?v=99"></script>
+<script src="./js/catalogo.js?v=99"></script>
+<script src="./js/empresas.js?v=99"></script>
+<script src="./js/respaldo.js?v=99"></script>
+<script src="./js/pruebas.js?v=99"></script>
+<script src="./js/app.js?v=99"></script>
 </body>
 </html>

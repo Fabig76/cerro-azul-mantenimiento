@@ -589,3 +589,19 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 .item-observacion { font-size: 12px; color: var(--muted); font-style: italic; }
 .texto-reportado { font-size: 14px; line-height: 1.55; margin: 6px 0; white-space: pre-wrap; }
 [data-theme="dark"] .aviso-rechazo { background: rgba(239, 68, 68, .12); }
+
+/* Propuestas del contratista y del administrador */
+.lista-propuestas { display: grid; gap: 10px; margin-top: 12px; }
+.propuesta {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--warn);
+  border-radius: var(--radius-m);
+  background: var(--card-2);
+  padding: 12px 14px;
+}
+.propuesta-cab { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.propuesta-cab h3 { margin: 0; font-size: 14.5px; letter-spacing: -.01em; }
+.propuesta-meta { margin: 5px 0 0; font-size: 12.5px; color: var(--muted); }
+.propuesta-motivo { margin: 6px 0 0; font-size: 13px; color: var(--danger-ink); }
+.fila-propuesta { cursor: pointer; transition: .15s; }
+.fila-propuesta:hover { border-color: var(--brand); }

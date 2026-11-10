@@ -117,6 +117,51 @@
    * Guía del trabajo: dice en qué paso va y cuál sigue.
    * Es lo primero que ve quien abre la actividad.
    */
+  /** De dónde salió esta actividad: la visita del contratista. */
+  function bloqueDiagnostico() {
+    const p = datos.propuesta;
+    if (!p) return null;
+    const caja = el('div', 'bloque');
+    caja.appendChild(el('div', 'kicker', 'Diagnóstico de la visita'));
+    caja.appendChild(el('p', 'bajada-tarjeta',
+      'La propuso ' + (p.propuesta_por_nombre || 'un contratista') +
+      (p.creado_en ? ' el ' + String(p.creado_en).slice(0, 10) : '') + '.'));
+    if (p.hallazgo) {
+      const hallazgo = el('p', 'texto-reportado');
+      hallazgo.textContent = p.hallazgo;
+      caja.appendChild(hallazgo);
+    }
+    if (p.alcance_original) {
+      caja.appendChild(el('p', 'bajada-tarjeta', 'Propuso: ' + p.alcance_original));
+    }
+    const ajustes = p.ajustes || {};
+    const cambiados = Object.keys(ajustes);
+    if (cambiados.length) {
+      const nombres = { titulo: 'título', nodo: 'sección', fecha_inicio: 'fecha de inicio',
+        fecha_fin: 'fecha final', prioridad: 'prioridad' };
+      caja.appendChild(el('p', 'bajada-tarjeta',
+        'La administración ajustó: ' + cambiados.map(function (k) { return nombres[k] || k; }).join(', ') + '.'));
+    }
+    const fotos = el('div', 'fotos');
+    (p.fotos || []).forEach(function (fotoId, i) {
+      const figura = el('figure', 'foto-item');
+      const hueco = el('div', 'foto-hueco');
+      const img = document.createElement('img');
+      img.className = 'foto-mini';
+      img.alt = 'Foto de la visita ' + (i + 1);
+      hueco.appendChild(img);
+      figura.appendChild(hueco);
+      figura.appendChild(el('figcaption', 'foto-pie', 'Visita ' + (i + 1)));
+      API.llamar('propuestas.foto.get', { propuesta_id: p.id, foto_id: fotoId, tam: 'mini' },
+        { token: Sesion.token() }).then(function (r) {
+        if (r.ok) img.src = 'data:' + (r.data.mime || 'image/jpeg') + ';base64,' + r.data.base64;
+      }).catch(function () {});
+      fotos.appendChild(figura);
+    });
+    if ((p.fotos || []).length) caja.appendChild(fotos);
+    return caja;
+  }
+
   function bloqueGuia() {
     const a = datos.actividad;
     const enCurso = ['EN_EJECUCION'].indexOf(String(a.estado)) >= 0;
@@ -1082,6 +1127,10 @@
         'Corrige lo indicado, sube una foto de después nueva y vuelve a enviar.'));
       cont.appendChild(caja);
     }
+
+    // Si la actividad nació de una propuesta, se ve el diagnóstico que la originó.
+    const diagnostico = bloqueDiagnostico();
+    if (diagnostico) cont.appendChild(diagnostico);
 
     cont.appendChild(bloqueGuia());
     const hitos = bloqueHitos();
