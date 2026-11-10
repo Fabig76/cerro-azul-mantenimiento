@@ -160,12 +160,20 @@ textarea.item-input { min-height: 74px; resize: vertical; }
 .form-actividad {
   margin-top: 22px;
   padding: 18px 18px 16px;
-  border: 1px solid var(--line);
-  border-top: 3px solid var(--brand);
+  border: 2px solid color-mix(in srgb, var(--ok) 40%, var(--line));
+  border-top: 6px solid var(--ok);
   border-radius: var(--radius-m);
-  background: var(--card-2);
+  background: color-mix(in srgb, var(--ok) 5%, var(--card-2));
 }
-.form-actividad .kicker { margin-bottom: 10px; }
+/* El título del bloque: verde, grande y en negrita. */
+.form-actividad .kicker {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  text-transform: none;
+  color: var(--ok-ink);
+  margin-bottom: 12px;
+}
 .fila-campos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .acciones-form { display: flex; gap: 10px; margin-top: 16px; }
 

@@ -571,8 +571,8 @@
   }
 
   const ESTADOS = {
-    PROGRAMADA: { texto: 'Programada', clase: 'gray' },
-    EN_EJECUCION: { texto: 'En ejecución', clase: '' },
+    PROGRAMADA: { texto: 'Programada', clase: 'info' },
+    EN_EJECUCION: { texto: 'En ejecución', clase: 'curso' },
     REPORTADA: { texto: 'Reportada', clase: 'warn' },
     APROBADA: { texto: 'Aprobada', clase: 'ok' },
     RECHAZADA: { texto: 'Rechazada', clase: 'danger' },

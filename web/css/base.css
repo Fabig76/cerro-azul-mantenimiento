@@ -198,7 +198,11 @@ h2 { font-size: clamp(22px, 2.6vw, 29px); letter-spacing: -.02em; margin: 0; fon
 .badge.ok { background: var(--ok-soft); color: var(--ok-ink); }
 .badge.warn { background: var(--warn-soft); color: var(--warn-ink); }
 .badge.danger { background: var(--danger-soft); color: var(--danger-ink); }
+.badge.info { background: var(--brand-soft); color: var(--brand-ink); }
+.badge.curso { background: rgba(124, 58, 237, .14); color: #6d28d9; }
 .badge.gray { background: #eef1f6; color: #475569; }
+[data-theme="dark"] .badge.info { background: rgba(129, 140, 248, .22); color: #c7d2fe; }
+[data-theme="dark"] .badge.curso { background: rgba(167, 139, 250, .22); color: #ddd6fe; }
 [data-theme="dark"] .badge.gray { background: rgba(148, 163, 184, .16); color: #cbd5e1; }
 
 /* ---------- BOTONES ---------- */
