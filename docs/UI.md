@@ -102,7 +102,53 @@ Radio 18px, borde 1px `--line`, sombra `--shadow`.
 <span class="badge ok">Al día</span>
 <span class="badge warn">Atención</span>
 <span class="badge danger">Crítico</span>
+<span class="badge info">Programada</span>
+<span class="badge curso">En ejecución</span>
+<span class="badge gray">Cancelada</span>
 <span class="badge">Interno</span>
+```
+
+**Cada estado de una actividad tiene su color**, para no confundirlos de un vistazo:
+
+| Estado | Clase | Color |
+| --- | --- | --- |
+| Programada | `info` | azul índigo |
+| En ejecución | `curso` | violeta |
+| Reportada | `warn` | ámbar |
+| Aprobada / Cerrada | `ok` | verde |
+| Rechazada | `danger` | rojo |
+| Cancelada | `gray` | gris |
+
+El gris queda reservado para lo que ya no está vivo. Las actividades borradas no se listan
+(`actividadesListar` filtra `activo`), así que no necesitan color.
+
+### Tarjeta de sección con acento
+
+Cada tarjeta del panel tiene **su propio color**, no el de la pestaña: dos tarjetas del mismo
+panel deben distinguirse. El color se declara por id en `css/app.css`:
+
+```css
+#tarjetaActividades { --acento: #4f46e5; --acento-suave: rgba(79, 70, 229, .12); }
+[data-theme="dark"] #tarjetaActividades { --acento: #818cf8; }
+```
+
+La tarjeta toma `--acento` para el borde izquierdo (6 px), el contorno matizado y el título.
+En oscuro **hay que declarar el tono claro**: los mismos colores sobre fondo negro pierden
+contraste.
+
+### Bloque de creación
+
+El formulario de una tarjeta se separa con un bloque propio —borde verde, fondo verdoso y
+título grande— para que no se confunda con la lista de lo ya creado:
+
+```css
+.form-actividad {
+  border: 2px solid color-mix(in srgb, var(--ok) 40%, var(--line));
+  border-top: 6px solid var(--ok);
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, var(--ok) 5%, var(--card-2));
+}
+.form-actividad .kicker { font-size: 17px; font-weight: 800; color: var(--ok-ink); text-transform: none; }
 ```
 
 ### Botones
@@ -162,9 +208,20 @@ anidado con línea guía a la izquierda.
 ## 8. Verificación rápida
 
 ```bash
-# ningún estilo en línea
-grep -rn 'style="' web/*.html
-# ningún emoji
-python3 -c "import sys;print([c for c in open('web/index.html',encoding='utf-8').read() if ord(c)>0x1F000])"
+# ningún estilo en línea, ni emoji, ni versión despareja
+node tools/auditar-frontend.mjs
+# llamadas a funciones que no existen
+node tools/revisar-funciones.mjs
+# lo que el navegador pinta de verdad (detalle de actividad, por estado)
+./tools/prueba-pantalla.sh
 ```
-Ambos deben devolver vacío.
+
+Y antes de decir «publique y pruebe»: **comprobar que el despliegue terminó bien**.
+
+```bash
+gh run list --limit 1          # debe decir success
+curl -s "$URL/css/app.css" | grep "lo que acabo de cambiar"
+```
+
+Una clase con `display` propio **anula el atributo `hidden`**: para ocultar algo se usa la clase
+`.oculto`, o la regla global `[hidden] { display: none !important; }` de `base.css`.

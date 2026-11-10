@@ -89,6 +89,21 @@ El contratista propone y el administrador aprueba. Lo que hay que vigilar:
   contra las demás propuestas.
 - **Purga**: solo se retiran las fotos a los 15 días; el texto se conserva.
 
+## 5 ter. Antes de avisar que algo está publicado
+
+El despliegue del frontend es un flujo de GitHub Actions (`Publicar portal`) y **puede fallar** sin
+que el `git push` avise. Pasó el 10/11/2026: el flujo no adjuntó el artefacto y el sitio siguió
+sirviendo la versión anterior durante minutos mientras el mensaje decía «publicado».
+
+```bash
+gh run list --limit 1                 # tiene que decir success
+curl -s "$SITIO/css/app.css" | grep "texto que acabo de añadir"
+curl -s "$SITIO/app.html" | grep -o 'app.css?v=[0-9]*'   # el número nuevo
+```
+
+Si el flujo falló: `gh run rerun <id>`. Si el CDN sirve la versión vieja, esperar y volver a consultar
+con un parámetro distinto (`?q=$RANDOM`).
+
 ## 6. Desplegar el servidor sin el token caducable
 
 `clasp` depende de un token que la política del Workspace de `urbcerroazul.com` invalida cada

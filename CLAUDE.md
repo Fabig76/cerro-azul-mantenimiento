@@ -50,3 +50,24 @@ Cada uno costó un fallo en producción. No repetirlos.
 
 6. **`clasp` caduca por política del Workspace** (`invalid_rapt`). Despliega con
    `node google-cerroazul/desplegar.mjs`, que usa el cliente OAuth propio. Ver `docs/AUDITORIA.md`.
+
+7. **Una clase con `display` anula el atributo `hidden`.** `.btn` define `display: inline-flex`, así
+   que un botón con `hidden` se seguía viendo y el contratista veía «Nueva actividad». Se usa la clase
+   `.oculto` o la regla global `[hidden] { display: none !important; }`.
+
+8. **Una tarjeta con abrir y cerrar propio no puede depender del cambio de pestaña.** `mostrarPestana`
+   pone visible **todo** lo que lleve `data-panel` de la pestaña activa. Si una tarjeta debe permanecer
+   cerrada hasta que alguien la abra, necesita una marca aparte (`data-propia`) y el cambio de pestaña
+   solo puede cerrarla, nunca abrirla.
+
+9. **«Publique y pruebe» es una promesa, no un paso.** Un push no es un despliegue: el flujo de
+   GitHub Pages puede fallar (`No artifacts named "github-pages"`), y el CDN sigue sirviendo la versión
+   anterior varios minutos. Antes de avisar: `gh run list --limit 1` en verde y comprobar que el archivo
+   publicado trae el cambio.
+
+10. **Verificar el código no es verificar la pantalla.** Cuatro fallos seguidos pasaron las pruebas
+    estáticas y se veían en el navegador. Hay que medir el **estilo calculado** y, cuando sea posible,
+    comparar capturas antes/después (`tools/prueba-pantalla.sh`).
+
+11. **Un cambio a la vez, con vuelta atrás lista.** Mezclar separar tarjetas + colores + visibilidad por
+    rol hizo imposible saber qué rompió qué. Cada paso va en su commit y se revierte con `git revert`.
