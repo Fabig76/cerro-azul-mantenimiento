@@ -752,15 +752,36 @@
 
   function prepararFormulario(t) {
     const form = document.getElementById('formActividad');
-    if (!form) return;
-    form.classList.remove('oculto');
+    const tarjeta = document.getElementById('tarjetaNuevaActividad');
+    const abrir = document.getElementById('btnNuevaActividad');
+    if (!form || !tarjeta) return;
+
+    // La tarjeta de creación vive aparte de la lista y se abre solo cuando se pide.
+    if (abrir) {
+      abrir.hidden = false;
+      abrir.addEventListener('click', function () {
+        tarjeta.classList.remove('oculto');
+        abrir.hidden = true;
+        tarjeta.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        const primero = document.getElementById('actTitulo');
+        if (primero) primero.focus();
+      });
+    }
     montarEtapasNueva();
     cargarNodosEnFormulario(t);
+    const cerrar = function () {
+      tarjeta.classList.add('oculto');
+      if (abrir) abrir.hidden = false;
+      const avisoCrear = document.getElementById('avisoCrear');
+      if (avisoCrear) { avisoCrear.textContent = ''; avisoCrear.className = 'msg'; }
+    };
+
     const cancelar = document.getElementById('btnCancelarActividad');
     if (cancelar) cancelar.addEventListener('click', function () {
       document.getElementById('actTitulo').value = '';
       document.getElementById('actDescripcion').value = '';
       montarEtapasNueva();
+      cerrar();
     });
     form.addEventListener('submit', async function (ev) {
       ev.preventDefault();
@@ -782,10 +803,24 @@
         avisoCrear.className = 'msg mostrar error';
         return;
       }
-      avisoCrear.textContent = 'Actividad creada.';
-      avisoCrear.className = 'msg mostrar ok';
+      // El aviso va a la lista, que es la tarjeta que queda a la vista.
+      const avisoLista = document.getElementById('avisoActividades');
+      if (avisoLista) {
+        avisoLista.textContent = 'Actividad creada.';
+        avisoLista.className = 'msg mostrar ok';
+        setTimeout(function () {
+          avisoLista.textContent = '';
+          avisoLista.className = 'msg';
+        }, 6000);
+      }
+      avisoCrear.textContent = '';
+      avisoCrear.className = 'msg';
       document.getElementById('actTitulo').value = '';
+      document.getElementById('actDescripcion').value = '';
+      montarEtapasNueva();
+      cerrar();
       cargarActividades(Sesion.token());
+      cargarArbol(Sesion.token());
     });
   }
 

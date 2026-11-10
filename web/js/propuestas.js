@@ -75,9 +75,12 @@
 
     // Cada rol ve su bloque y nada más.
     const bloqueContratista = document.getElementById('bloquePropuestasContratista');
+    const tarjetaMia = document.getElementById('tarjetaMisPropuestas');
     const tarjetaAdmin = document.getElementById('tarjetaPropuestas');
-    if (bloqueContratista) bloqueContratista.classList.toggle('oculto', rolActual !== 'CONTRATISTA');
-    if (tarjetaAdmin) tarjetaAdmin.classList.toggle('oculto', rolActual === 'CONTRATISTA');
+    const esContratista = rolActual === 'CONTRATISTA';
+    if (tarjetaMia) tarjetaMia.classList.toggle('oculto', !esContratista);
+    if (tarjetaAdmin) tarjetaAdmin.classList.toggle('oculto', esContratista);
+    if (bloqueContratista && !esContratista) bloqueContratista.textContent = '';
 
     if (rolActual === 'CONTRATISTA' && !nodos.length && window.App) {
       // Sin árbol cargado no se puede elegir sección: se pide aparte.
