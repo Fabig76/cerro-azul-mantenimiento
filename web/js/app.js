@@ -854,7 +854,17 @@
     pestana: mostrarPestana,
   };
 
+  /** Deja a la vista qué versión del panel se cargó: sirve para descartar la caché. */
+  function marcarVersion() {
+    const caja = document.getElementById('versionPanel');
+    if (!caja) return;
+    const propio = document.querySelector('script[src*="app.js?v="]');
+    const m = propio ? propio.getAttribute('src').match(/v=(\d+)/) : null;
+    caja.textContent = m ? 'v' + m[1] : '';
+  }
+
   document.addEventListener('DOMContentLoaded', async function () {
+    marcarVersion();
     const bt = document.getElementById('btnTema');
     if (bt) bt.addEventListener('click', function () { Tema.alternar(); });
 
