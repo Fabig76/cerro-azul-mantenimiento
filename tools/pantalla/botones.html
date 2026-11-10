@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+</head>
+<body>
+<button class="btn primary" id="oculto" type="button" hidden>Nueva actividad</button>
+<button class="btn primary" id="visible" type="button">Visible</button>
+<button class="pestana" id="pestanaOculta" type="button" hidden>Usuarios</button>
+<div class="card oculto" id="tarjetaOculta">x</div>
+<script>
+(function () {
+  const resultados = [];
+  function estilo(id) {
+    const n = document.getElementById(id);
+    return window.getComputedStyle(n).display;
+  }
+  // Un botón con el atributo hidden no puede verse, aunque su clase fije display.
+  resultados.push((estilo('oculto') === 'none' ? 'OK   ' : 'FALLA') +
+    ' · un .btn[hidden] queda oculto (display: ' + estilo('oculto') + ')');
+  resultados.push((estilo('visible') !== 'none' ? 'OK   ' : 'FALLA') +
+    ' · un botón normal se ve');
+  resultados.push((estilo('pestanaOculta') === 'none' ? 'OK   ' : 'FALLA') +
+    ' · una pestaña sin permiso queda oculta');
+  resultados.push((estilo('tarjetaOculta') === 'none' ? 'OK   ' : 'FALLA') +
+    ' · una tarjeta con .oculto queda oculta');
+  document.title = resultados.join(' | ');
+})();
+</script>
+</body></html>
