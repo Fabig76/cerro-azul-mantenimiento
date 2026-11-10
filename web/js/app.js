@@ -44,8 +44,6 @@
 
     document.querySelectorAll('[data-panel]').forEach(function (panel) {
       const permitido = permitidas.indexOf(panel.dataset.panel) >= 0;
-      // Las tarjetas con estado propio (propuestas, nueva actividad) deciden solas
-      // si se ven: aquí solo se ocultan cuando su pestaña no está permitida.
       if (!permitido) panel.classList.add('oculto');
     });
 
@@ -61,12 +59,6 @@
     });
     document.querySelectorAll('[data-panel]').forEach(function (panel) {
       const visible = panel.dataset.panel === id;
-      // Una tarjeta con estado propio no se abre sola al entrar a la pestaña;
-      // solo se cierra cuando la pestaña deja de ser la suya.
-      if (panel.dataset.propia === '1') {
-        if (!visible) panel.classList.add('oculto');
-        return;
-      }
       panel.classList.toggle('oculto', !visible);
     });
     // El detalle de una actividad solo vive dentro de su pestaña y nunca se duplica con la lista.
@@ -760,36 +752,15 @@
 
   function prepararFormulario(t) {
     const form = document.getElementById('formActividad');
-    const tarjeta = document.getElementById('tarjetaNuevaActividad');
-    const abrir = document.getElementById('btnNuevaActividad');
-    if (!form || !tarjeta) return;
-
-    // La tarjeta de creación vive aparte de la lista y se abre solo cuando se pide.
-    if (abrir) {
-      abrir.hidden = false;
-      abrir.addEventListener('click', function () {
-        tarjeta.classList.remove('oculto');
-        abrir.hidden = true;
-        tarjeta.scrollIntoView({ block: 'start', behavior: 'smooth' });
-        const primero = document.getElementById('actTitulo');
-        if (primero) primero.focus();
-      });
-    }
+    if (!form) return;
+    form.classList.remove('oculto');
     montarEtapasNueva();
     cargarNodosEnFormulario(t);
-    const cerrar = function () {
-      tarjeta.classList.add('oculto');
-      if (abrir) abrir.hidden = false;
-      const avisoCrear = document.getElementById('avisoCrear');
-      if (avisoCrear) { avisoCrear.textContent = ''; avisoCrear.className = 'msg'; }
-    };
-
     const cancelar = document.getElementById('btnCancelarActividad');
     if (cancelar) cancelar.addEventListener('click', function () {
       document.getElementById('actTitulo').value = '';
       document.getElementById('actDescripcion').value = '';
       montarEtapasNueva();
-      cerrar();
     });
     form.addEventListener('submit', async function (ev) {
       ev.preventDefault();
@@ -811,24 +782,10 @@
         avisoCrear.className = 'msg mostrar error';
         return;
       }
-      // El aviso va a la lista, que es la tarjeta que queda a la vista.
-      const avisoLista = document.getElementById('avisoActividades');
-      if (avisoLista) {
-        avisoLista.textContent = 'Actividad creada.';
-        avisoLista.className = 'msg mostrar ok';
-        setTimeout(function () {
-          avisoLista.textContent = '';
-          avisoLista.className = 'msg';
-        }, 6000);
-      }
-      avisoCrear.textContent = '';
-      avisoCrear.className = 'msg';
+      avisoCrear.textContent = 'Actividad creada.';
+      avisoCrear.className = 'msg mostrar ok';
       document.getElementById('actTitulo').value = '';
-      document.getElementById('actDescripcion').value = '';
-      montarEtapasNueva();
-      cerrar();
       cargarActividades(Sesion.token());
-      cargarArbol(Sesion.token());
     });
   }
 
@@ -854,17 +811,7 @@
     pestana: mostrarPestana,
   };
 
-  /** Deja a la vista qué versión del panel se cargó: sirve para descartar la caché. */
-  function marcarVersion() {
-    const caja = document.getElementById('versionPanel');
-    if (!caja) return;
-    const propio = document.querySelector('script[src*="app.js?v="]');
-    const m = propio ? propio.getAttribute('src').match(/v=(\d+)/) : null;
-    caja.textContent = m ? 'v' + m[1] : '';
-  }
-
   document.addEventListener('DOMContentLoaded', async function () {
-    marcarVersion();
     const bt = document.getElementById('btnTema');
     if (bt) bt.addEventListener('click', function () { Tema.alternar(); });
 

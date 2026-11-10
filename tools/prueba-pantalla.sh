@@ -13,8 +13,7 @@ correr() {
 }
 
 SALIDA="$(correr prueba.html)
-$(correr propuestas.html)
-$(correr botones.html)"
+$(correr propuestas.html)"
 
 echo "$SALIDA"
 echo "$SALIDA" | grep -q FALLA && exit 1
