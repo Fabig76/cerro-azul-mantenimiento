@@ -234,9 +234,13 @@ function pruebasPropuestas_() {
 
   // Limpieza
   actualizar('propuestas', propuesta.id, { activo: false }, 'prueba');
+  // La hoja de notificaciones no tiene «activo»: se descartan marcándolas como error,
+  // así la cola no intenta enviarlas.
   filtrar('notificaciones', function (n) {
-    return String(n.entidad_id) === String(propuesta.id);
-  }).forEach(function (n) { actualizar('notificaciones', n.id, { activo: false }, 'prueba'); });
+    return String(n.entidad_id) === String(propuesta.id) && String(n.estado) === 'PENDIENTE';
+  }).forEach(function (n) {
+    actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'prueba automática' }, 'prueba');
+  });
 }
 
 function pruebasSuperficiePublica_() {

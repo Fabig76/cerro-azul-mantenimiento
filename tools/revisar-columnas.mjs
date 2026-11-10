@@ -17,27 +17,62 @@ const audit = (schema.match(/CAMPOS_AUDITORIA\s*=\s*\[([^\]]*)\]/) || [, ''])[1]
 
 // Tablas y sus columnas
 const tablas = {};
-// Cada tabla termina en su primer corchete; algunas usan .concat(CAMPOS_AUDITORIA) y otras no.
-const reTabla = /^\s{2}([a-z_]+):\s*\[([^\]]*)\]/gm;
+// Cada tabla termina en su primer corchete. Las columnas de auditoría solo existen
+// en las que usan .concat(CAMPOS_AUDITORIA): darlas por hechas ocultaba errores reales.
+const reTabla = /^\s{2}([a-z_]+):\s*\[([^\]]*)\]\s*(\.[a-z]+)?/gm;
 let m;
 while ((m = reTabla.exec(schema)) !== null) {
   const cols = m[2].split(',').map((c) => c.trim().replace(/['"]/g, '')).filter(Boolean);
-  tablas[m[1]] = new Set([...cols, ...audit]);
+  const conAuditoria = String(m[3] || '').indexOf('concat') >= 0;
+  tablas[m[1]] = new Set(conAuditoria ? [...cols, ...audit] : cols);
 }
 
-// Recorre un objeto literal desde la llave de apertura y devuelve sus claves de primer nivel
+// Recorre un objeto literal desde su llave de apertura y devuelve las claves de
+// primer nivel, estén en su propia línea o no.
 function clavesDe(texto, desde) {
   const claves = [];
   let nivel = 0;
-  for (let i = desde; i < texto.length; i++) {
+  let i = desde;
+  let enCadena = null;
+
+  while (i < texto.length) {
     const c = texto[i];
-    if (c === '{') nivel++;
-    else if (c === '}') { nivel--; if (nivel === 0) return claves; }
-    else if (nivel === 1 && c === '\n') {
-      const resto = texto.slice(i + 1, i + 80);
-      const k = /^\s*([a-z_][a-z0-9_]*)\s*:/.exec(resto);
-      if (k) claves.push(k[1]);
+
+    if (enCadena) {
+      if (c === '\\') { i += 2; continue; }
+      if (c === enCadena) enCadena = null;
+      i++;
+      continue;
     }
+    if (c === "'" || c === '"' || c === '`') { enCadena = c; i++; continue; }
+    if (c === '/' && texto[i + 1] === '/') { i = texto.indexOf('\n', i); if (i < 0) break; continue; }
+
+    if (c === '{' || c === '[') { nivel++; i++; continue; }
+    if (c === '}' || c === ']') {
+      nivel--;
+      if (nivel === 0) return claves;
+      i++;
+      continue;
+    }
+
+    if (nivel === 1 && /[a-z_]/i.test(c)) {
+      let j = i;
+      while (j < texto.length && /[a-z0-9_]/i.test(texto[j])) j++;
+      const palabra = texto.slice(i, j);
+      let k = j;
+      while (k < texto.length && /\s/.test(texto[k])) k++;
+      // Solo es clave si viene después de «{» o de una coma: así no se confunden
+      // con las ramas de un ternario (`cond ? algo : otro`).
+      let p = i - 1;
+      while (p >= 0 && /\s/.test(texto[p])) p--;
+      const anterior = p >= 0 ? texto[p] : '';
+      if ((anterior === '{' || anterior === ',') && texto[k] === ':' && texto[k + 1] !== ':') {
+        claves.push(palabra);
+      }
+      i = j;
+      continue;
+    }
+    i++;
   }
   return claves;
 }
