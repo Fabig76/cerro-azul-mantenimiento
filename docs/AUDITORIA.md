@@ -76,6 +76,19 @@ Las acciones `auditoria.sesion` y `auditoria.limpiar` **no quedan desplegadas**:
 router solo durante la auditoría y se retiran al terminar. El respaldo de ese código está en
 `tools/auditoria-servidor.gs.bak`.
 
+## 5 bis. Propuestas (v1.3)
+
+El contratista propone y el administrador aprueba. Lo que hay que vigilar:
+
+- **Portal público, KPI e informes no cambian** al crear propuestas pendientes: nada de eso lee la
+  hoja `propuestas`. Comparar las cifras antes y después.
+- **Al aprobar**, la actividad nace PROGRAMADA y `publicable`, así que aparece en el portal público
+  en «próximos 30 días» **si su fecha de inicio cae dentro de esa ventana**. Si la fecha es lejana,
+  la actividad existe pero el portal aún no la lista.
+- **Una foto de la visita no vale como evidencia**: el control es por SHA-256 contra `evidencias` y
+  contra las demás propuestas.
+- **Purga**: solo se retiran las fotos a los 15 días; el texto se conserva.
+
 ## 6. Desplegar el servidor sin el token caducable
 
 `clasp` depende de un token que la política del Workspace de `urbcerroazul.com` invalida cada

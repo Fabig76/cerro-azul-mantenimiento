@@ -1,6 +1,6 @@
 # SPEC — Portal de Control de Mantenimientos Cerro Azul
 
-Versión 1.2 · Oct 31, 2026 · @FAbio Lesmes
+Versión 1.3 · Nov 9, 2026 · @FAbio Lesmes
 
 ## 0. Cómo usar este SPEC
 
@@ -64,6 +64,19 @@ La versión 1.2 corrige los puntos de la revisión de la v1.1 y queda congelada 
 | 6 | Correos por cola cada 5 minutos, fuera de la petición, salvo el enlace de ingreso | 7.3, RN-20 |
 | 7 | Limpieza diaria de la hoja `sesiones` | RN-21 |
 | 8 | Reactivación sin pérdida de historial, borrado del fragmento `#` tras el canje del enlace, guía con fotos de ejemplo | 6.2, 7.3, RN-22 |
+
+### 0.3 Cambios en la versión 1.3
+
+Las **propuestas de actividad**: el contratista propone un trabajo tras una visita y el administrador
+la aprueba o la rechaza. Lo aprobado se convierte en una actividad normal, con el flujo de siempre.
+
+- **Hoja nueva `propuestas`**, con estado propio. La propuesta **no** es una actividad: nada de lo
+  existente la lee (portal público, KPI, salud, informes), así que no altera ninguna cifra.
+- **`actividades.propuesta_id`** y el origen **`PROPUESTA`**.
+- **8 acciones nuevas** y las reglas **RN-25 a RN-32**.
+- La foto de la visita **no es evidencia** del trabajo (RN-30).
+- El borrado es **solo de las fotos** a los 15 días; el texto se conserva (RN-32).
+- **`ESQUEMA_VERSION`**: el esquema se crea o actualiza solo, sin exigir `setup()` a mano.
 
 ## 1. Visión, alcance y principios
 
@@ -306,6 +319,10 @@ Un libro de Google Sheets con una pestaña por entidad; la fila 1 son los encabe
 | `respuestas` | id, reporte\_id, item\_id, valor, cumple, observacion | `cumple` lo calcula el servidor contra el criterio |
 | `evidencias` | id, reporte\_id, actividad\_id, nodo\_id, momento (ANTES, DURANTE, DESPUES, DOCUMENTO), drive\_file\_id, mime, bytes, sha256, fecha\_captura, fecha\_subida, lat, lng, contiene\_personas, publicable, public\_file\_id | 1-2 ANTES y 1-2 DESPUES por reporte final |
 | `lecturas_estado` | id, nodo\_id, fecha, condicion\_operativa, origen (REPORTE, INSPECCION, NOVEDAD, ADMIN), reporte\_id, usuario\_id, nota | Historial de condición de cada elemento |
+| `propuestas` | id, nodo\_id, titulo, hallazgo, alcance, fecha\_inicio\_sugerida, fecha\_fin\_sugerida, prioridad\_sugerida, afecta\_uso, propuesta\_por, empresa\_id, estado (PENDIENTE, APROBADA, RECHAZADA, RETIRADA), fotos\_json, revisado\_por, revisado\_en, motivo\_rechazo, ajustes\_json, actividad\_id, fotos\_purgadas\_en | **v1.3.** Trabajo propuesto por el contratista, pendiente de aprobación. No es una actividad y no entra en ningún cálculo |
+
+En v1.3 `actividades` gana la columna **`propuesta_id`** (vacía salvo que la actividad nazca de una
+propuesta) y el origen **`PROPUESTA`**.
 
 ### 4.4 Novedades y alertas
 
@@ -427,6 +444,9 @@ Hay cuatro perfiles: Público (sin login), Contratista, Supervisor (consejo, sol
 | Registrar condición de un elemento | No | Solo nodos asignados | No | Sí |
 | Reportar novedad (daño o falla) | No | Solo nodos asignados | Sí | Sí |
 | Aprobar o rechazar reportes | No | No | No | Sí |
+| Proponer una actividad (v1.3) | No | Solo nodos asignados | No | No |
+| Retirar la propia propuesta (v1.3) | No | Solo las propias | No | No |
+| Aprobar o rechazar propuestas (v1.3) | No | No | Ver, sin botones | Sí |
 | Crear/editar nodos, tipos, plantillas, actividades, recurrencias | No | No | No | Sí |
 | Activar usuarios y asignar nodos | No | No | No | Sí |
 | Publicar, actualizar y cerrar alertas | No | No | No | Sí |
@@ -612,6 +632,14 @@ Un único endpoint `/exec`: `GET ?action=public.snapshot` para el público y `PO
 | Acción | Rol | Entrada (`payload`) | Salida (`data`) |
 | --- | --- | --- | --- |
 | `public.snapshot` (GET) | Público | — | JSON del snapshot (sec. 9.1) |
+| `propuestas.crear` | Contratista | nodo\_id, titulo, hallazgo, alcance, fecha\_inicio\_sugerida, fecha\_fin\_sugerida?, prioridad\_sugerida?, afecta\_uso? | propuesta, aviso (actividades abiertas en la sección) |
+| `propuestas.foto.subir` | Contratista | propuesta\_id, base64, base64\_mini?, mime | foto, fotos (número) |
+| `propuestas.foto.get` | Autor, Admin, Supervisor | propuesta\_id, foto\_id, tam? (mini) | base64, mime |
+| `propuestas.listar` | Todos (el contratista solo ve las suyas) | estado? | propuestas, total |
+| `propuestas.get` | Igual que listar | id | propuesta, verificacion (solo admin) |
+| `propuestas.aprobar` | Admin | id, titulo?, nodo\_id?, descripcion?, fecha\_inicio\_plan?, fecha\_fin\_plan?, prioridad? | propuesta, actividad |
+| `propuestas.rechazar` | Admin | id, motivo (mínimo 10) | propuesta |
+| `propuestas.retirar` | Autor | id | propuesta |
 | `auth.me` | Cualquiera con token | — | `{usuario, rol, asignaciones[], config_ui}` o error de estado |
 | `auth.registrar` | Token sin usuario | `{nombre, telefono, empresa_id \| empresa_nueva, acepta_datos:true}` | `{estado:'PENDIENTE'}` |
 | `nodos.arbol` | Admin, Supervisor, Contratista (subárboles asignados) | `{raiz_id?, profundidad?}` | Nodos con salud |
@@ -677,6 +705,36 @@ Un único endpoint `/exec`: `GET ?action=public.snapshot` para el público y `PO
 El snapshot **nunca** contiene correos, teléfonos, nombres de personas, `ficha_json`, IPs, ids de Drive privados, ni hijos de nodos sensibles (de un nodo sensible se publica solo su fila agregada). Una prueba automática lo verifica (sec. 15).
 
 ## 10. Reglas de negocio y máquina de estados
+
+### 10.2 bis. Propuestas (v1.3)
+
+```
+[*] --> PENDIENTE: el contratista propone
+PENDIENTE --> APROBADA: el admin, con o sin ajustes (crea la actividad)
+PENDIENTE --> RECHAZADA: el admin, con motivo
+PENDIENTE --> RETIRADA: el mismo contratista
+APROBADA: final, se conserva
+RECHAZADA, RETIRADA --> fotos purgadas: a los 15 días (el texto se conserva)
+```
+
+- **RN-25.** Solo se propone en secciones asignadas al contratista (incluye descendientes) y activas.
+- **RN-26.** Máximo **10** propuestas PENDIENTE por contratista (`config.propuestas_max_pendientes`).
+- **RN-27.** La fecha de inicio sugerida no puede ser anterior a hoy; la final, no anterior a la inicial.
+- **RN-28.** Al aprobar se comprueba, **todo antes de escribir**: la propuesta sigue PENDIENTE; quien
+  propuso sigue ACTIVO; sigue asignado a la sección; la sección sigue activa; su empresa es **la misma
+  que guardó la propuesta** y tiene contrato vigente (RN-18); la fecha de inicio no es anterior a hoy.
+  Si algo falla: `CONFLICTO` y no se crea nada.
+- **RN-29.** La actividad nace con `responsable_id` = quien propuso, `empresa_id` = la de la propuesta,
+  `origen = PROPUESTA` y `propuesta_id`. El administrador no puede cambiar esos campos al aprobar.
+- **RN-30.** Las fotos de la visita **no son evidencia**: no cuentan como ANTES ni DESPUÉS, no son
+  publicables y no se aceptan como evidencia de ninguna actividad (`FOTO_DUPLICADA`, control por SHA-256).
+- **RN-31.** Las propuestas no aparecen en el portal público, KPI, salud ni informes: nada de eso lee
+  la hoja `propuestas`.
+- **RN-32.** Una propuesta RECHAZADA o RETIRADA pierde **sus fotos** a los 15 días
+  (`config.propuestas_dias_borrado`): se envían a la papelera de Drive y `fotos_json` queda vacío con
+  `fotos_purgadas_en`. El **hallazgo y el alcance se conservan**: son la constancia de que el
+  contratista advirtió algo. La auditoría registra `PROPUESTA_FOTOS_PURGADAS`. Es una excepción
+  deliberada a RN-13, limitada a los archivos.
 
 Una actividad solo avanza por las transiciones de esta tabla; cualquier otra devuelve `ESTADO_INVALIDO`, y toda transición válida escribe auditoría y recalcula la salud del nodo y sus ancestros.
 
