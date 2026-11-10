@@ -92,6 +92,60 @@ function textoNotificacion_(tipo, entidadId) {
       ].join('\n'),
     };
   }
+  if (tipo === 'PROPUESTA_NUEVA' || tipo === 'PROPUESTA_APROBADA' || tipo === 'PROPUESTA_RECHAZADA') {
+    const p = buscarPorId('propuestas', entidadId);
+    if (!p) return null;
+    const nodo = buscarPorId('nodos', p.nodo_id);
+    const autor = buscarPorId('usuarios', p.propuesta_por);
+    const seccion = nodo ? nodo.codigo + ' · ' + nodo.nombre : '—';
+
+    if (tipo === 'PROPUESTA_NUEVA') {
+      return {
+        asunto: 'Nueva propuesta de actividad: ' + p.titulo,
+        cuerpo: [
+          'Un contratista propuso una actividad.',
+          'Título: ' + p.titulo,
+          'Sección: ' + seccion,
+          'Propone: ' + (autor ? (autor.nombre || autor.email) : '—'),
+          '',
+          'Revísala aquí: ' + base + '/app.html#/actividades',
+          '',
+          'Administración — Urbanización Cerro Azul',
+        ].join('\n'),
+      };
+    }
+
+    if (tipo === 'PROPUESTA_APROBADA') {
+      const ajustes = fromJson(p.ajustes_json, {});
+      const cambiados = Object.keys(ajustes);
+      return {
+        asunto: 'Tu propuesta fue aprobada: ' + p.titulo,
+        cuerpo: [
+          'La administración aprobó tu propuesta y creó la actividad.',
+          'Sección: ' + seccion,
+          'Fecha de inicio: ' + fechaIso_(p.fecha_inicio_sugerida),
+          cambiados.length ? 'La administración ajustó: ' + cambiados.join(', ') : '',
+          '',
+          'Ábrela aquí: ' + base + '/app.html#/actividades',
+          '',
+          'Administración — Urbanización Cerro Azul',
+        ].filter(Boolean).join('\n'),
+      };
+    }
+
+    return {
+      asunto: 'Tu propuesta no fue aprobada: ' + p.titulo,
+      cuerpo: [
+        'La administración revisó tu propuesta y no la aprobó.',
+        'Sección: ' + seccion,
+        'Motivo: ' + (p.motivo_rechazo || '(sin detalle)'),
+        '',
+        'Puedes proponer otra cuando quieras: ' + base + '/app.html#/actividades',
+        '',
+        'Administración — Urbanización Cerro Azul',
+      ].join('\n'),
+    };
+  }
   if (tipo === 'USUARIO_NUEVO') {
     return {
       asunto: 'Nuevo registro esperando activación',

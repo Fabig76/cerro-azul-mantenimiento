@@ -60,6 +60,14 @@ const ACCIONES = {
   'kpi.panel': { fn: accionKpi, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'informes.mensual': { fn: accionInforme, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'actividades.acta': { fn: accionActa, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
+  'propuestas.crear': { fn: propuestasCrear, sesion: true, roles: ['CONTRATISTA'] },
+  'propuestas.foto.subir': { fn: propuestasFotoSubir, sesion: true, roles: ['CONTRATISTA'] },
+  'propuestas.foto.get': { fn: propuestasFotoGet, sesion: true },
+  'propuestas.listar': { fn: propuestasListar, sesion: true },
+  'propuestas.get': { fn: propuestasGet, sesion: true },
+  'propuestas.aprobar': { fn: propuestasAprobar, sesion: true, roles: ['ADMIN'] },
+  'propuestas.rechazar': { fn: propuestasRechazar, sesion: true, roles: ['ADMIN'] },
+  'propuestas.retirar': { fn: propuestasRetirar, sesion: true, roles: ['CONTRATISTA'] },
   'entrega.exportar': { fn: accionEntrega, sesion: true, roles: ['ADMIN'] },
   'tests.ejecutar': { fn: accionTests, sesion: true, roles: ['ADMIN'] },
   'config.get': { fn: configGet, sesion: true, roles: ['ADMIN'] },
@@ -136,7 +144,8 @@ function doPost(e) {
       if (Number(cacheContar('rl:' + emailLimite, 60)) > 60) {
         fallar_('CONFLICTO', 'Demasiadas solicitudes en un minuto. Espera un momento.');
       }
-      if (accion === 'evidencias.upload' && Number(cacheContar('rlup:' + emailLimite, 60)) > 20) {
+      const subeFotos = accion === 'evidencias.upload' || accion === 'propuestas.foto.subir';
+      if (subeFotos && Number(cacheContar('rlup:' + emailLimite, 60)) > 20) {
         fallar_('CONFLICTO', 'Demasiadas fotos seguidas. Espera un minuto.');
       }
 

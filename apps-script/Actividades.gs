@@ -49,6 +49,21 @@ function actividadResumenBase_(a) {
 /** Crea una actividad. Solo ADMIN. */
 function actividadesCrear(ctx, payload) {
   desdePortal_(payload);
+  if (payload.propuesta_id || String(payload.origen || '').toUpperCase() === 'PROPUESTA') {
+    fallar_('VALIDACION', 'Una actividad de propuesta solo nace al aprobarla.');
+  }
+  return conBloqueo(function () { return crearActividad_(ctx, payload, {}); });
+}
+
+/**
+ * Crea una actividad. La usan la acción pública y la aprobación de propuestas.
+ * No toma el bloqueo: quien llama decide (conBloqueo no se anida).
+ * `opciones.origen`, `opciones.propuesta_id` y `opciones.avisar` mandan sobre el payload.
+ */
+function crearActividad_(ctx, payload, opciones) {
+  const opciones_ = opciones || {};
+  // Si el esquema cambió, la columna propuesta_id debe existir antes de insertar.
+  asegurarEsquema_();
   const nodoId = exigirTexto(payload.nodo_id, 'nodo_id');
   const nodo = buscarPorId('nodos', nodoId);
   if (!nodo) fallar_('NO_ENCONTRADO', 'La sección indicada no existe.');
@@ -107,7 +122,7 @@ function actividadesCrear(ctx, payload) {
     empresa_id: payload.empresa_id || '',
     responsable_id: payload.responsable_id || '',
     tipo: tipo,
-    origen: payload.origen || 'PLAN',
+    origen: opciones_.origen || payload.origen || 'PLAN',
     novedad_id: payload.novedad_id || '',
     recurrencia_id: payload.recurrencia_id || '',
     fecha_inicio_plan: inicio,
@@ -126,6 +141,7 @@ function actividadesCrear(ctx, payload) {
       }).length),
     afecta_uso: !!payload.afecta_uso,
     publicable: payload.publicable !== false,
+    propuesta_id: opciones_.propuesta_id || '',
     activo: true,
   }, ctx.usuario.email);
 
@@ -146,7 +162,9 @@ function actividadesCrear(ctx, payload) {
     }), ctx.usuario.email);
   }
 
-  if (payload.responsable_id) encolar_(payload.responsable_id, 'ACTIVIDAD_ASIGNADA', actividad.id);
+  if (payload.responsable_id && opciones_.avisar !== false) {
+    encolar_(payload.responsable_id, 'ACTIVIDAD_ASIGNADA', actividad.id);
+  }
   auditar(ctx.usuario.email, 'ACTIVIDAD_CREADA', 'actividad', actividad.id, null,
     { titulo: titulo, nodo: nodo.codigo, dias: dias });
   return { actividad: actividadResumen_(actividad), hitos: hitos.length };
@@ -216,6 +234,7 @@ function actividadesGet(ctx, payload) {
     fallar_('PROHIBIDO', 'No tienes acceso a esta actividad.');
   }
 
+  asegurarEsquema_();
   const nodo = buscarPorId('nodos', act.nodo_id);
   const plantilla = plantillaConItems_(act.plantilla_id, act.plantilla_version);
   const hitos = filtrar('hitos', function (h) {

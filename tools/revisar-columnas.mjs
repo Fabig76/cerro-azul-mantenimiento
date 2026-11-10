@@ -17,7 +17,8 @@ const audit = (schema.match(/CAMPOS_AUDITORIA\s*=\s*\[([^\]]*)\]/) || [, ''])[1]
 
 // Tablas y sus columnas
 const tablas = {};
-const reTabla = /^\s{2}([a-z_]+):\s*\[([\s\S]*?)\]\s*\.concat/gm;
+// Cada tabla termina en su primer corchete; algunas usan .concat(CAMPOS_AUDITORIA) y otras no.
+const reTabla = /^\s{2}([a-z_]+):\s*\[([^\]]*)\]/gm;
 let m;
 while ((m = reTabla.exec(schema)) !== null) {
   const cols = m[2].split(',').map((c) => c.trim().replace(/['"]/g, '')).filter(Boolean);

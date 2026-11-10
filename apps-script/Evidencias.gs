@@ -62,6 +62,15 @@ function evidenciasUpload(ctx, payload) {
   })[0];
   if (repetida) fallar_('FOTO_DUPLICADA', 'Esa foto ya está cargada en otra actividad.');
 
+  // RN-30: una foto de la visita no reemplaza la foto de antes.
+  const deVisita = filtrar('propuestas', function (p) {
+    if (!bool(p.activo)) return false;
+    return fromJson(p.fotos_json, []).some(function (f) { return String(f.sha256) === sha; });
+  })[0];
+  if (deVisita) {
+    fallar_('FOTO_DUPLICADA', 'Esa foto es de la visita. La foto de antes se toma al iniciar el trabajo.');
+  }
+
   const nodo = buscarPorId('nodos', act.nodo_id);
   const codigo = nodo ? nodo.codigo : 'NODO';
   const hoy = hoyIso();

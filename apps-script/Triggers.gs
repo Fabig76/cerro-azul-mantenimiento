@@ -23,5 +23,13 @@ function instalarDisparadores() {
 /** Envuelve el recálculo para el disparador diario. */
 function recalcularTodoDiario() {
   recalcularTodo('disparador');
+
+  // Purga de fotos de propuestas viejas: si falla, el resto del disparador sigue.
+  try {
+    const purga = purgarPropuestas_();
+    if (purga && purga.purgadas) console.log('Propuestas purgadas: ' + purga.purgadas);
+  } catch (e) {
+    console.error('purga de propuestas: ' + e.message);
+  }
   regenerarSnapshot();
 }

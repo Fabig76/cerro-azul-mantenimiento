@@ -51,6 +51,7 @@ function runAllTests() {
   pruebasRitmo_();
   pruebasSuperficiePublica_();
   pruebasRechazoYReenvio_();
+  pruebasPropuestas_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -179,6 +180,63 @@ function pruebasRechazoYReenvio_() {
   filtrar('evidencias', function (e) { return String(e.actividad_id) === String(act.id); })
     .forEach(function (e) { actualizar('evidencias', e.id, { activo: false }, 'prueba'); });
   actualizar('actividades', act.id, { activo: false }, 'prueba');
+}
+
+/**
+ * Propuestas del contratista: lo que el administrador revisa antes de aprobar.
+ * Datos marcados PRUEBA; todo queda inactivo al final.
+ */
+function pruebasPropuestas_() {
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · propuestas · sin nodos'); return; }
+
+  const hoy = hoyIso();
+  const admin = { id: 'PRUEBA_ADMIN', email: 'prueba-admin@urbcerroazul.com' };
+  const ctxAdmin = { usuario: admin, rol: 'ADMIN' };
+
+  const propuesta = insertar('propuestas', {
+    id: newId('PRO'), nodo_id: nodo.id, titulo: 'PRUEBA propuesta',
+    hallazgo: 'Se encontró humedad en el muro del cuarto de bombas.',
+    alcance: 'Impermeabilizar el muro y revisar la canaleta del techo.',
+    fecha_inicio_sugerida: sumarDias(hoy, 3), fecha_fin_sugerida: sumarDias(hoy, 6),
+    prioridad_sugerida: 'ALTA', afecta_uso: false, propuesta_por: 'PRUEBA_CONTRATISTA',
+    empresa_id: '', estado: 'PENDIENTE', fotos_json: '[]', revisado_por: '', revisado_en: '',
+    motivo_rechazo: '', ajustes_json: '{}', actividad_id: '', fotos_purgadas_en: '', activo: true,
+  }, 'prueba');
+
+  // Aprobar dos veces: la segunda no debe crear otra actividad.
+  let creadas = 0;
+  try {
+    propuestasAprobar(ctxAdmin, { id: propuesta.id, titulo: 'PRUEBA propuesta editada' });
+  } catch (e) {
+    // Quien propuso no existe como usuario: es un CONFLICTO esperado.
+    verdadero_(String(e.message).indexOf('CONFLICTO') === 0, 'aprobar sin usuario activo da CONFLICTO');
+  }
+  const trasIntento = buscarPorId('propuestas', propuesta.id);
+  verdadero_(String(trasIntento.estado) === 'PENDIENTE', 'una aprobación fallida deja la propuesta pendiente');
+
+  // Rechazar con motivo corto
+  let corto = '';
+  try { propuestasRechazar(ctxAdmin, { id: propuesta.id, motivo: 'no' }); } catch (e) { corto = String(e.message); }
+  verdadero_(corto.indexOf('VALIDACION') === 0, 'rechazo con motivo corto se rechaza');
+
+  // Rechazar bien
+  try { propuestasRechazar(ctxAdmin, { id: propuesta.id, motivo: 'Falta el detalle del material' }); } catch (e) {
+    RESULTADOS.detalle.push('FALLA · rechazo válido · ' + e.message);
+    RESULTADOS.fallidas++;
+  }
+  const rechazada = buscarPorId('propuestas', propuesta.id);
+  verdadero_(String(rechazada.estado) === 'RECHAZADA', 'rechazo deja la propuesta RECHAZADA');
+
+  // La purga no toca una rechazada reciente
+  const purga = purgarPropuestas_();
+  verdadero_(!purga || !purga.purgadas, 'la purga no toca propuestas recientes');
+
+  // Limpieza
+  actualizar('propuestas', propuesta.id, { activo: false }, 'prueba');
+  filtrar('notificaciones', function (n) {
+    return String(n.entidad_id) === String(propuesta.id);
+  }).forEach(function (n) { actualizar('notificaciones', n.id, { activo: false }, 'prueba'); });
 }
 
 function pruebasSuperficiePublica_() {

@@ -15,7 +15,7 @@ function exportarEntrega(usuario) {
 
   // Índice de lo entregado
   const conteo = {};
-  ['nodos', 'actividades', 'reportes', 'evidencias', 'novedades', 'alertas', 'usuarios', 'empresas']
+  ['nodos', 'actividades', 'reportes', 'evidencias', 'novedades', 'alertas', 'usuarios', 'empresas', 'propuestas']
     .forEach(function (h) { conteo[h] = filas(h).length; });
 
   const carpetaEvidencias = subcarpeta_(carpetaRaiz_(), CARPETA_EVIDENCIAS);

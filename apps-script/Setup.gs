@@ -33,6 +33,7 @@ function setup() {
 
   // 2. Pestañas y encabezados
   resultado.pestañas = asegurarPestañas(ss);
+  prop('esquema_version', String(ESQUEMA_VERSION));
 
   // 3. Carpetas
   resultado.carpeta_raiz_id = asegurarCarpetas();
@@ -185,4 +186,16 @@ function arbolTexto() {
   }
   bajar('RAIZ', 0);
   return lineas.join('\n');
+}
+
+/**
+ * Crea las pestañas y columnas nuevas del esquema, una sola vez por versión.
+ * Se llama al inicio de las acciones que dependen de ellas.
+ */
+function asegurarEsquema_() {
+  const actual = Number(prop('esquema_version') || 0);
+  if (actual >= ESQUEMA_VERSION) return false;
+  asegurarPestañas(hojaCalculo());
+  prop('esquema_version', String(ESQUEMA_VERSION));
+  return true;
 }

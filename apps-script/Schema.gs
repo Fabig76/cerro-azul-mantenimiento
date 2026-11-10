@@ -5,6 +5,10 @@
 
 const CAMPOS_AUDITORIA = ['creado_en', 'creado_por', 'actualizado_en', 'actualizado_por', 'activo'];
 
+// Sube este número cada vez que cambie el esquema: la app lo compara con la
+// propiedad de script y crea las pestañas o columnas nuevas sin exigir setup().
+const ESQUEMA_VERSION = 3;
+
 const SCHEMA = {
   nodos: [
     'id', 'parent_id', 'clase', 'segmento', 'nombre', 'descripcion', 'codigo', 'ruta_ids', 'profundidad', 'orden',
@@ -56,6 +60,7 @@ const SCHEMA = {
     'fecha_fin_plan', 'dias_plan', 'prioridad', 'estado', 'vencida', 'en_riesgo', 'avance_reportado_pct',
     'avance_aprobado_pct', 'fecha_inicio_real', 'fecha_reporte_final', 'fecha_aprobacion',
     'obligatoria_legal', 'afecta_uso', 'publicable', 'acta_file_id', 'inicio_sin_foto_motivo',
+    'propuesta_id',
   ].concat(CAMPOS_AUDITORIA),
 
   hitos: ['id', 'actividad_id', 'orden', 'nombre', 'peso', 'fecha_plan', 'estado', 'fecha_aprobacion']
@@ -95,6 +100,13 @@ const SCHEMA = {
   public_snapshot: ['clave', 'json', 'generado_en'],
 
   sesiones: ['id', 'token_hash', 'usuario_id', 'email', 'origen', 'creada_en', 'expira_en', 'ultimo_uso', 'revocada'],
+
+  propuestas: [
+    'id', 'nodo_id', 'titulo', 'hallazgo', 'alcance', 'fecha_inicio_sugerida', 'fecha_fin_sugerida',
+    'prioridad_sugerida', 'afecta_uso', 'propuesta_por', 'empresa_id', 'estado', 'fotos_json',
+    'revisado_por', 'revisado_en', 'motivo_rechazo', 'ajustes_json', 'actividad_id',
+    'fotos_purgadas_en',
+  ].concat(CAMPOS_AUDITORIA),
 
   notificaciones: ['id', 'fecha', 'usuario_id', 'tipo', 'entidad_id', 'estado', 'intentos', 'enviado_en', 'error'],
 };

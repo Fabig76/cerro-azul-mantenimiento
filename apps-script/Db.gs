@@ -195,6 +195,7 @@ function conBloqueo(fn) {
 function prefijoDe(nombre) {
   const mapa = {
     nodos: 'NOD', tipos_elemento: 'TIP', plan_tipo: 'PLT', plantillas: 'PLA', plantilla_items: 'ITM',
+    propuestas: 'PRO',
     usuarios: 'USU', empresas: 'EMP', asignaciones: 'ASI', recurrencias: 'REC', actividades: 'ACT',
     hitos: 'HIT', reportes: 'REP', respuestas: 'RES', evidencias: 'EVI', lecturas_estado: 'LEC',
     novedades: 'NOV', alertas: 'ALE', auditoria: 'AUD', sesiones: 'SES', notificaciones: 'NOT',
