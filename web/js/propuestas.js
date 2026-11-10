@@ -26,10 +26,20 @@
   }
 
   function aviso(texto, tipo) {
-    const caja = document.getElementById('avisoPropuestas');
-    if (!caja) return;
+    let caja = document.getElementById('avisoPropuestas');
+    if (!caja) {
+      // Nunca dejar un mensaje sin sitio donde verse.
+      caja = el('div', 'msg');
+      caja.id = 'avisoPropuestas';
+      caja.setAttribute('role', 'status');
+      const ancla = document.getElementById('tarjetaActividades')
+        || document.getElementById('bloquePropuestasContratista');
+      if (!ancla) return;
+      ancla.parentNode.insertBefore(caja, ancla);
+    }
     caja.textContent = texto || '';
     caja.className = texto ? 'msg mostrar ' + (tipo || 'info') : 'msg';
+    if (texto) caja.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   function campo(etiqueta, control, ayuda) {
@@ -244,6 +254,7 @@
     acciones.appendChild(volver);
 
     enviar.addEventListener('click', async function () {
+      if (!sel.value) return aviso('Elige la sección donde hiciste la visita.', 'error');
       if (hallazgo.value.trim().length < 20) return aviso('Cuenta con al menos 20 caracteres qué encontraste.', 'error');
       if (alcance.value.trim().length < 20) return aviso('Cuenta con al menos 20 caracteres qué propones hacer.', 'error');
       if (!inicio.value) return aviso('Indica una fecha de inicio.', 'error');

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title></head>
+<body>
+<div class="msg seccion-panel" id="avisoPropuestas" data-panel="actividades"></div>
+<div class="card" id="tarjetaPropuestas"></div>
+<div class="card" id="tarjetaActividades">
+  <div id="bloquePropuestasContratista"></div>
+</div>
+<script>
+// Dobles: la prueba solo mira lo que se dibuja y qué mensaje queda a la vista.
+window.Sesion = { token: function () { return 'x'; } };
+window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'a', base64_mini: 'b', kb: 10 }); } };
+window.__respuestas = {};
+window.API = {
+  llamar: function (accion, payload) {
+    const r = window.__respuestas[accion];
+    if (typeof r === 'function') return Promise.resolve(r(payload));
+    return Promise.resolve(r || { ok: true, data: {} });
+  },
+};
+</script>
+<script src="../../web/js/propuestas.js"></script>
+<script>
+(function () {
+  const resultados = [];
+  const nodo = { id: 'NOD_1', codigo: 'CA-T1', nombre: 'Torre 1' };
+
+  function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function textoAviso() {
+    const c = document.getElementById('avisoPropuestas');
+    return c ? (c.textContent || '').trim() : '(sin contenedor)';
+  }
+  function visible(n) {
+    let p = n;
+    while (p && p !== document.body) {
+      if (p.classList && p.classList.contains('oculto')) return false;
+      p = p.parentNode;
+    }
+    return true;
+  }
+  function porTexto(t) {
+    return Array.prototype.slice.call(document.querySelectorAll('button'))
+      .filter(function (b) { return (b.textContent || '').indexOf(t) >= 0; })[0];
+  }
+  function escribir(id, valor) {
+    const c = document.getElementById(id);
+    if (c) c.value = valor;
+  }
+
+  (async function () {
+    // 1. El contratista abre su bloque: el aviso debe estar a la vista
+    window.__respuestas['propuestas.listar'] = { ok: true, data: { propuestas: [] } };
+    await Propuestas.cargar('CONTRATISTA', [nodo]);
+    const cajaAviso = document.getElementById('avisoPropuestas');
+    resultados.push((cajaAviso && visible(cajaAviso) ? 'OK   ' : 'FALLA') +
+      ' · el aviso del contratista queda a la vista');
+
+    // 2. Enviar con el hallazgo corto: debe aparecer el mensaje
+    const abrir = porTexto('Proponer una actividad');
+    abrir.click();
+    await esperar(30);
+    escribir('prHallazgo', 'corto');
+    escribir('prAlcance', 'Esto sí tiene más de veinte caracteres de largo.');
+    escribir('prInicio', '2026-12-01');
+    porTexto('Enviar propuesta').click();
+    await esperar(60);
+    resultados.push((textoAviso().indexOf('20 caracteres') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · hallazgo corto avisa («' + textoAviso().slice(0, 40) + '»)');
+
+    // 3. El servidor rechaza: el mensaje del servidor debe verse
+    window.__respuestas['propuestas.crear'] = { ok: false, code: 'CONFLICTO', message: 'Ya tienes 10 propuestas pendientes.' };
+    escribir('prHallazgo', 'Humedad en el muro sur del cuarto de bombas, junto a la bomba 2.');
+    porTexto('Enviar propuesta').click();
+    await esperar(60);
+    resultados.push((textoAviso().indexOf('10 propuestas') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · el error del servidor se muestra');
+
+    // 4. Envío correcto
+    window.__respuestas['propuestas.crear'] = { ok: true, data: { propuesta: { id: 'PRO_1' } } };
+    window.__respuestas['propuestas.foto.subir'] = { ok: true, data: {} };
+    porTexto('Enviar propuesta').click();
+    await esperar(80);
+    resultados.push((textoAviso().indexOf('Propuesta enviada') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · el envío correcto confirma');
+
+    document.title = resultados.join(' | ');
+  })();
+})();
+</script>
+</body></html>
