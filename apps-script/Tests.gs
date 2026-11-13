@@ -57,6 +57,7 @@ function runAllTests() {
   pruebasSubidaRepetida_();
   pruebasDetalleEnEscrituras_();
   pruebasNovedadesMias_();
+  pruebasSeccionRaiz_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -420,6 +421,32 @@ function pruebasNovedadesMias_() {
       return String(n.usuario_id) === String(uno.id) && String(n.tipo) === 'ACTIVIDAD_ASIGNADA' &&
         String(n.entidad_id) === '';
     }).forEach(function (n) { actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'prueba' }, 'prueba'); });
+  }
+}
+
+/**
+ * «Mi torre»: cada nodo debe saber a qué sección de primer nivel pertenece.
+ */
+function pruebasSeccionRaiz_() {
+  const nodos = filtrar('nodos', function (n) { return bool(n.activo); });
+  if (!nodos.length) { RESULTADOS.detalle.push('OMITE · sección raíz · sin nodos'); return; }
+
+  const porId = {};
+  nodos.forEach(function (n) { porId[n.id] = n; });
+
+  const raiz = nodos.filter(function (n) { return !String(n.ruta_ids || ''); })[0] || nodos[0];
+  const propia = seccionRaizDe_(raiz, porId);
+  verdadero_(!!propia && String(propia.id) === String(raiz.id), 'un nodo de primer nivel es su propia sección');
+
+  const hijo = nodos.filter(function (n) {
+    return String(n.ruta_ids || '').split('/').filter(Boolean)[0] === String(raiz.id);
+  })[0];
+  if (hijo) {
+    const deHijo = seccionRaizDe_(hijo, porId);
+    verdadero_(!!deHijo && String(deHijo.id) === String(raiz.id),
+      'un hijo apunta a la sección de primer nivel');
+  } else {
+    RESULTADOS.detalle.push('OMITE · sección raíz · la primera sección no tiene hijos');
   }
 }
 
