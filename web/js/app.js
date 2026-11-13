@@ -874,6 +874,8 @@
   }
 
   function salir() {
+    // En un celular compartido las fotos del trabajo anterior no deben quedar.
+    if (window.FotoCache) FotoCache.limpiar();
     const t = Sesion.token();
     if (t) API.llamar('auth.salir', {}, { token: t });
     Sesion.limpiar();

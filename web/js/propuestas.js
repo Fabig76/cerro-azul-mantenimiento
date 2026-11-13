@@ -458,10 +458,16 @@
       hueco.appendChild(img);
       figura.appendChild(hueco);
       figura.appendChild(el('figcaption', 'foto-pie', 'Visita ' + (i + 1)));
-      API.llamar('propuestas.foto.get', { propuesta_id: abierta.propuesta.id, foto_id: fotoId, tam: 'mini' },
-        { token: Sesion.token() }).then(function (rf) {
-        if (rf.ok) img.src = 'data:' + (rf.data.mime || 'image/jpeg') + ';base64,' + rf.data.base64;
-      }).catch(function () {});
+      if (window.FotoCache) {
+        FotoCache.configurar(function (tipo, d) {
+          return API.llamar('propuestas.foto.get', { propuesta_id: d.propuesta, foto_id: d.id, tam: 'mini' },
+            { token: Sesion.token() }).then(function (rf) {
+            return rf.ok ? { base64: rf.data.base64, mime: rf.data.mime } : null;
+          });
+        });
+        FotoCache.mostrar(img, { clave: 'propuesta:' + abierta.propuesta.id + ':' + fotoId,
+          tipo: 'propuesta', id: fotoId, propuesta: abierta.propuesta.id });
+      }
       fotos.appendChild(figura);
     });
     original.appendChild(fotos);

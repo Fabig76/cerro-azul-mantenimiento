@@ -74,6 +74,26 @@
     }
   }
 
+  /**
+   * Pinta una miniatura con la caché del dispositivo: se pide una sola vez.
+   */
+  function miniaturizar(img, datos) {
+    if (!window.FotoCache) return;
+    FotoCache.configurar(function (tipo, d) {
+      if (tipo === 'propuesta') {
+        return API.llamar('propuestas.foto.get', { propuesta_id: d.propuesta, foto_id: d.id, tam: 'mini' },
+          { token: Sesion.token() }).then(function (r) {
+          return r.ok ? { base64: r.data.base64, mime: r.data.mime } : null;
+        });
+      }
+      return API.llamar('evidencias.get', { id: d.id, tam: 'mini' }, { token: Sesion.token() })
+        .then(function (r) {
+          return r.ok ? { base64: r.data.base64, mime: r.data.mime } : null;
+        });
+    });
+    FotoCache.mostrar(img, datos);
+  }
+
   function mostrar(visible) {
     const vista = document.getElementById('vistaActividad');
     const lista = document.getElementById('tarjetaActividades');
@@ -166,10 +186,8 @@
       hueco.appendChild(img);
       figura.appendChild(hueco);
       figura.appendChild(el('figcaption', 'foto-pie', 'Visita ' + (i + 1)));
-      API.llamar('propuestas.foto.get', { propuesta_id: p.id, foto_id: fotoId, tam: 'mini' },
-        { token: Sesion.token() }).then(function (r) {
-        if (r.ok) img.src = 'data:' + (r.data.mime || 'image/jpeg') + ';base64,' + r.data.base64;
-      }).catch(function () {});
+      miniaturizar(img, { clave: 'propuesta:' + p.id + ':' + fotoId, tipo: 'propuesta',
+        id: fotoId, propuesta: p.id });
       fotos.appendChild(figura);
     });
     if ((p.fotos || []).length) caja.appendChild(fotos);
@@ -707,13 +725,7 @@
     previas.forEach(function (e, i) {
       const nombre = (momento === 'ANTES' ? 'Antes' : 'Después') + ' ' + (i + 1) + ' · envío anterior';
       const img = miniatura(nombre, nombre, null);
-      API.llamar('evidencias.get', { id: e.id, tam: 'mini' }, { token: Sesion.token() })
-        .then(function (r) {
-          if (r.ok && r.data && r.data.base64) {
-            img.src = 'data:' + (r.data.mime || 'image/jpeg') + ';base64,' + r.data.base64;
-          }
-        })
-        .catch(function () { /* queda el hueco */ });
+      miniaturizar(img, { clave: 'evidencia:' + e.id, tipo: 'evidencia', id: e.id });
     });
 
     // Las de este envío: con su miniatura inmediata.
@@ -721,13 +733,7 @@
       const nombre = (momento === 'ANTES' ? 'Antes' : 'Después') + ' ' + (previas.length + i + 1);
       const img = miniatura(nombre, nombre + ' · ' + f.kb + ' KB', f.mini || null);
       if (!f.mini && f.id) {
-        API.llamar('evidencias.get', { id: f.id, tam: 'mini' }, { token: Sesion.token() })
-          .then(function (r) {
-            if (r.ok && r.data && r.data.base64) {
-              img.src = 'data:' + (r.data.mime || 'image/jpeg') + ';base64,' + r.data.base64;
-            }
-          })
-          .catch(function () { /* queda el hueco */ });
+        miniaturizar(img, { clave: 'evidencia:' + f.id, tipo: 'evidencia', id: f.id });
       }
     });
 

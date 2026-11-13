@@ -303,12 +303,20 @@
   }
 
   async function cargarFoto(id, img) {
-    try {
+    const pedir = async function () {
       const url = window.CFG.API_URL + '?action=public.foto&id=' + encodeURIComponent(id);
       const r = await fetch(url, { redirect: 'follow' });
       const d = await r.json();
-      if (d.base64) img.src = 'data:' + d.mime + ';base64,' + d.base64;
-    } catch (e) { /* sin foto */ }
+      return d.base64 ? { base64: d.base64, mime: d.mime } : null;
+    };
+
+    if (window.FotoCache) {
+      FotoCache.configurar(function (tipo, datos) { return datos.tipo === 'publica' ? pedir() : null; });
+      FotoCache.mostrar(img, { clave: 'publica:' + id, tipo: 'publica', id: id });
+      return;
+    }
+    const d = await pedir();
+    if (d) img.src = 'data:' + d.mime + ';base64,' + d.base64;
   }
 
   const NIVEL_ALERTA = {

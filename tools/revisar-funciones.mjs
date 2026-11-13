@@ -31,7 +31,8 @@ for (const f of archivos) {
   for (const m of s.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/g)) definidas.add(m[1]);
   for (const m of s.matchAll(/window\.([A-Za-z_$][\w$]*)\s*=/g)) definidas.add(m[1]);
   // Nombres de parámetros: se aceptan como funciones llamables
-  for (const m of s.matchAll(/(?:function\s*[A-Za-z_$\w]*\s*)?\(([^)]*)\)\s*(?:=>|\{)/g)) {
+  // Sin paréntesis anidados: así se lee el parámetro real de una función dentro de otra.
+  for (const m of s.matchAll(/(?:function\s*[A-Za-z_$\w]*\s*)?\(([^()]*)\)\s*(?:=>|\{)/g)) {
     for (const parte of m[1].split(',')) {
       const nombre = parte.trim().split(/[\s=:]/)[0];
       if (/^[A-Za-z_$][\w$]*$/.test(nombre)) definidas.add(nombre);
