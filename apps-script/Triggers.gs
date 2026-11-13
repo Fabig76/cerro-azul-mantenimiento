@@ -3,21 +3,43 @@
  * El snapshot se regenera cada hora y la salud se recalcula de madrugada.
  */
 
+const DISPARADORES = [
+  'regenerarSnapshot',
+  'recalcularTodoDiario',
+  'despacharCorreos',
+  'avisosDiariosDisparador',
+];
+
+/**
+ * Deja exactamente los disparadores de la lista, sin duplicar.
+ * Se puede ejecutar cuantas veces haga falta.
+ */
 function instalarDisparadores() {
-  const existentes = ScriptApp.getProjectTriggers();
-  existentes.forEach(function (t) {
-    const fn = t.getHandlerFunction();
-    if (fn === 'regenerarSnapshot' || fn === 'recalcularTodoDiario') ScriptApp.deleteTrigger(t);
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (DISPARADORES.indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t);
   });
 
   ScriptApp.newTrigger('regenerarSnapshot').timeBased().everyHours(1).create();
   ScriptApp.newTrigger('recalcularTodoDiario').timeBased().atHour(3).everyDays(1).create();
+  // La cola de correos se vacía aunque nadie entre al portal.
+  ScriptApp.newTrigger('despacharCorreos').timeBased().everyMinutes(10).create();
+  ScriptApp.newTrigger('avisosDiariosDisparador').timeBased().atHour(6).everyDays(1).create();
 
   return {
     disparadores: ScriptApp.getProjectTriggers().map(function (t) {
       return t.getHandlerFunction();
     }),
   };
+}
+
+/** Disparador diario de los avisos. */
+function avisosDiariosDisparador() {
+  try {
+    const r = avisosDiarios_();
+    console.log('avisos diarios: ' + JSON.stringify(r));
+  } catch (e) {
+    console.error('avisos diarios: ' + e.message);
+  }
 }
 
 /** Envuelve el recálculo para el disparador diario. */

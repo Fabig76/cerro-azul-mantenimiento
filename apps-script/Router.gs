@@ -69,6 +69,7 @@ const ACCIONES = {
   'propuestas.rechazar': { fn: propuestasRechazar, sesion: true, roles: ['ADMIN'] },
   'propuestas.retirar': { fn: propuestasRetirar, sesion: true, roles: ['CONTRATISTA'] },
   'entrega.exportar': { fn: accionEntrega, sesion: true, roles: ['ADMIN'] },
+  'sistema.estado': { fn: sistemaEstado, sesion: true, roles: ['ADMIN'] },
   'tests.ejecutar': { fn: accionTests, sesion: true, roles: ['ADMIN'] },
   'config.get': { fn: configGet, sesion: true, roles: ['ADMIN'] },
   'auditoria.listar': { fn: auditoriaListar, sesion: true, roles: ['ADMIN'] },

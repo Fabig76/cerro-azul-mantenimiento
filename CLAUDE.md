@@ -76,3 +76,8 @@ Cada uno costó un fallo en producción. No repetirlos.
     actividades pedía 20 y nunca la página siguiente, ordenadas por fecha de fin ascendente: las
     aprobadas y canceladas ocupaban los primeros puestos y un trabajo de hoy podía no aparecer.
     Toda lista que crezca necesita grupos, búsqueda y «ver más».
+
+13. **Un aviso que se encola dos veces es un correo que se envía dos veces.** `encolar_` solo evita
+    duplicados mientras la fila está PENDIENTE; para los avisos diarios hay que buscar en **cualquier
+    estado** (`yaAvisado_`). Y todo envío necesita `LockService`: dos ejecuciones simultáneas leen las
+    mismas filas y mandan el correo dos veces.

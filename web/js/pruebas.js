@@ -95,5 +95,29 @@
     });
   }
 
-  window.Pruebas = { preparar: function () { prepararPruebas(); prepararRefresco(); } };
+  /** Cola de correos y disparadores: si algo se atasca, se ve aquí. */
+  async function cargarEstado() {
+    const caja = document.getElementById('estadoCorreos');
+    if (!caja) return;
+    const r = await API.llamar('sistema.estado', {}, { token: Sesion.token() });
+    if (!r.ok) {
+      caja.textContent = 'No se pudo consultar el estado: ' + (r.message || 'sin respuesta');
+      return;
+    }
+    const c = r.data.correos || {};
+    const partes = [
+      'Correos en cola: ' + (c.pendientes || 0) + (c.pendientes === 1 ? ' pendiente' : ' pendientes'),
+      (c.errores || 0) + ' con error',
+    ];
+    if ((r.data.faltan || []).length) {
+      partes.push('Faltan disparadores: ' + r.data.faltan.join(', ') + '. Ejecuta instalarDisparadores().');
+    } else {
+      partes.push('Los ' + (r.data.disparadores || []).length + ' disparadores están instalados');
+    }
+    caja.textContent = partes.join(' · ') + '.';
+  }
+
+  window.Pruebas = {
+    preparar: function () { prepararPruebas(); prepararRefresco(); cargarEstado(); },
+  };
 })();

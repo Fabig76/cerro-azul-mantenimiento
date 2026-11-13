@@ -632,6 +632,7 @@ Un único endpoint `/exec`: `GET ?action=public.snapshot` para el público y `PO
 | Acción | Rol | Entrada (`payload`) | Salida (`data`) |
 | --- | --- | --- | --- |
 | `public.snapshot` (GET) | Público | — | JSON del snapshot (sec. 9.1) |
+| `sistema.estado` | Admin | — | correos en cola, disparadores instalados y los que faltan |
 | `propuestas.crear` | Contratista | nodo\_id, titulo, hallazgo, alcance, fecha\_inicio\_sugerida, fecha\_fin\_sugerida?, prioridad\_sugerida?, afecta\_uso? | propuesta, aviso (actividades abiertas en la sección) |
 | `propuestas.foto.subir` | Contratista | propuesta\_id, base64, base64\_mini?, mime | foto, fotos (número) |
 | `propuestas.foto.get` | Autor, Admin, Supervisor | propuesta\_id, foto\_id, tam? (mini) | base64, mime |
@@ -705,6 +706,21 @@ Un único endpoint `/exec`: `GET ?action=public.snapshot` para el público y `PO
 El snapshot **nunca** contiene correos, teléfonos, nombres de personas, `ficha_json`, IPs, ids de Drive privados, ni hijos de nodos sensibles (de un nodo sensible se publica solo su fila agregada). Una prueba automática lo verifica (sec. 15).
 
 ## 10. Reglas de negocio y máquina de estados
+
+### 10.2 ter. Avisos y disparadores (v1.4)
+
+Cuatro disparadores; `instalarDisparadores()` los deja siempre iguales y no duplica:
+
+| Disparador | Cuándo | Qué hace |
+| --- | --- | --- |
+| `regenerarSnapshot` | cada hora | reconstruye el portal público |
+| `recalcularTodoDiario` | 3:00 | salud, vencidas y purga de fotos de propuestas |
+| `despacharCorreos` | cada 10 minutos | vacía la cola de correos, con bloqueo y control de cuota |
+| `avisosDiariosDisparador` | 6:00 | recordatorios, «hoy empieza», vencidas y contratos por vencer |
+
+`avisosDiarios_()` encola una sola vez por usuario, tipo y entidad. Si la actividad no tiene
+responsable, el aviso va a los administradores. Antes de enviar se revisa `MailApp.getRemainingDailyQuota()`:
+por debajo de 10 envíos no se manda nada y las filas quedan pendientes.
 
 ### 10.2 bis. Propuestas (v1.3)
 

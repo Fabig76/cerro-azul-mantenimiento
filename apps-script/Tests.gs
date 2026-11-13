@@ -53,6 +53,7 @@ function runAllTests() {
   pruebasRechazoYReenvio_();
   pruebasPropuestas_();
   pruebasListaActividades_();
+  pruebasAvisos_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -291,6 +292,51 @@ function pruebasListaActividades_() {
     verdadero_(conTilde.actividades.length >= 5, 'la búsqueda por texto encuentra las de prueba');
   } finally {
     creadas.forEach(function (a) { actualizar('actividades', a.id, { activo: false }, 'prueba'); });
+  }
+}
+
+/**
+ * Avisos diarios: que se encolen y que no se repitan.
+ * Trabaja sobre una actividad de prueba que se retira al final.
+ */
+function pruebasAvisos_() {
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · avisos · sin nodos'); return; }
+
+  const hoy = hoyIso();
+  const dias = configNumero('recordatorio_dias', 1);
+  const admin = filtrar('usuarios', function (u) {
+    return String(u.rol) === 'ADMIN' && bool(u.activo);
+  })[0];
+
+  const act = insertar('actividades', {
+    id: newId('ACT'), titulo: 'PRUEBA aviso', descripcion: '', nodo_id: nodo.id,
+    plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: '',
+    tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+    fecha_inicio_plan: sumarDias(hoy, dias), fecha_fin_plan: sumarDias(hoy, dias + 2),
+    dias_plan: 3, prioridad: 'MEDIA', estado: 'PROGRAMADA', vencida: false, en_riesgo: false,
+    avance_reportado_pct: 0, avance_aprobado_pct: 0, fecha_inicio_real: '',
+    fecha_reporte_final: '', fecha_aprobacion: '', obligatoria_legal: false, afecta_uso: false,
+    publicable: false, acta_file_id: '', inicio_sin_foto_motivo: '', propuesta_id: '', activo: true,
+  }, 'prueba');
+
+  try {
+    avisosDiarios_();
+    const primero = filtrar('notificaciones', function (n) {
+      return String(n.tipo) === 'RECORDATORIO' && String(n.entidad_id) === String(act.id);
+    }).length;
+    verdadero_(primero >= 1, 'el recordatorio se encola');
+
+    avisosDiarios_();
+    const segundo = filtrar('notificaciones', function (n) {
+      return String(n.tipo) === 'RECORDATORIO' && String(n.entidad_id) === String(act.id);
+    }).length;
+    verdadero_(segundo === primero, 'ejecutar dos veces no repite el recordatorio');
+  } finally {
+    filtrar('notificaciones', function (n) {
+      return String(n.entidad_id) === String(act.id);
+    }).forEach(function (n) { actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'prueba' }, 'prueba'); });
+    actualizar('actividades', act.id, { activo: false }, 'prueba');
   }
 }
 
