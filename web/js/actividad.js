@@ -780,7 +780,12 @@
   }
 
   function formularioHitos() {
+    // Si ya hay un editor abierto, se reemplaza: pulsar dos veces no debe apilar dos.
+    const previo = document.getElementById('formEtapas');
+    if (previo) previo.remove();
+
     const caja = bloqueFormulario('Etapas del trabajo');
+    caja.id = 'formEtapas';
     caja.appendChild(el('p', 'bajada-tarjeta',
       'Divide el trabajo en etapas. El peso dice cuánto aporta cada una al avance: una de peso 5 pesa lo mismo que cinco de peso 1.'));
     const actuales = (datos.hitos || []).filter(function (h) { return h.estado !== 'APROBADO'; });

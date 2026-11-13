@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title></head>
+<body>
+<div id="contenidoActividad"></div>
+<div class="msg" id="avisoActividad"></div>
+<script>
+window.Sesion = { token: function () { return 'x'; } };
+window.__llamadas = [];
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload });
+  if (accion === 'hitos.guardar') return Promise.resolve({ ok: true, data: { hitos: (payload.hitos || []).length, peso_total: 3 } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.App = { pestana: function () {}, refrescar: function () {} };
+</script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script>
+(function () {
+  const resultados = [];
+  function porTexto(t) {
+    return Array.prototype.slice.call(document.querySelectorAll('button'))
+      .filter(function (b) { return (b.textContent || '').trim().indexOf(t) === 0; })[0];
+  }
+  function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  const datos = {
+    actividad: { id: 'ACT_1', titulo: 'Fumigación', estado: 'EN_EJECUCION', nodo_id: 'NOD_1',
+      fecha_inicio_plan: '2026-11-10', fecha_fin_plan: '2026-11-15', prioridad: 'MEDIA',
+      avance_aprobado_pct: 0, afecta_uso: false, obligatoria_legal: false, empresa_id: '', responsable_id: '' },
+    nodo: { id: 'NOD_1', codigo: 'CA-T1', nombre: 'Torre 1', sensible: false },
+    plantilla: null, reportes: [], evidencias: [], respuestas: [], ultimo_final: null,
+    hitos: [{ id: 'HIT_1', orden: 1, nombre: 'FUMIGACION', peso: 1, fecha_plan: '2026-11-13', estado: 'PENDIENTE' }],
+  };
+
+  (async function () {
+    try {
+      Actividad.pintarConDatos(datos, 'ADMIN');
+      await esperar(50);
+
+      const btn = porTexto('Reemplazar etapas');
+      resultados.push((btn ? 'OK   ' : 'FALLA') + ' · aparece el botón «Reemplazar etapas»');
+      if (!btn) { document.title = resultados.join(' | '); return; }
+
+      btn.click();
+      await esperar(80);
+      const editor = document.querySelectorAll('.etapas').length;
+      resultados.push((editor >= 1 ? 'OK   ' : 'FALLA') + ' · abre el editor de etapas (' + editor + ')');
+
+      const guardar = porTexto('Guardar etapas');
+      resultados.push((guardar ? 'OK   ' : 'FALLA') + ' · aparece «Guardar etapas»');
+      if (guardar) {
+        guardar.click();
+        await esperar(120);
+        const llamada = window.__llamadas.filter(function (l) { return l.accion === 'hitos.guardar'; })[0];
+        resultados.push((llamada ? 'OK   ' : 'FALLA') + ' · llama a hitos.guardar');
+        if (llamada) {
+          const hitos = llamada.payload.hitos || [];
+          resultados.push((hitos.length >= 1 && hitos[0].nombre ? 'OK   ' : 'FALLA') +
+            ' · envía ' + hitos.length + ' etapa(s), la primera «' + (hitos[0] ? hitos[0].nombre : '') + '»');
+          resultados.push((String(llamada.payload.actividad_id) === 'ACT_1' ? 'OK   ' : 'FALLA') +
+            ' · con el id de la actividad');
+        }
+      }
+
+      // Pulsar dos veces no debe apilar dos editores
+      btn.click();
+      await esperar(60);
+      btn.click();
+      await esperar(60);
+      const editores = document.querySelectorAll('.etapas').length;
+      resultados.push((editores <= 2 ? 'OK   ' : 'FALLA') + ' · dos pulsaciones dejan ' + editores + ' editor(es)');
+    } catch (e) {
+      resultados.push('FALLA · excepción: ' + e.message);
+    }
+    document.title = resultados.join(' | ');
+  })();
+})();
+</script>
+</body></html>
