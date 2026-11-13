@@ -22,7 +22,10 @@
 
   async function cargar() {
     const r = await API.llamar('alertas.listar', {}, { token: Sesion.token() });
-    if (!r.ok) return;
+    if (!r.ok) {
+      if (window.Fallo) Fallo.mostrar('listaAlertas', r.message, cargar);
+      return;
+    }
     const cont = document.getElementById('listaAlertas');
     if (!cont) return;
     cont.textContent = '';

@@ -54,6 +54,7 @@ function runAllTests() {
   pruebasPropuestas_();
   pruebasListaActividades_();
   pruebasAvisos_();
+  pruebasSubidaRepetida_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -338,6 +339,29 @@ function pruebasAvisos_() {
     }).forEach(function (n) { actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'prueba' }, 'prueba'); });
     actualizar('actividades', act.id, { activo: false }, 'prueba');
   }
+}
+
+/**
+ * Si la respuesta de una subida se pierde y el cliente reintenta, el servidor debe
+ * devolver la evidencia que ya tiene, no un error de foto duplicada.
+ */
+function pruebasSubidaRepetida_() {
+  const filasEv = filtrar('evidencias', function (e) { return bool(e.activo); });
+  if (!filasEv.length) { RESULTADOS.detalle.push('OMITE · subida repetida · sin evidencias'); return; }
+
+  const ev = filasEv[0];
+  const sha = String(ev.sha256);
+
+  // Se simula la comprobación que hace el servidor: mismo sha, misma actividad y momento.
+  const igual = filtrar('evidencias', function (e) {
+    return String(e.sha256) === sha && bool(e.activo) &&
+      String(e.actividad_id) === String(ev.actividad_id) && String(e.momento) === String(ev.momento);
+  })[0];
+  verdadero_(!!igual && String(igual.id) === String(ev.id),
+    'la misma foto en la misma actividad y momento se reconoce como ya guardada');
+
+  const antes = filtrar('evidencias', function (e) { return bool(e.activo); }).length;
+  verdadero_(antes === filasEv.length, 'reconocerla no agrega una fila nueva');
 }
 
 function pruebasSuperficiePublica_() {

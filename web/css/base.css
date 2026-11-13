@@ -413,3 +413,12 @@ footer.pie b { color: #334155; }
   color: var(--muted);
   border: 1px solid var(--line);
 }
+
+/* Aviso de que el celular perdió la red */
+.franja-sin-conexion {
+  position: sticky; top: 0; z-index: 60;
+  background: var(--warn-soft); color: var(--warn-ink);
+  border-bottom: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  font-size: 13px; font-weight: 600;
+  padding: 9px 16px; text-align: center;
+}

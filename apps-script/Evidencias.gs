@@ -60,7 +60,17 @@ function evidenciasUpload(ctx, payload) {
   const repetida = filtrar('evidencias', function (e) {
     return String(e.sha256) === sha && bool(e.activo);
   })[0];
-  if (repetida) fallar_('FOTO_DUPLICADA', 'Esa foto ya está cargada en otra actividad.');
+  if (repetida) {
+    // Reintento de una subida cuya respuesta se perdió: si es la misma foto, en la
+    // misma actividad y el mismo momento, ya está guardada. Se responde como éxito.
+    const misma = String(repetida.actividad_id) === String(actividadId) &&
+      String(repetida.momento) === String(momento);
+    if (misma) {
+      return { evidencia_id: repetida.id, momento: repetida.momento,
+        bytes: Number(repetida.bytes) || bytes.length, ya_estaba: true };
+    }
+    fallar_('FOTO_DUPLICADA', 'Esa foto ya está cargada en otra actividad.');
+  }
 
   // RN-30: una foto de la visita no reemplaza la foto de antes.
   const deVisita = filtrar('propuestas', function (p) {

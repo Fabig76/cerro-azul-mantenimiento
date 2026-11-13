@@ -18,7 +18,10 @@
 
   async function cargar() {
     const r = await API.llamar('respaldos.listar', {}, { token: Sesion.token() });
-    if (!r.ok) return;
+    if (!r.ok) {
+      if (window.Fallo) Fallo.mostrar('ultimoRespaldo', r.message, cargar);
+      return;
+    }
     const elUltimo = document.getElementById('ultimoRespaldo');
     if (!elUltimo) return;
     if (r.data.ultimo) {

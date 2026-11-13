@@ -1017,7 +1017,15 @@
     const sel = document.getElementById('actNodo');
     if (!sel) return;
     const r = await API.llamar('nodos.arbol', {}, { token: t });
-    if (!r.ok) return;
+    if (!r.ok) {
+      const caja = sel.parentNode;
+      if (window.Fallo && caja) {
+        Fallo.mostrar(caja, 'No se pudieron cargar las secciones. ' + (r.message || ''), function () {
+          cargarNodosEnFormulario(t);
+        });
+      }
+      return;
+    }
     nodosActuales = (r.data.nodos || []).slice();
     sel.textContent = '';
     nodosActuales
@@ -1035,7 +1043,18 @@
     pestana: mostrarPestana,
   };
 
+  /** Franja de «sin conexión»: avisa, no bloquea. */
+  function vigilarConexion() {
+    const franja = document.getElementById('sinConexion');
+    if (!franja) return;
+    const pintar = function () { franja.hidden = navigator.onLine; };
+    window.addEventListener('online', pintar);
+    window.addEventListener('offline', pintar);
+    pintar();
+  }
+
   document.addEventListener('DOMContentLoaded', async function () {
+    vigilarConexion();
     const bt = document.getElementById('btnTema');
     if (bt) bt.addEventListener('click', function () { Tema.alternar(); });
 
