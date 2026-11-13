@@ -56,6 +56,7 @@ function runAllTests() {
   pruebasAvisos_();
   pruebasSubidaRepetida_();
   pruebasDetalleEnEscrituras_();
+  pruebasNovedadesMias_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -387,6 +388,38 @@ function pruebasDetalleEnEscrituras_() {
   } catch (e) {
     RESULTADOS.detalle.push('FALLA · detalle · ' + e.message);
     RESULTADOS.fallidas++;
+  }
+}
+
+/**
+ * «Novedades para usted»: cada uno ve las suyas y solo las suyas.
+ */
+function pruebasNovedadesMias_() {
+  const usuarios = filtrar('usuarios', function (u) { return bool(u.activo); });
+  if (usuarios.length < 2) { RESULTADOS.detalle.push('OMITE · novedades mías · hacen falta dos usuarios'); return; }
+
+  const uno = usuarios[0];
+  const otro = usuarios[1];
+  insertar('notificaciones', {
+    id: newId('NOT'), fecha: ahoraIso(), usuario_id: uno.id, tipo: 'ACTIVIDAD_ASIGNADA',
+    entidad_id: '', estado: 'ENVIADO', intentos: 1, enviado_en: ahoraIso(), error: '',
+  }, 'prueba');
+
+  try {
+    const mias = notificacionesMias({ usuario: { id: uno.id }, rol: 'CONTRATISTA' }, {});
+    verdadero_((mias.novedades || []).length >= 1, 'el usuario ve sus novedades');
+
+    const ajenas = notificacionesMias({ usuario: { id: otro.id }, rol: 'CONTRATISTA' }, {});
+    const suyas = (ajenas.novedades || []).length;
+    const deUno = (ajenas.novedades || []).filter(function (n) {
+      return String(n.id) === String(mias.novedades[0].id);
+    }).length;
+    verdadero_(deUno === 0, 'no ve las novedades de otro usuario (suyas: ' + suyas + ')');
+  } finally {
+    filtrar('notificaciones', function (n) {
+      return String(n.usuario_id) === String(uno.id) && String(n.tipo) === 'ACTIVIDAD_ASIGNADA' &&
+        String(n.entidad_id) === '';
+    }).forEach(function (n) { actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'prueba' }, 'prueba'); });
   }
 }
 

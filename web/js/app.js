@@ -216,6 +216,7 @@
 
     // Cada pestaña carga la primera vez que se abre; antes se cargaban todas al entrar.
     cargarPestana(pestanaActual());
+    if (rolActual === 'CONTRATISTA') cargarNovedadesMias();
   }
 
   const nodosAbiertos = {};
@@ -1121,6 +1122,58 @@
       Usuarios.prepararEmpresa();
     }
     if (id === 'novedades' && window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
+  }
+
+  /**
+   * «Novedades para usted»: lo que pasó desde la última visita. Muchos contratistas
+   * no revisan el correo, así que se les cuenta al entrar.
+   */
+  async function cargarNovedadesMias() {
+    const caja = document.getElementById('novedadesMias');
+    if (!caja) return;
+    const r = await API.llamar('notificaciones.mias', {}, { token: Sesion.token() });
+    if (!r.ok) { caja.classList.add('oculto'); return; }
+
+    const todas = r.data.novedades || [];
+    let ultima = 0;
+    try { ultima = Number(localStorage.getItem('ca_ultima_visita') || 0); } catch (e) { ultima = 0; }
+
+    const nuevas = ultima ? todas.filter(function (n) {
+      const t = new Date(n.fecha).getTime();
+      return !isNaN(t) && t > ultima;
+    }) : todas;
+
+    try { localStorage.setItem('ca_ultima_visita', String(Date.now())); } catch (e) { /* nada */ }
+
+    if (!nuevas.length) { caja.classList.add('oculto'); caja.textContent = ''; return; }
+
+    caja.textContent = '';
+    const titulo = document.createElement('h3');
+    titulo.textContent = ultima
+      ? 'Novedades para usted desde su última visita'
+      : 'Novedades para usted';
+    caja.appendChild(titulo);
+
+    const lista = document.createElement('ul');
+    nuevas.slice(0, 8).forEach(function (n) {
+      const li = document.createElement('li');
+      li.textContent = n.etiqueta + (n.titulo ? ': ' + n.titulo : '');
+      const cuando = document.createElement('span');
+      cuando.className = 'cuando';
+      cuando.textContent = ' · ' + String(n.fecha).replace('T', ' ').slice(0, 16);
+      li.appendChild(cuando);
+      lista.appendChild(li);
+    });
+    caja.appendChild(lista);
+
+    const cerrar = document.createElement('button');
+    cerrar.type = 'button';
+    cerrar.className = 'btn sm';
+    cerrar.textContent = 'Entendido';
+    cerrar.addEventListener('click', function () { caja.classList.add('oculto'); });
+    caja.appendChild(cerrar);
+
+    caja.classList.remove('oculto');
   }
 
   /** Franja de «sin conexión»: avisa, no bloquea. */

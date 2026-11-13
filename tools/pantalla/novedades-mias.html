@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div class="card" id="tarjetaActividades">
+  <div class="cabecera-seccion"><h2>Actividades</h2><span class="codigo" id="conteoActividades"></span></div>
+  <div id="novedadesMias" class="novedades-mias oculto"></div>
+  <div class="grupos-lista" id="gruposActividades" hidden></div>
+  <input type="search" id="buscarActividades" class="input" hidden>
+  <div class="msg" id="avisoActividades"></div>
+  <div id="listaActividades" class="lista-actividades"></div>
+  <div id="sinActividades" class="vacio oculto"></div>
+  <div class="acciones-tarjeta"><button class="btn" id="verMasActividades" type="button" hidden>Ver más</button></div>
+</div>
+<div id="vistaActividad" hidden></div>
+<script>
+window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
+try { localStorage.removeItem('ca_ultima_visita'); } catch (e) {}
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.__visita = 0;
+window.__api = function (accion) {
+  if (accion === 'auth.me') return Promise.resolve({ ok: true, data: { usuario: {
+    id: 'U1', email: 'a@b.c', nombre: 'Contratista', rol: 'CONTRATISTA' }, permisos: [] } });
+  if (accion === 'notificaciones.mias') return Promise.resolve({ ok: true, data: { novedades: [
+    { id: 'N1', tipo: 'REPORTE_RECHAZADO', etiqueta: 'Devolvieron tu reporte', titulo: 'Fumigación', fecha: '2026-11-13T08:00:00-05:00' },
+    { id: 'N2', tipo: 'ACTIVIDAD_ASIGNADA', etiqueta: 'Te asignaron un trabajo', titulo: 'Lavado de tanque', fecha: '2026-11-12T10:00:00-05:00' }
+  ] } });
+  if (accion === 'actividades.listar') return Promise.resolve({ ok: true, data: { actividades: [], total: 0, conteos: {} } });
+  if (accion === 'propuestas.listar') return Promise.resolve({ ok: true, data: { propuestas: [] } });
+  if (accion === 'nodos.arbol') return Promise.resolve({ ok: true, data: { nodos: [] } });
+  return Promise.resolve({ ok: true, data: {} });
+};
+</script>
+<script src="../../web/js/api.js"></script>
+<script src="../../web/js/datos.js"></script>
+<script src="../../web/js/sesion.js"></script>
+<script src="../../web/js/fotos.js"></script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script src="../../web/js/propuestas.js"></script>
+<script src="../../web/js/novedades.js"></script>
+<script src="../../web/js/app.js"></script>
+<script>
+// Después de los módulos reales, para que no los pisen.
+window.API = { llamar: window.__api };
+window.Sesion = { token: function () { return 'x'; }, limpiar: function () {},
+  usuario: function () { return { id: 'U1' }; } };
+</script>
+<script>
+(async function () {
+  const r = [];
+  window.__err = [];
+  window.addEventListener('error', function (e) { window.__err.push(e.message); });
+  window.addEventListener('unhandledrejection', function (e) {
+    window.__err.push('promesa: ' + ((e.reason && e.reason.message) || e.reason));
+  });
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  const caja = document.getElementById('novedadesMias');
+
+  try {
+    await esperar(800);
+
+    const visible = !caja.classList.contains('oculto');
+    r.push((visible ? 'OK   ' : 'FALLA') + ' · la tarjeta de novedades aparece al entrar');
+    const texto = caja.textContent || '';
+    r.push((texto.indexOf('Devolvieron tu reporte') >= 0 ? 'OK   ' : 'FALLA') + ' · cuenta lo que devolvieron');
+    r.push((texto.indexOf('Te asignaron un trabajo') >= 0 ? 'OK   ' : 'FALLA') + ' · cuenta lo asignado');
+
+    // «Entendido» la oculta
+    const boton = Array.prototype.slice.call(caja.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent === 'Entendido'; })[0];
+    r.push((boton ? 'OK   ' : 'FALLA') + ' · ofrece «Entendido»');
+    if (boton) { boton.click(); await esperar(50); }
+    r.push((caja.classList.contains('oculto') ? 'OK   ' : 'FALLA') + ' · «Entendido» la cierra');
+
+    // La segunda visita ya no repite lo mismo
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    await esperar(700);
+    r.push((caja.classList.contains('oculto') ? 'OK   ' : 'FALLA') + ' · no repite lo ya visto');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  if (window.__err.length) r.push('ERRORES: ' + window.__err.slice(0, 3).join(' / '));
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

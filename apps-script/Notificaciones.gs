@@ -412,3 +412,51 @@ function despacharCorreos() {
     bloqueo.releaseLock();
   }
 }
+
+/**
+ * «Novedades para usted»: lo que le pasó al usuario en los últimos días, para verlo
+ * al entrar sin depender del correo. Solo lectura y solo lo suyo.
+ */
+function notificacionesMias(ctx, payload) {
+  const dias = Math.min(Math.max(Number(payload && payload.dias) || 15, 1), 60);
+  const desde = new Date(Date.now() - dias * 86400000);
+
+  const mias = filtrar('notificaciones', function (n) {
+    if (String(n.usuario_id) !== String(ctx.usuario.id)) return false;
+    const fecha = new Date(String(n.fecha));
+    return !isNaN(fecha.getTime()) && fecha >= desde;
+  }).sort(function (a, b) { return String(b.fecha) < String(a.fecha) ? -1 : 1; }).slice(0, 30);
+
+  const ETIQUETA = {
+    ACTIVIDAD_ASIGNADA: 'Te asignaron un trabajo',
+    ACTIVIDAD_HOY: 'Hoy empieza un trabajo',
+    ACTIVIDAD_VENCIDA: 'Un trabajo se venció',
+    RECORDATORIO: 'Recordatorio de un trabajo',
+    REPORTE_APROBADO: 'Aprobaron tu reporte',
+    REPORTE_RECHAZADO: 'Devolvieron tu reporte',
+    REPORTE_REENVIADO: 'Reenviaste un reporte',
+    PROPUESTA_NUEVA: 'Recibimos tu propuesta',
+    PROPUESTA_APROBADA: 'Aprobaron tu propuesta',
+    PROPUESTA_RECHAZADA: 'No aprobaron tu propuesta',
+    USUARIO_NUEVO: 'Se creó tu usuario',
+  };
+
+  return {
+    novedades: mias.map(function (n) {
+      const tipo = String(n.tipo);
+      const act = /^ACTIVIDAD_|^RECORDATORIO|^REPORTE_/.test(tipo) && n.entidad_id
+        ? buscarPorId('actividades', n.entidad_id) : null;
+      const prop = tipo.indexOf('PROPUESTA_') === 0 && n.entidad_id
+        ? buscarPorId('propuestas', n.entidad_id) : null;
+      return {
+        id: n.id,
+        tipo: tipo,
+        etiqueta: ETIQUETA[tipo] || 'Novedad',
+        titulo: act ? act.titulo : (prop ? prop.titulo : ''),
+        entidad_id: n.entidad_id || '',
+        fecha: n.fecha,
+      };
+    }),
+    desde: desde.toISOString(),
+  };
+}
