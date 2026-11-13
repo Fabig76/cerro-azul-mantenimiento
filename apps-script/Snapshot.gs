@@ -21,6 +21,16 @@ function ultimosMeses_(n) {
   return salida;
 }
 
+
+/** Sección de primer nivel de un nodo: sirve para filtrar el portal por torre. */
+function seccionRaizDe_(nodo, porId) {
+  if (!nodo) return null;
+  const partes = String(nodo.ruta_ids || '').split('/').filter(Boolean);
+  const raizId = partes.length ? partes[0] : nodo.id;
+  const raiz = porId[raizId] || nodo;
+  return { id: raiz.id, nombre: raiz.nombre, codigo: raiz.codigo };
+}
+
 /** Construye el snapshot completo. Solo datos agregados y publicables. */
 function construirSnapshot() {
   const nodos = filtrar('nodos', function (n) { return bool(n.activo); });
@@ -182,6 +192,7 @@ function construirSnapshot() {
         titulo: sensible ? 'Mantenimiento programado en sistema sensible' : a.titulo,
         afecta_uso: bool(a.afecta_uso),
         sensible: sensible,
+        seccion: sensible ? null : seccionRaizDe_(n, porId),
       };
     });
 
@@ -210,6 +221,7 @@ function construirSnapshot() {
         empresa: empresas[a.empresa_id] || '',
         sensible: sensible,
         fotos: fotos,
+        seccion: sensible ? null : seccionRaizDe_(n, porId),
       };
     });
 
@@ -223,6 +235,7 @@ function construirSnapshot() {
       gravedad: n.gravedad,
       estado: n.estado,
       fecha_compromiso: fechaIso_(n.fecha_compromiso),
+      seccion: sensible ? null : seccionRaizDe_(nodo, porId),
     };
   });
 

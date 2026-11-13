@@ -297,3 +297,16 @@
 @media (min-width: 768px) {
   #cifrasFinal { display: none; }
 }
+
+/* Selector «Mi torre» */
+.filtro-torre {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0 0;
+}
+.filtro-torre label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.filtro-torre select {
+  font: inherit; font-size: 14px; padding: 8px 12px;
+  border-radius: 999px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink);
+}
+@media (max-width: 560px) { .filtro-torre select { flex: 1; } }

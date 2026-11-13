@@ -37,6 +37,23 @@ comprobar(iEstado > 0 && iEstado < movil.indexOf('class="stats"'),
 comprobar(movil.indexOf('Cada trabajo queda con su foto') < iEstado,
   'el párrafo largo de presentación sigue existiendo (solo se oculta por CSS)');
 
+// «Mi torre»: el selector existe y las listas se filtran con la elección guardada
+{
+  const pagina = fs.readFileSync(path.join(raiz, 'web', 'index.html'), 'utf8');
+  comprobar(pagina.indexOf('id="miTorre"') > 0 && pagina.indexOf('id="selTorre"') > 0,
+    'el portal tiene el selector «Mi torre»');
+
+  const js = fs.readFileSync(path.join(raiz, 'web', 'js', 'publico.js'), 'utf8');
+  comprobar(js.indexOf('ca_torre') > 0, 'la elección se guarda en el dispositivo');
+  comprobar(/pintarProximos[\s\S]{0,400}pasaFiltro/.test(js), 'los próximos mantenimientos se filtran');
+  comprobar(/recientes = \(snap\.recientes \|\| \[\]\)\.filter\(pasaFiltro\)/.test(js),
+    'lo último que se hizo se filtra');
+  comprobar(/novedades = \(snap\.novedades \|\| \[\]\)\.filter\(pasaFiltro\)/.test(js),
+    'las novedades se filtran');
+  comprobar(/return !id \|\| id === filtroSeccion/.test(js),
+    'lo que no tiene sección (áreas comunes) siempre se muestra');
+}
+
 const css = fs.readFileSync(path.join(raiz, 'web', 'css', 'home.css'), 'utf8');
 comprobar(/@media \(max-width: 767px\)[\s\S]*?\.hero \.lead, \.hero \.chips \{ display: none; \}/.test(css),
   'en el celular se ocultan la presentación larga y los chips');

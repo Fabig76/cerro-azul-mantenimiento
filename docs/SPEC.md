@@ -243,7 +243,7 @@ cerro-azul-mantenimiento/
   `Datos.invalidar`; un fallo no se guarda.
 - Cada pestaña del panel carga la primera vez que se abre (`cargarPestana`), no al entrar.
 - **Meta medida** con `tools/contar-llamadas.mjs`: al entrar, el administrador hace como máximo
-  **6** llamadas y el contratista **4**, sin ninguna repetida. Antes eran 22, con seis pedidos del
+  **6** llamadas y el contratista **5**, sin ninguna repetida. Antes eran 22, con seis pedidos del
   mismo árbol.
 
 ## 3. Modelo jerárquico escalable

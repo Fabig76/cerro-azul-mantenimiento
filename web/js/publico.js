@@ -95,6 +95,7 @@
   }
 
   function pintarTodo(snap) {
+    prepararFiltro(snap);
     pintarResumen(snap);
     pintarArbol(snap);
     pintarMeses(snap);
@@ -169,6 +170,57 @@
     return caja;
   }
 
+  /**
+   * «Mi torre»: cada residente puede ver solo su sección. Las áreas comunes se
+   * muestran siempre. La elección se guarda en su dispositivo.
+   */
+  let filtroSeccion = '';
+  try { filtroSeccion = localStorage.getItem('ca_torre') || ''; } catch (e) { filtroSeccion = ''; }
+
+  function seccionDe(item) {
+    return item && item.seccion ? String(item.seccion.id) : '';
+  }
+
+  /** ¿Pasa el filtro? Lo que no trae sección (áreas comunes) siempre pasa. */
+  function pasaFiltro(item) {
+    if (!filtroSeccion) return true;
+    const id = seccionDe(item);
+    return !id || id === filtroSeccion;
+  }
+
+  function prepararFiltro(snap) {
+    const caja = document.getElementById('miTorre');
+    const sel = document.getElementById('selTorre');
+    if (!caja || !sel) return;
+    const secciones = (snap.arbol || []);
+    if (secciones.length < 2) { caja.hidden = true; return; }
+
+    sel.textContent = '';
+    const todas = document.createElement('option');
+    todas.value = '';
+    todas.textContent = 'Todo el conjunto';
+    sel.appendChild(todas);
+
+    secciones.forEach(function (s) {
+      const op = document.createElement('option');
+      op.value = s.id;
+      op.textContent = s.nombre;
+      sel.appendChild(op);
+    });
+
+    if (filtroSeccion && !secciones.some(function (s) { return String(s.id) === filtroSeccion; })) {
+      filtroSeccion = '';
+    }
+    sel.value = filtroSeccion;
+    caja.hidden = false;
+
+    sel.addEventListener('change', function () {
+      filtroSeccion = sel.value;
+      try { localStorage.setItem('ca_torre', filtroSeccion); } catch (e) { /* nada */ }
+      pintarTodo(ultimoSnap);
+    });
+  }
+
   function pintarArbol(snap) {
     const cont = document.getElementById('secciones-lista');
     if (!cont || !snap.arbol) return;
@@ -177,7 +229,8 @@
       cont.appendChild(el('div', 'vacio', 'Todavía no hay secciones con mantenimiento registrado.'));
       return;
     }
-    snap.arbol.forEach(function (s) {
+    snap.arbol.filter(function (s) { return !filtroSeccion || String(s.id) === filtroSeccion; })
+      .forEach(function (s) {
       const acentoSeccion = { AL_DIA: 'ok', EN_REVISION: 'warn', ATENCION: 'warn', CRITICO: 'danger' }[s.salud.estado] || 'neutro';
       const card = el('article', 'card seccion-card acento-' + acentoSeccion);
       const cab = el('div', 'seccion-card-cab');
@@ -247,11 +300,14 @@
     const cont = document.getElementById('lista-proximos');
     if (!cont) return;
     cont.textContent = '';
-    if (!snap.proximos || !snap.proximos.length) {
-      cont.appendChild(el('li', 'vacio', 'No hay mantenimientos programados en los próximos 30 días.'));
+    const proximos = (snap.proximos || []).filter(pasaFiltro);
+    if (!proximos.length) {
+      cont.appendChild(el('li', 'vacio', filtroSeccion
+        ? 'No hay mantenimientos programados en esta sección.'
+        : 'No hay mantenimientos programados en los próximos 30 días.'));
       return;
     }
-    snap.proximos.forEach(function (p) {
+    proximos.forEach(function (p) {
       const li = el('li', 'fila-lista');
       const cuando = el('span', 'fila-fecha', p.fecha);
       const que = el('span', 'fila-texto');
@@ -269,11 +325,14 @@
     const cont = document.getElementById('lista-recientes');
     if (!cont) return;
     cont.textContent = '';
-    if (!snap.recientes || !snap.recientes.length) {
-      cont.appendChild(el('li', 'vacio', 'Todavía no hay trabajos aprobados.'));
+    const recientes = (snap.recientes || []).filter(pasaFiltro);
+    if (!recientes.length) {
+      cont.appendChild(el('li', 'vacio', filtroSeccion
+        ? 'Todavía no hay trabajos aprobados en esta sección.'
+        : 'Todavía no hay trabajos aprobados.'));
       return;
     }
-    for (const r of snap.recientes) {
+    for (const r of recientes) {
       const li = el('li', 'fila-lista reciente');
       const cuando = el('span', 'fila-fecha', r.fecha);
       const que = el('span', 'fila-texto');
@@ -436,11 +495,14 @@
     const cont = document.getElementById('lista-novedades');
     if (!cont) return;
     cont.textContent = '';
-    if (!snap.novedades || !snap.novedades.length) {
-      cont.appendChild(el('div', 'vacio', 'Sin novedades abiertas.'));
+    const novedades = (snap.novedades || []).filter(pasaFiltro);
+    if (!novedades.length) {
+      cont.appendChild(el('div', 'vacio', filtroSeccion
+        ? 'Sin novedades abiertas en esta sección.'
+        : 'Sin novedades abiertas.'));
       return;
     }
-    snap.novedades.forEach(function (n) {
+    novedades.forEach(function (n) {
       const caja = el('div', 'novedad ' + String(n.gravedad).toLowerCase());
       const cab = el('div', 'novedad-cab');
       cab.appendChild(el('h3', null, n.texto));

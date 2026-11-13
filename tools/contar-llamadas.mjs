@@ -2,7 +2,7 @@
  * contar-llamadas.mjs — mide cuántas llamadas hace el panel al entrar, por rol,
  * y falla si se pasa de la meta o si repite la misma.
  *
- * Meta (SPEC v1.4, 2.2): administrador ≤ 6, contratista ≤ 4, sin repetidas.
+ * Meta (SPEC v1.4, 2.2): administrador ≤ 6, contratista ≤ 5, sin repetidas.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,7 +13,10 @@ const raiz = new URL('..', import.meta.url).pathname;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const html = fs.readFileSync(path.join(raiz, 'web', 'app.html'), 'utf8');
 
-const META = { ADMIN: 6, CONTRATISTA: 4 };
+// El contratista pasó de 4 a 5 cuando se agregó «Novedades para usted» (3.2):
+// es una llamada nueva y deliberada, no una repetición. Lo que no se admite es
+// que la misma acción se pida dos veces.
+const META = { ADMIN: 6, CONTRATISTA: 5 };
 
 function armar(rol) {
   let s = html.replace(/<script[^>]*><\/script>/g, '');
