@@ -1,0 +1,74 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>cargando</title></head>
+<body><div id="contenidoActividad"></div><div class="msg" id="avisoActividad"></div>
+<script>
+window.Sesion = { token: function () { return 'x'; } };
+window.__llamadas = [];
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload });
+  if (accion === 'empresas.listar') return window.__empresas();
+  if (accion === 'usuarios.listar') return window.__usuarios();
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.App = { pestana: function () {}, refrescar: function () {} };
+</script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script>
+(function () {
+  function porTexto(t) {
+    return Array.prototype.slice.call(document.querySelectorAll('button'))
+      .filter(function (b) { return (b.textContent || '').trim().indexOf(t) === 0; })[0];
+  }
+  function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  const datos = {
+    actividad: { id: 'ACT_1', titulo: 'Fumigación', estado: 'EN_EJECUCION', nodo_id: 'NOD_1',
+      fecha_inicio_plan: '2026-11-10', fecha_fin_plan: '2026-11-15', prioridad: 'MEDIA',
+      avance_aprobado_pct: 0, afecta_uso: false, obligatoria_legal: false,
+      empresa_id: 'EMP_1', responsable_id: 'USU_1' },
+    nodo: { id: 'NOD_1', codigo: 'CA-T1', nombre: 'Torre 1', sensible: false },
+    plantilla: null, hitos: [], reportes: [], evidencias: [], respuestas: [], ultimo_final: null,
+  };
+
+  window.__empresas = function () { return new Promise(function (r) { setTimeout(function () {
+    r({ ok: true, data: { empresas: [{ id: 'EMP_1', razon_social: 'Fumigaciones SAS', vencida: false }] } }); }, 300); }); };
+  window.__usuarios = function () { return new Promise(function (r) { setTimeout(function () {
+    r({ ok: true, data: { usuarios: [{ id: 'USU_1', nombre: 'Juan', rol: 'CONTRATISTA', estado: 'ACTIVO', empresa_id: 'EMP_1' }] } }); }, 300); }); };
+
+  (async function () {
+    const r = [];
+    try {
+      Actividad.pintarConDatos(datos, 'ADMIN');
+      await esperar(50);
+      const editar = porTexto('Editar');
+      r.push((editar ? 'OK   ' : 'FALLA') + ' · botón Editar');
+      if (!editar) { document.title = r.join(' | '); return; }
+      editar.click();
+      await esperar(40);
+
+      // Caso 1: guardar antes de que carguen las listas
+      const guardar = porTexto('Guardar cambios');
+      guardar.click();
+      await esperar(60);
+      const l1 = window.__llamadas.filter(function (x) { return x.accion === 'actividades.editar'; }).pop();
+      const borra = l1 && l1.payload.empresa_id !== undefined;
+      r.push((l1 && !borra ? 'OK   ' : 'FALLA') +
+        ' · guardar antes de cargar no envía empresa (valor: ' + (l1 ? String(l1.payload.empresa_id) : 'sin llamada') + ')');
+
+      // Caso 2: con las listas ya cargadas, guardar sí manda la empresa
+      window.__llamadas = [];
+      Actividad.pintarConDatos(datos, 'ADMIN');
+      await esperar(60);
+      porTexto('Editar').click();
+      await esperar(500);
+      porTexto('Guardar cambios').click();
+      await esperar(80);
+      const l2 = window.__llamadas.filter(function (x) { return x.accion === 'actividades.editar'; }).pop();
+      r.push((l2 && l2.payload.empresa_id === 'EMP_1' ? 'OK   ' : 'FALLA') +
+        ' · con las listas cargadas envía la empresa («' + (l2 ? String(l2.payload.empresa_id) : 'sin llamada') + '»)');
+    } catch (e) { r.push('FALLA · ' + e.message); }
+    document.title = r.join(' | ');
+  })();
+})();
+</script></body></html>

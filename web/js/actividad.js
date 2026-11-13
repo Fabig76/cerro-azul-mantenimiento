@@ -1020,6 +1020,10 @@
     // A cargo de quién queda: sin empresa, el trabajo no entra en su cumplimiento.
     const fila2 = el('div', 'fila-campos');
 
+    // Mientras las listas no hayan cargado, guardar NO puede tocar empresa ni responsable:
+    // enviar un valor vacío los borraría.
+    let listasListas = false;
+
     const cEmpresa = el('div', 'campo');
     const lEmpresa = el('label', null, 'Empresa');
     lEmpresa.htmlFor = 'edEmpresa';
@@ -1046,7 +1050,7 @@
 
     caja.appendChild(fila2);
 
-    API.llamar('empresas.listar', {}, { token: Sesion.token() }).then(function (r) {
+    const pintarEmpresas = API.llamar('empresas.listar', {}, { token: Sesion.token() }).then(function (r) {
       if (!r.ok) return;
       (r.data.empresas || []).forEach(function (e) {
         const op = el('option', null, e.razon_social + (e.vencida ? ' (contrato vencido)' : ''));
@@ -1057,7 +1061,7 @@
       });
     }).catch(function () {});
 
-    API.llamar('usuarios.listar', {}, { token: Sesion.token() }).then(function (r) {
+    const pintarPersonas = API.llamar('usuarios.listar', {}, { token: Sesion.token() }).then(function (r) {
       if (!r.ok) return;
       (r.data.usuarios || [])
         .filter(function (u) { return String(u.estado) === 'ACTIVO'; })
@@ -1069,6 +1073,10 @@
         });
     }).catch(function () {});
 
+    Promise.all([pintarEmpresas, pintarPersonas]).catch(function () {}).then(function () {
+      listasListas = true;
+    });
+
     const acciones = el('div', 'acciones-form');
     const guardar = el('button', 'btn primary', 'Guardar cambios');
     guardar.type = 'button';
@@ -1077,15 +1085,19 @@
     volver.addEventListener('click', function () { pintar(); });
     guardar.addEventListener('click', async function () {
       guardar.disabled = true;
-      const r = await API.llamar('actividades.editar', {
+      const payload = {
         id: a.id,
         titulo: iTitulo.value.trim(),
         fecha_inicio_plan: document.getElementById('edInicio').value,
         fecha_fin_plan: document.getElementById('edFin').value || document.getElementById('edInicio').value,
         prioridad: sPrioridad.value,
-        empresa_id: sEmpresa.value,
-        responsable_id: sResp.value,
-      }, { token: Sesion.token(), idempotente: true });
+      };
+      // Solo se envían si las listas cargaron: si no, se borrarían sin querer.
+      if (listasListas) {
+        payload.empresa_id = sEmpresa.value;
+        payload.responsable_id = sResp.value;
+      }
+      const r = await API.llamar('actividades.editar', payload, { token: Sesion.token(), idempotente: true });
       guardar.disabled = false;
       if (!r.ok) return aviso(r.message || 'No se pudo guardar.', 'error');
       aviso('Actividad actualizada.', 'ok');
