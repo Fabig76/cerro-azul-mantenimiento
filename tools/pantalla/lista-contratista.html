@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div class="card" id="tarjetaActividades">
+  <div class="cabecera-seccion"><h2>Actividades</h2><span class="codigo" id="conteoActividades"></span></div>
+  <div class="grupos-lista" id="gruposActividades" hidden></div>
+  <input type="search" id="buscarActividades" class="item-input buscador" hidden>
+  <div class="msg" id="avisoActividades"></div>
+  <div id="listaActividades" class="lista-actividades"></div>
+  <div id="sinActividades" class="vacio oculto">Todavía no hay actividades registradas.</div>
+  <div class="acciones-tarjeta"><button class="btn" id="verMasActividades" type="button" hidden>Ver más</button></div>
+</div>
+<div id="vistaActividad" hidden></div>
+<script>
+window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Sesion = { token: function () { return 'x'; }, limpiar: function () {}, usuario: function () { return null; } };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+
+// 30 actividades: 12 pendientes, 3 reportadas, 14 aprobadas, 1 cancelada
+var TODAS = [];
+for (var i = 1; i <= 30; i++) {
+  var estado = i <= 6 ? 'RECHAZADA' : i <= 14 ? 'PROGRAMADA' : i <= 15 ? 'REPORTADA' : i <= 29 ? 'APROBADA' : 'CANCELADA';
+  TODAS.push({ id: 'ACT_' + i, titulo: (i === 7 ? 'Bomba de presión' : 'Trabajo ' + i),
+    estado: estado, nodo_codigo: 'CA-T1', nodo_nombre: 'Torre 1',
+    fecha_inicio_plan: '2026-11-' + String(10 + (i % 18)).padStart(2, '0'),
+    fecha_fin_plan: '2026-11-' + String(12 + (i % 16)).padStart(2, '0'),
+    fecha_reporte_final: '2026-11-0' + (1 + (i % 9)), prioridad: 'MEDIA', avance_aprobado_pct: 0 });
+}
+window.__pedidos = [];
+window.API = { llamar: function (accion, payload) {
+  if (accion === 'auth.me') return Promise.resolve({ ok: true, data: { usuario: {
+    id: 'U1', email: 'a@b.c', nombre: 'Admin Prueba', rol: 'CONTRATISTA' }, permisos: [] } });
+  if (accion === 'nodos.arbol') return Promise.resolve({ ok: true, data: { nodos: [] } });
+  if (accion !== 'actividades.listar') return Promise.resolve({ ok: true, data: {} });
+  window.__pedidos.push(payload);
+  if (window.__fallar) return Promise.resolve({ ok: false, code: 'ERROR_INTERNO', message: 'El servidor falló.' });
+  var grupos = { PENDIENTES: ['PROGRAMADA','EN_EJECUCION','RECHAZADA'], POR_REVISAR: ['REPORTADA'],
+    TERMINADAS: ['APROBADA','CERRADA'], CANCELADAS: ['CANCELADA'] };
+  var conteos = {};
+  Object.keys(grupos).forEach(function (g) {
+    conteos[g] = TODAS.filter(function (a) { return grupos[g].indexOf(a.estado) >= 0; }).length;
+  });
+  var lista = TODAS.slice();
+  if (payload.grupo) lista = lista.filter(function (a) { return grupos[payload.grupo].indexOf(a.estado) >= 0; });
+  if (payload.texto) {
+    var t = payload.texto.toLowerCase();
+    lista = lista.filter(function (a) { return a.titulo.toLowerCase().indexOf(t) >= 0; });
+  }
+  var tam = payload.tam || 20, pag = payload.pagina || 1;
+  return Promise.resolve({ ok: true, data: { total: lista.length, conteos: conteos,
+    actividades: lista.slice((pag - 1) * tam, pag * tam) } });
+} };
+window.APP_INTERNO = true;
+</script>
+<script src="../../web/js/app.js"></script>
+<script>
+(function () {
+  var r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function grupo(nombre) {
+    return Array.prototype.slice.call(document.querySelectorAll('.grupo-lista'))
+      .filter(function (b) { return (b.textContent || '').indexOf(nombre) === 0; })[0];
+  }
+  function textos() {
+    return Array.prototype.slice.call(document.querySelectorAll('#listaActividades .actividad'))
+      .map(function (c) { return (c.textContent || '').trim().split('·')[0].trim(); });
+  }
+
+  (async function () {
+    try {
+      // Se usa el arranque real del panel con un servidor simulado.
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await esperar(400);
+
+      const titulos = Array.prototype.slice.call(document.querySelectorAll('.grupo-trabajos'))
+        .map(function (h) { return h.textContent; });
+      r.push((titulos.length >= 2 ? 'OK   ' : 'FALLA') + ' · encabezados por urgencia: ' + titulos.join(' / '));
+      r.push((titulos[0] && titulos[0].indexOf('Devueltos') === 0 ? 'OK   ' : 'FALLA') +
+        ' · primero lo devuelto');
+      const resumen = document.getElementById('conteoActividades');
+      r.push((resumen && resumen.textContent.indexOf('Hoy:') === 0 ? 'OK   ' : 'FALLA') +
+        ' · resumen del día («' + (resumen ? resumen.textContent : '') + '»)');
+      const primero = document.querySelector('#listaActividades .actividad');
+      r.push((primero && (primero.textContent || '').indexOf('Trabajo 1') >= 0 ? 'OK   ' : 'FALLA') +
+        ' · el primer trabajo es uno devuelto');
+
+      // Error del servidor: mensaje y reintento
+      window.__fallar = true;
+      grupo('Pendientes').click();
+      await esperar(250);
+      var aviso = document.getElementById('avisoActividades');
+      r.push((aviso && aviso.textContent.indexOf('servidor falló') >= 0 ? 'OK   ' : 'FALLA') +
+        ' · si falla, muestra el mensaje');
+      var reintentar = Array.prototype.slice.call(aviso.querySelectorAll('button'))[0];
+      r.push((reintentar ? 'OK   ' : 'FALLA') + ' · ofrece «Reintentar»');
+      window.__fallar = false;
+      if (reintentar) {
+        reintentar.click();
+        await esperar(250);
+        r.push((textos().length === 14 ? 'OK   ' : 'FALLA') +
+          ' · al reintentar carga ' + textos().length + ' (deben ser 14)');
+      }
+    } catch (e) { r.push('FALLA · ' + e.message); }
+    document.title = r.join(' | ');
+  })();
+})();
+</script>
+</body></html>

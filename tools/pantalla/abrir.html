@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title></head>
+<body>
+<div id="vistaActividad" hidden></div>
+<div id="tarjetaActividades"></div>
+<div id="contenidoActividad"></div>
+<div class="msg" id="avisoActividad"></div>
+<script>
+// Abre el detalle POR EL CAMINO REAL (Actividad.abrir), no con un atajo.
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+window.__estado = 'PROGRAMADA';
+window.__err = [];
+window.addEventListener('error', function (e) { window.__err.push('error: ' + e.message); });
+window.addEventListener('unhandledrejection', function (e) {
+  window.__err.push('promesa: ' + ((e.reason && e.reason.message) || e.reason));
+});
+window.API = { llamar: function (accion) {
+  if (accion !== 'actividades.get') return Promise.resolve({ ok: true, data: {} });
+  var estado = window.__estado;
+  return Promise.resolve({ ok: true, data: {
+    actividad: { id: 'ACT_1', titulo: 'Fumigación', estado: estado, nodo_id: 'NOD_1',
+      fecha_inicio_plan: '2026-11-15', fecha_fin_plan: '2026-11-17', prioridad: 'MEDIA',
+      avance_aprobado_pct: 0, afecta_uso: false, obligatoria_legal: false,
+      empresa_id: 'EMP_1', responsable_id: 'USU_1' },
+    descripcion: 'Fumigación general',
+    nodo: { id: 'NOD_1', codigo: 'CA-T1', nombre: 'Torre 1', sensible: false },
+    plantilla: { id: 'P', nombre: 'X', metodo_avance: 'CHECKLIST', items: [
+      { id: 'I1', orden: 1, grupo: 'G', pregunta: '¿Quedó limpio?', tipo_respuesta: 'SI_NO',
+        obligatorio: true, peso: 1, requiere_foto: false, criterio: '' } ] },
+    hitos: [], reportes: [], evidencias: [], respuestas: [],
+    ultimo_final: estado === 'RECHAZADA'
+      ? { comentario_admin: 'Falta la foto', revisado_en: '2026-11-12T09:00:00-05:00' } : null,
+    propuesta: null,
+  } });
+} };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.App = { pestana: function () {}, refrescar: function () {} };
+</script>
+<script src="../../web/js/fotocache.js"></script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+
+  async function probar(estado, conChecklist) {
+    window.__estado = estado;
+    const cont = document.getElementById('contenidoActividad');
+    cont.textContent = '';
+    await Actividad.abrir('ACT_1', 'CONTRATISTA');
+    await esperar(250);
+    const texto = cont.textContent || '';
+    const error = texto.indexOf('No se pudo mostrar') >= 0;
+    r.push((!error ? 'OK   ' : 'FALLA') + ' · ' + estado + ' abre sin error de pintado');
+    r.push((texto.indexOf('Fumigación') >= 0 ? 'OK   ' : 'FALLA') + ' · ' + estado + ' pinta el título');
+    r.push(((texto.indexOf('Checklist') >= 0) === conChecklist ? 'OK   ' : 'FALLA') + ' · ' + estado +
+      (conChecklist ? ' pide el checklist' : ' aún no pide el checklist'));
+  }
+
+  try {
+    await probar('PROGRAMADA', false);
+    await probar('EN_EJECUCION', true);
+    await probar('RECHAZADA', true);
+  } catch (e) {
+    r.push('FALLA · excepción: ' + e.message);
+  }
+  if (window.__err.length) r.push('ERRORES: ' + window.__err.slice(0, 3).join(' / '));
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

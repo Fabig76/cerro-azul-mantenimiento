@@ -779,7 +779,60 @@
       }
     }
 
-    lista.forEach(function (a) {
+    // Para el contratista, «Pendientes» se ordena por urgencia y con encabezados.
+    const conEncabezados = rolActual === 'CONTRATISTA' && listaEstado.grupo === 'PENDIENTES' && !listaEstado.texto;
+
+    if (conEncabezados) {
+      const hoy = new Date().toISOString().slice(0, 10);
+      const en7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+      const cubos = { devueltos: [], atrasados: [], hoy: [], semana: [], despues: [] };
+
+      lista.forEach(function (a) {
+        if (String(a.estado) === 'RECHAZADA') return cubos.devueltos.push(a);
+        if (String(a.estado) === 'EN_EJECUCION' || String(a.fecha_fin_plan) < hoy) return cubos.atrasados.push(a);
+        if (String(a.fecha_inicio_plan) <= hoy) return cubos.hoy.push(a);
+        if (String(a.fecha_inicio_plan) <= en7) return cubos.semana.push(a);
+        return cubos.despues.push(a);
+      });
+
+      const resumen = document.getElementById('conteoActividades');
+      if (resumen && !sumar) {
+        const partes = [];
+        const deHoy = cubos.hoy.length + cubos.atrasados.length;
+        partes.push('Hoy: ' + deHoy + (deHoy === 1 ? ' trabajo' : ' trabajos'));
+        if (cubos.devueltos.length) {
+          partes.push(cubos.devueltos.length + (cubos.devueltos.length === 1 ? ' devuelto' : ' devueltos'));
+        }
+        resumen.textContent = partes.join(' · ');
+      }
+
+      const titulos = [
+        ['devueltos', 'Devueltos'],
+        ['atrasados', 'Atrasados'],
+        ['hoy', 'Para hoy'],
+        ['semana', 'Esta semana'],
+        ['despues', 'Más adelante'],
+      ];
+      titulos.forEach(function (t) {
+        const items = cubos[t[0]];
+        if (!items.length) return;
+        const h = document.createElement('h3');
+        h.className = 'grupo-trabajos';
+        h.textContent = t[1] + ' (' + items.length + ')';
+        cont.appendChild(h);
+        items.forEach(pintarTarjeta);
+      });
+      const masTemprano = document.getElementById('verMasActividades');
+      if (masTemprano) {
+        const faltan = listaEstado.total - listaEstado.cargadas;
+        masTemprano.hidden = faltan <= 0;
+      }
+      return;
+    }
+
+    lista.forEach(pintarTarjeta);
+
+    function pintarTarjeta(a) {
       const card = tarjetaActividad(a);
       card.tabIndex = 0;
       card.setAttribute('role', 'button');
@@ -790,7 +843,7 @@
         if (ev.key === 'Enter' && window.Actividad) Actividad.abrir(a.id, rolActual);
       });
       cont.appendChild(card);
-    });
+    }
 
     const mas = document.getElementById('verMasActividades');
     if (mas) {

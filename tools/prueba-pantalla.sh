@@ -17,7 +17,9 @@ $(correr propuestas.html)
 $(correr etapas.html)
 $(correr editar.html)
 $(correr lista.html)
-$(correr borrador.html)"
+$(correr borrador.html)
+$(correr abrir.html)
+$(correr lista-contratista.html)"
 
 echo "$SALIDA"
 echo "$SALIDA" | grep -q FALLA && exit 1

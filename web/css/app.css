@@ -672,3 +672,10 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 }
 .grupo-lista .cuenta { opacity: .75; margin-left: 6px; }
 .buscador { margin: 8px 0 2px; }
+
+/* Encabezados de la lista del contratista */
+.grupo-trabajos {
+  font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); margin: 16px 0 2px;
+}
+.grupo-trabajos:first-child { margin-top: 6px; }
