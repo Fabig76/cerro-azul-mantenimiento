@@ -10,7 +10,8 @@
       alEntrar(false);
       return;
     }
-    API.llamar('auth.google', { idToken: respuesta.credential }).then(function (r) {
+    API.llamar('auth.google', { idToken: respuesta.credential,
+      propio: !!(document.getElementById('loginPropio') || {}).checked }).then(function (r) {
       if (!r.ok) {
         const el = document.getElementById('avisoLogin');
         if (el) {

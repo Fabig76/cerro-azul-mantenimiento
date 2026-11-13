@@ -224,6 +224,17 @@ cerro-azul-mantenimiento/
 - Dominio público: `https://mantenimiento.urbcerroazul.com` mediante un registro CNAME hacia `fabig76.github.io` en el DNS de `urbcerroazul.com`, un archivo `web/CNAME` y "Enforce HTTPS" activado en GitHub Pages. La URL `https://fabig76.github.io/cerro-azul-mantenimiento/` queda como respaldo.
 - Orígenes autorizados del cliente OAuth: `https://mantenimiento.urbcerroazul.com`, `https://fabig76.github.io` y `http://localhost:8000` (pruebas locales).
 
+### 2.2 ter. Sesión larga en el celular propio (v1.4, decisión del administrador)
+
+- La sesión normal sigue durando `sesion_horas` (12) y vive en la pestaña.
+- En el ingreso hay una casilla **sin marcar por defecto**: «Este es mi celular: mantener la
+  sesión abierta 7 días». Si se marca, el token va al almacenamiento permanente y la sesión dura
+  `sesion_horas_propio` (168 horas).
+- La decisión viaja con el enlace de correo y con el ingreso por Google.
+- «Cerrar sesión» borra todo, en los dos casos.
+- **Motivo:** el portal se usa a diario desde el celular en campo; pedir un enlace nuevo cada 12
+  horas desgasta y hace que la gente deje de reportar.
+
 ### 2.2 bis. Listas compartidas y carga por pestaña (v1.4)
 
 - `web/js/datos.js` (`window.Datos`) guarda la promesa de `nodos.arbol`, `empresas.listar`,

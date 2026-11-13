@@ -338,6 +338,7 @@ function semillaConfig() {
     ['version_politica_datos', '1.0', 'Versión de la política de tratamiento de datos'],
     ['snapshot_minutos', '60', 'Frecuencia de regeneración del snapshot público'],
     ['sesion_horas', '12', 'Vigencia de la sesión'],
+    ['sesion_horas_propio', '168', 'Vigencia de la sesión en el celular propio (7 días)'],
     ['enlace_minutos', '15', 'Vigencia del enlace de ingreso por correo'],
     ['recordatorio_dias', '1', 'Días antes del vencimiento para recordar al contratista'],
     ['dias_aviso_poliza', '30', 'Días de anticipación del aviso de vencimiento de póliza'],

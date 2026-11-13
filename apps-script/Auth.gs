@@ -19,10 +19,13 @@ function origenPortal() {
 // ---------------------------------------------------------------------------
 
 /** Crea una sesión y devuelve el token en claro (solo se guarda su SHA-256). */
-function crearSesion_(usuario, origen) {
+function crearSesion_(usuario, origen, propio) {
   const token = tokenAleatorioHex(32);
   const hash = sha256Hex(token);
-  const horas = configNumero('sesion_horas', 12);
+  // En su propio celular la sesión puede durar una semana; en uno compartido, horas.
+  const horas = propio
+    ? configNumero('sesion_horas_propio', 168)
+    : configNumero('sesion_horas', 12);
   const expira = new Date(Date.now() + horas * 3600 * 1000);
   insertar('sesiones', {
     id: newId('SES'),
@@ -191,7 +194,7 @@ function authGoogle(ctx, payload) {
     return { estado: 'NO_REGISTRADO', registro_token: crearTokenRegistro_(email), email: email,
       motivo: usuario ? 'CONSENTIMIENTO' : 'NUEVO' };
   }
-  return continuarIngreso_(usuario, 'GOOGLE');
+  return continuarIngreso_(usuario, 'GOOGLE', !!payload.propio);
 }
 
 /** Enlace de un solo uso al correo, para quien no tiene cuenta Google. */
@@ -209,7 +212,8 @@ function authEnlaceSolicitar(ctx, payload) {
 
   const minutos = configNumero('enlace_minutos', 15);
   const token = tokenAleatorioHex(24);
-  cachePut('enl:' + sha256Hex(token), email, minutos * 60);
+  // Se guarda también si pidió sesión larga desde su propio celular.
+  cachePut('enl:' + sha256Hex(token), (payload.propio ? 'propio|' : 'compartido|') + email, minutos * 60);
 
   const enlace = origenPortal() + '/app.html#/enlace?t=' + token;
   const asunto = 'Ingreso al Portal de Mantenimientos — Cerro Azul';
@@ -237,21 +241,23 @@ function authEnlaceSolicitar(ctx, payload) {
 function authEnlaceCanjear(ctx, payload) {
   const token = exigirTexto(payload.token_enlace, 'token_enlace');
   const clave = 'enl:' + sha256Hex(token);
-  const email = cacheGet(clave);
-  if (!email) fallar_('NO_ENCONTRADO', 'El enlace venció o ya fue usado. Solicita uno nuevo.');
+  const guardado = cacheGet(clave);
+  if (!guardado) fallar_('NO_ENCONTRADO', 'El enlace venció o ya fue usado. Solicita uno nuevo.');
   cacheDel(clave);
 
-  const correo = String(email).toLowerCase();
+  const partes = String(guardado).split('|');
+  const propio = partes[0] === 'propio';
+  const correo = String(partes[1] || partes[0]).toLowerCase();
   const usuario = asegurarAdmin_(correo, correo, 'ENLACE');
   if (!usuario || sinConsentimiento_(usuario)) {
     return { estado: 'NO_REGISTRADO', registro_token: crearTokenRegistro_(correo), email: correo,
       motivo: usuario ? 'CONSENTIMIENTO' : 'NUEVO' };
   }
-  return continuarIngreso_(usuario, 'ENLACE');
+  return continuarIngreso_(usuario, 'ENLACE', propio);
 }
 
 /** Decide si la persona puede entrar y devuelve su estado. */
-function continuarIngreso_(usuario, origen) {
+function continuarIngreso_(usuario, origen, propio) {
   const estado = String(usuario.estado || 'PENDIENTE');
   if (estado === 'PENDIENTE') {
     return { estado: 'PENDIENTE', sessionToken: null, usuario: { email: usuario.email, nombre: usuario.nombre } };
@@ -259,8 +265,9 @@ function continuarIngreso_(usuario, origen) {
   if (estado !== 'ACTIVO') {
     return { estado: 'INACTIVO', sessionToken: null, usuario: { email: usuario.email, nombre: usuario.nombre } };
   }
-  const sesion = crearSesion_(usuario, origen);
-  auditar(usuario.email, 'INGRESO', 'usuario', usuario.id, null, { origen: origen });
+  const sesion = crearSesion_(usuario, origen, propio);
+  auditar(usuario.email, 'INGRESO', 'usuario', usuario.id, null,
+    { origen: origen, propio: !!propio });
   return {
     estado: 'ACTIVO',
     sessionToken: sesion.sessionToken,

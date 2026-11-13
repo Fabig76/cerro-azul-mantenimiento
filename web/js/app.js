@@ -146,7 +146,9 @@
       aviso('Tu cuenta está inactiva. Habla con la administración.', 'error');
       return false;
     }
-    Sesion.guardar({ token: data.sessionToken, expira_en: data.expira_en, usuario: data.usuario }, false);
+    // Si marcó «este es mi celular», la sesión sobrevive al cerrar la pestaña.
+    const propio = !!(document.getElementById('loginPropio') || {}).checked;
+    Sesion.guardar({ token: data.sessionToken, expira_en: data.expira_en, usuario: data.usuario }, propio);
     entrar();
     return true;
   }
@@ -920,7 +922,10 @@
     const b = document.getElementById('btnEnlace');
     b.disabled = true;
     b.textContent = 'Enviando…';
-    const r = await API.llamar('auth.enlace.solicitar', { email: email }, { idempotente: true });
+    const r = await API.llamar('auth.enlace.solicitar', {
+      email: email,
+      propio: !!(document.getElementById('loginPropio') || {}).checked,
+    }, { idempotente: true });
     b.disabled = false;
     b.textContent = 'Enviarme el enlace';
     if (!r.ok) return aviso(r.message || 'No se pudo enviar el enlace.', 'error');
