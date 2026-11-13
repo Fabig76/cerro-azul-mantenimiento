@@ -29,9 +29,9 @@
   async function cargar() {
     const t = Sesion.token();
     const [rU, rE, rN] = await Promise.all([
-      API.llamar('usuarios.listar', {}, { token: t }),
-      API.llamar('empresas.listar', {}, { token: t }),
-      API.llamar('nodos.arbol', {}, { token: t }),
+      Datos.obtener('usuarios.listar', t),
+      Datos.obtener('empresas.listar', t),
+      Datos.obtener('nodos.arbol', t),
     ]);
     if (rU.ok) usuarios = rU.data.usuarios || [];
     if (rE.ok) empresas = rE.data.empresas || [];
@@ -181,16 +181,19 @@
         const act = await API.llamar('usuarios.activar', {
           id: u.id, rol: sRol.value, empresa_id: sEmp.value,
         }, { token: t, idempotente: true });
+      if (window.Datos) Datos.invalidar('usuarios.listar');
         if (!act.ok) return aviso(act.message || 'No se pudo activar.', 'error');
       } else {
         const ed = await API.llamar('usuarios.editar', {
           id: u.id, rol: sRol.value, empresa_id: sEmp.value,
         }, { token: t, idempotente: true });
+      if (window.Datos) Datos.invalidar('usuarios.listar');
         if (!ed.ok) return aviso(ed.message || 'No se pudo guardar.', 'error');
       }
       const asig = await API.llamar('usuarios.asignar', {
         id: u.id, nodo_ids: nodoIds,
       }, { token: t, idempotente: true });
+      if (window.Datos) Datos.invalidar('usuarios.listar');
       if (!asig.ok) return aviso(asig.message || 'No se pudieron asignar las secciones.', 'error');
       aviso('Usuario guardado con ' + nodoIds.length + ' sección(es).', 'ok');
       await cargar();
@@ -202,6 +205,7 @@
     desactivar.disabled = u.estado !== 'ACTIVO';
     desactivar.addEventListener('click', async function () {
       const r = await API.llamar('usuarios.desactivar', { id: u.id }, { token: Sesion.token(), idempotente: true });
+      if (window.Datos) Datos.invalidar('usuarios.listar');
       if (!r.ok) return aviso(r.message || 'No se pudo desactivar.', 'error');
       aviso('Usuario desactivado y sesiones revocadas.', 'ok');
       await cargar();
@@ -231,6 +235,7 @@
         nit: document.getElementById('empNit').value.trim(),
         vigencia_hasta: document.getElementById('empVigencia').value,
       }, { token: Sesion.token(), idempotente: true });
+      if (window.Datos) Datos.invalidar('empresas.listar');
       if (!r.ok) return aviso(r.message || 'No se pudo crear la empresa.', 'error');
       aviso('Empresa creada. Ya puede asignarla a un contratista.', 'ok');
       document.getElementById('empRazon').value = '';

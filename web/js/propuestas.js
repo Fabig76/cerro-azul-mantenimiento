@@ -81,7 +81,7 @@
 
     if (rolActual === 'CONTRATISTA' && !nodos.length && window.App) {
       // Sin árbol cargado no se puede elegir sección: se pide aparte.
-      const raiz = await API.llamar('nodos.arbol', {}, { token: Sesion.token() });
+      const raiz = await Datos.obtener('nodos.arbol', Sesion.token());
       if (raiz.ok) nodos = raiz.data.nodos || [];
     }
 

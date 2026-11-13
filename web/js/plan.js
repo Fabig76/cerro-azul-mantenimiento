@@ -31,8 +31,8 @@
     const t = Sesion.token();
     const [rR, rN, rE] = await Promise.all([
       API.llamar('recurrencias.listar', {}, { token: t }),
-      API.llamar('nodos.arbol', {}, { token: t }),
-      API.llamar('empresas.listar', {}, { token: t }),
+      Datos.obtener('nodos.arbol', t),
+      Datos.obtener('empresas.listar', t),
     ]);
     if (rR.ok) recurrencias = rR.data.recurrencias || [];
     if (rN.ok) nodos = rN.data.nodos || [];

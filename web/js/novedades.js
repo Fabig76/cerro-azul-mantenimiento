@@ -26,7 +26,7 @@
   async function cargar() {
     const t = Sesion.token();
     const [rN, rNov] = await Promise.all([
-      API.llamar('nodos.arbol', {}, { token: t }),
+      Datos.obtener('nodos.arbol', t),
       API.llamar('novedades.listar', {}, { token: t }),
     ]);
     if (rN.ok) nodos = rN.data.nodos || [];

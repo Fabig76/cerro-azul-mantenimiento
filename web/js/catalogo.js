@@ -25,8 +25,8 @@
   async function cargar() {
     const t = Sesion.token();
     const [rT, rP] = await Promise.all([
-      API.llamar('tipos.listar', {}, { token: t }),
-      API.llamar('plantillas.listar', {}, { token: t }),
+      Datos.obtener('tipos.listar', t),
+      Datos.obtener('plantillas.listar', t),
     ]);
     if (rT.ok) tipos = rT.data.tipos || [];
     if (rP.ok) plantillas = rP.data.plantillas || [];
@@ -126,6 +126,7 @@
           nombre: nombre, atributos: atributos, condiciones: condiciones,
           sensible_default: document.getElementById('tipSensible').checked,
         }, { token: Sesion.token(), idempotente: true });
+      if (window.Datos) Datos.invalidar('tipos.listar');
         if (!r.ok) return aviso(r.message || 'No se pudo crear el tipo.', 'error');
         aviso('Tipo creado: ' + nombre + '. Ya está disponible al crear un elemento.', 'ok');
         document.getElementById('tipNombre').value = '';
@@ -162,6 +163,7 @@
           }),
         }, { token: Sesion.token(), idempotente: true });
         if (!r.ok) return aviso(r.message || 'No se pudo guardar la plantilla.', 'error');
+        if (window.Datos) Datos.invalidar('plantillas.listar');
         aviso('Plantilla guardada en la versión ' + r.data.version + ' con ' + r.data.items +
           ' ítems y ' + r.data.etapas + ' etapas.', 'ok');
         document.getElementById('plaItems').value = '';

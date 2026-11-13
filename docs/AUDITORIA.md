@@ -13,6 +13,12 @@ node tools/auditar-frontend.mjs     # acciones, archivos y campos que el panel e
 python3 tools/auditoria.py          # portal público y superficie de seguridad
 ```
 
+```bash
+node tools/prueba-api.mjs          # límites de tiempo y reintentos del cliente
+node tools/prueba-datos.mjs        # listas compartidas: una sola llamada
+node tools/contar-llamadas.mjs     # llamadas al entrar, por rol (meta: 6 y 4)
+```
+
 `revisar-funciones` y `prueba-pantalla` se agregaron después de que un refactor borrara
 `bloqueFotos`: la sintaxis era válida y ninguna otra prueba lo notó, pero ningún contratista
 podía subir una foto. La prueba de pantalla abre el detalle en PROGRAMADA, EN_EJECUCION,

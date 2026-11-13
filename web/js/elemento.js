@@ -32,8 +32,8 @@
   async function cargar() {
     const t = Sesion.token();
     const [rT, rN] = await Promise.all([
-      API.llamar('tipos.listar', {}, { token: t }),
-      API.llamar('nodos.arbol', {}, { token: t }),
+      Datos.obtener('tipos.listar', t),
+      Datos.obtener('nodos.arbol', t),
     ]);
     if (rT.ok) tipos = rT.data.tipos || [];
     if (rN.ok) nodos = rN.data.nodos || [];
@@ -144,6 +144,7 @@
         nombre: nombre.value.trim(),
         ficha_json: ficha,
       }, { token: Sesion.token(), idempotente: true });
+      if (window.Datos) Datos.invalidar('nodos.arbol');
 
       boton.disabled = false;
       if (!r.ok) return aviso(r.message || 'No se pudo crear el elemento.', 'error');

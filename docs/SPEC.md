@@ -707,6 +707,17 @@ El snapshot **nunca** contiene correos, teléfonos, nombres de personas, `ficha_
 
 ## 10. Reglas de negocio y máquina de estados
 
+### 2.2 bis. Listas compartidas y carga por pestaña (v1.4)
+
+- `web/js/datos.js` (`window.Datos`) guarda la promesa de `nodos.arbol`, `empresas.listar`,
+  `usuarios.listar`, `tipos.listar` y `plantillas.listar`: la primera llamada va al servidor y las
+  demás esperan la misma respuesta. Toda escritura que cambie una de esas listas llama a
+  `Datos.invalidar`; un fallo no se guarda.
+- Cada pestaña del panel carga la primera vez que se abre (`cargarPestana`), no al entrar.
+- **Meta medida** con `tools/contar-llamadas.mjs`: al entrar, el administrador hace como máximo
+  **6** llamadas y el contratista **4**, sin ninguna repetida. Antes eran 22, con seis pedidos del
+  mismo árbol.
+
 ### 10.2 ter. Avisos y disparadores (v1.4)
 
 Cuatro disparadores; `instalarDisparadores()` los deja siempre iguales y no duplica:

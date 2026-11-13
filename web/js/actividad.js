@@ -1130,7 +1130,7 @@
 
     caja.appendChild(fila2);
 
-    const pintarEmpresas = API.llamar('empresas.listar', {}, { token: Sesion.token() }).then(function (r) {
+    const pintarEmpresas = Datos.obtener('empresas.listar', Sesion.token()).then(function (r) {
       if (!r.ok) return;
       (r.data.empresas || []).forEach(function (e) {
         const op = el('option', null, e.razon_social + (e.vencida ? ' (contrato vencido)' : ''));
@@ -1141,7 +1141,7 @@
       });
     }).catch(function () {});
 
-    const pintarPersonas = API.llamar('usuarios.listar', {}, { token: Sesion.token() }).then(function (r) {
+    const pintarPersonas = Datos.obtener('usuarios.listar', Sesion.token()).then(function (r) {
       if (!r.ok) return;
       (r.data.usuarios || [])
         .filter(function (u) { return String(u.estado) === 'ACTIVO'; })

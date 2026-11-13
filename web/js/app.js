@@ -74,6 +74,7 @@
     if (window.history && history.replaceState) {
       history.replaceState(null, '', window.location.pathname + '#/' + id);
     }
+    cargarPestana(id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -206,26 +207,15 @@
     arbol.then(function (nodos) {
       if (window.Propuestas) Propuestas.cargar(rolActual, nodos);
     });
-    if (window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
     if (rolActual === 'ADMIN') {
       prepararFormulario(t);
       prepararBuscador();
       const formElemento = document.getElementById('formElemento');
-      if (formElemento) {
-        formElemento.classList.remove('oculto');
-        if (window.Elementos) { Elementos.cargar(); Elementos.preparar(); }
-      }
-      if (window.Pruebas) Pruebas.preparar();
-      if (window.Respaldo) { Respaldo.cargar(); Respaldo.preparar(); }
-      if (window.Empresas) { Empresas.preparar(); Empresas.cargar(); }
-      if (window.Plan) { Plan.cargar(); Plan.preparar(); }
-      if (window.Catalogo) { Catalogo.cargar(); Catalogo.preparar(); }
-      if (window.Alertas) { Alertas.cargar(); Alertas.preparar(); }
-      if (window.Usuarios) {
-        Usuarios.cargar();
-        Usuarios.prepararEmpresa();
-      }
+      if (formElemento) formElemento.classList.remove('oculto');
     }
+
+    // Cada pestaña carga la primera vez que se abre; antes se cargaban todas al entrar.
+    cargarPestana(pestanaActual());
   }
 
   const nodosAbiertos = {};
@@ -233,7 +223,7 @@
 
   async function tiposDisponibles(t) {
     if (tiposCache) return tiposCache;
-    const r = await API.llamar('tipos.listar', {}, { token: t });
+    const r = await Datos.obtener('tipos.listar', t);
     tiposCache = (r.ok && r.data.tipos) ? r.data.tipos : [];
     return tiposCache;
   }
@@ -349,6 +339,7 @@
           return;
         }
         const r = await API.llamar('nodos.desactivar', { id: nodo.id }, { token: t, idempotente: true });
+      if (window.Datos) Datos.invalidar('nodos.arbol');
         if (!r.ok) {
           aviso.textContent = r.message || 'No se pudo retirar.';
           aviso.className = 'msg mostrar error';
@@ -377,6 +368,7 @@
       };
       if (selectTipo) payload.tipo_elemento_id = selectTipo.value;
       const r = await API.llamar('nodos.editar', payload, { token: t, idempotente: true });
+      if (window.Datos) Datos.invalidar('nodos.arbol');
       if (!r.ok) {
         guardar.disabled = false;
         aviso.textContent = r.message || 'No se pudo guardar.';
@@ -385,6 +377,7 @@
       }
       if (mover.value) {
         const rm = await API.llamar('nodos.mover', { id: nodo.id, nuevo_parent_id: mover.value }, { token: t, idempotente: true });
+      if (window.Datos) Datos.invalidar('nodos.arbol');
         if (!rm.ok) {
           guardar.disabled = false;
           aviso.textContent = rm.message || 'Se guardó, pero no se pudo mover.';
@@ -480,7 +473,7 @@
     const cont = document.getElementById('arbol');
     if (!cont) return [];
     cont.textContent = '';
-    const r = await API.llamar('nodos.arbol', {}, { token: t });
+    const r = await Datos.obtener('nodos.arbol', t);
     if (!r.ok) {
       const p = document.createElement('p');
       p.className = 'msg info mostrar';
@@ -950,8 +943,8 @@
     if (!selEmpresa || !selPersona) return;
 
     const [rEmpresas, rUsuarios] = await Promise.all([
-      API.llamar('empresas.listar', {}, { token: t }),
-      API.llamar('usuarios.listar', {}, { token: t }),
+      Datos.obtener('empresas.listar', t),
+      Datos.obtener('usuarios.listar', t),
     ]);
     const empresas = rEmpresas.ok ? (rEmpresas.data.empresas || []) : [];
     const usuarios = rUsuarios.ok ? (rUsuarios.data.usuarios || []) : [];
@@ -1016,7 +1009,7 @@
   async function cargarNodosEnFormulario(t) {
     const sel = document.getElementById('actNodo');
     if (!sel) return;
-    const r = await API.llamar('nodos.arbol', {}, { token: t });
+    const r = await Datos.obtener('nodos.arbol', t);
     if (!r.ok) {
       const caja = sel.parentNode;
       if (window.Fallo && caja) {
@@ -1042,6 +1035,38 @@
     refrescar: function () { cargarActividades(Sesion.token()); },
     pestana: mostrarPestana,
   };
+
+  const PESTANAS_CARGADAS = {};
+
+  /** Qué pestaña está a la vista ahora mismo. */
+  function pestanaActual() {
+    const activa = document.querySelector('#barraPestanas .pestana.activa');
+    return activa ? activa.dataset.pestana : 'actividades';
+  }
+
+  /** Carga lo de una pestaña la primera vez que se abre. */
+  function cargarPestana(id) {
+    if (!id || PESTANAS_CARGADAS[id]) return;
+    PESTANAS_CARGADAS[id] = true;
+    const admin = rolActual === 'ADMIN';
+
+    if (id === 'secciones' && window.Elementos) {
+      if (admin) { Elementos.cargar(); Elementos.preparar(); }
+    }
+    if (id === 'sistema') {
+      if (window.Pruebas) Pruebas.preparar();
+      if (admin && window.Respaldo) { Respaldo.cargar(); Respaldo.preparar(); }
+    }
+    if (id === 'empresas' && window.Empresas) { Empresas.preparar(); Empresas.cargar(); }
+    if (id === 'plan' && admin && window.Plan) { Plan.cargar(); Plan.preparar(); }
+    if (id === 'catalogo' && admin && window.Catalogo) { Catalogo.cargar(); Catalogo.preparar(); }
+    if (id === 'alertas' && admin && window.Alertas) { Alertas.cargar(); Alertas.preparar(); }
+    if (id === 'usuarios' && admin && window.Usuarios) {
+      Usuarios.cargar();
+      Usuarios.prepararEmpresa();
+    }
+    if (id === 'novedades' && window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
+  }
 
   /** Franja de «sin conexión»: avisa, no bloquea. */
   function vigilarConexion() {
