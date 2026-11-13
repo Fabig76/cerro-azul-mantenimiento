@@ -15,7 +15,8 @@ correr() {
 SALIDA="$(correr prueba.html)
 $(correr propuestas.html)
 $(correr etapas.html)
-$(correr editar.html)"
+$(correr editar.html)
+$(correr lista.html)"
 
 echo "$SALIDA"
 echo "$SALIDA" | grep -q FALLA && exit 1

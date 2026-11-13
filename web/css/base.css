@@ -312,6 +312,10 @@ footer.pie b { color: #334155; }
 
 .oculto { display: none !important; }
 
+/* El atributo hidden es más débil que cualquier clase con display (.btn lo tiene):
+   sin esto, un botón con hidden se sigue viendo. */
+[hidden] { display: none !important; }
+
 @media (max-width: 900px) { .g3, .g4 { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) {

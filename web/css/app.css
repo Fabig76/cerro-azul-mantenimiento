@@ -656,3 +656,19 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 .propuesta-motivo { margin: 6px 0 0; font-size: 13px; color: var(--danger-ink); }
 .fila-propuesta { cursor: pointer; transition: .15s; }
 .fila-propuesta:hover { border-color: var(--brand); }
+
+/* Grupos de la lista de actividades */
+.grupos-lista { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.grupo-lista {
+  font: inherit; font-size: 13px; font-weight: 700;
+  padding: 7px 13px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  transition: .15s;
+}
+.grupo-lista:hover { border-color: var(--brand-line); color: var(--ink); }
+.grupo-lista.activo {
+  background: var(--brand-soft); color: var(--brand-ink);
+  border-color: color-mix(in srgb, var(--brand) 40%, transparent);
+}
+.grupo-lista .cuenta { opacity: .75; margin-left: 6px; }
+.buscador { margin: 8px 0 2px; }

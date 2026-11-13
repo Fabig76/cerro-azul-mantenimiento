@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div class="card" id="tarjetaActividades">
+  <div class="cabecera-seccion"><h2>Actividades</h2><span class="codigo" id="conteoActividades"></span></div>
+  <div class="grupos-lista" id="gruposActividades" hidden></div>
+  <input type="search" id="buscarActividades" class="item-input buscador" hidden>
+  <div class="msg" id="avisoActividades"></div>
+  <div id="listaActividades" class="lista-actividades"></div>
+  <div id="sinActividades" class="vacio oculto">Todavía no hay actividades registradas.</div>
+  <div class="acciones-tarjeta"><button class="btn" id="verMasActividades" type="button" hidden>Ver más</button></div>
+</div>
+<div id="vistaActividad" hidden></div>
+<script>
+window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Sesion = { token: function () { return 'x'; }, limpiar: function () {}, usuario: function () { return null; } };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+
+// 30 actividades: 12 pendientes, 3 reportadas, 14 aprobadas, 1 cancelada
+var TODAS = [];
+for (var i = 1; i <= 30; i++) {
+  var estado = i <= 12 ? 'PROGRAMADA' : i <= 15 ? 'REPORTADA' : i <= 29 ? 'APROBADA' : 'CANCELADA';
+  TODAS.push({ id: 'ACT_' + i, titulo: (i === 7 ? 'Bomba de presión' : 'Trabajo ' + i),
+    estado: estado, nodo_codigo: 'CA-T1', nodo_nombre: 'Torre 1',
+    fecha_inicio_plan: '2026-11-' + String(10 + (i % 18)).padStart(2, '0'),
+    fecha_fin_plan: '2026-11-' + String(12 + (i % 16)).padStart(2, '0'),
+    fecha_reporte_final: '2026-11-0' + (1 + (i % 9)), prioridad: 'MEDIA', avance_aprobado_pct: 0 });
+}
+window.__pedidos = [];
+window.API = { llamar: function (accion, payload) {
+  if (accion === 'auth.me') return Promise.resolve({ ok: true, data: { usuario: {
+    id: 'U1', email: 'a@b.c', nombre: 'Admin Prueba', rol: 'ADMIN' }, permisos: [] } });
+  if (accion === 'nodos.arbol') return Promise.resolve({ ok: true, data: { nodos: [] } });
+  if (accion !== 'actividades.listar') return Promise.resolve({ ok: true, data: {} });
+  window.__pedidos.push(payload);
+  if (window.__fallar) return Promise.resolve({ ok: false, code: 'ERROR_INTERNO', message: 'El servidor falló.' });
+  var grupos = { PENDIENTES: ['PROGRAMADA','EN_EJECUCION','RECHAZADA'], POR_REVISAR: ['REPORTADA'],
+    TERMINADAS: ['APROBADA','CERRADA'], CANCELADAS: ['CANCELADA'] };
+  var conteos = {};
+  Object.keys(grupos).forEach(function (g) {
+    conteos[g] = TODAS.filter(function (a) { return grupos[g].indexOf(a.estado) >= 0; }).length;
+  });
+  var lista = TODAS.slice();
+  if (payload.grupo) lista = lista.filter(function (a) { return grupos[payload.grupo].indexOf(a.estado) >= 0; });
+  if (payload.texto) {
+    var t = payload.texto.toLowerCase();
+    lista = lista.filter(function (a) { return a.titulo.toLowerCase().indexOf(t) >= 0; });
+  }
+  var tam = payload.tam || 20, pag = payload.pagina || 1;
+  return Promise.resolve({ ok: true, data: { total: lista.length, conteos: conteos,
+    actividades: lista.slice((pag - 1) * tam, pag * tam) } });
+} };
+window.APP_INTERNO = true;
+</script>
+<script src="../../web/js/app.js"></script>
+<script>
+(function () {
+  var r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function grupo(nombre) {
+    return Array.prototype.slice.call(document.querySelectorAll('.grupo-lista'))
+      .filter(function (b) { return (b.textContent || '').indexOf(nombre) === 0; })[0];
+  }
+  function textos() {
+    return Array.prototype.slice.call(document.querySelectorAll('#listaActividades .actividad'))
+      .map(function (c) { return (c.textContent || '').trim().split('·')[0].trim(); });
+  }
+
+  (async function () {
+    try {
+      // Se usa el arranque real del panel con un servidor simulado.
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await esperar(400);
+
+      r.push((document.querySelectorAll('.grupo-lista').length === 4 ? 'OK   ' : 'FALLA') +
+        ' · cuatro grupos con su cuenta');
+      r.push((textos().length === 3 ? 'OK   ' : 'FALLA') +
+        ' · arranca en «Por revisar» con ' + textos().length + ' (deben ser 3)');
+
+      grupo('Pendientes').click();
+      await esperar(200);
+      r.push((textos().length === 12 ? 'OK   ' : 'FALLA') +
+        ' · Pendientes muestra ' + textos().length + ' (deben ser 12)');
+
+      grupo('Terminadas').click();
+      await esperar(200);
+      r.push((textos().length === 14 ? 'OK   ' : 'FALLA') +
+        ' · Terminadas muestra ' + textos().length + ' (deben ser 14)');
+      var mas = document.getElementById('verMasActividades');
+      r.push((mas && mas.hidden ? 'OK   ' : 'FALLA') +
+        ' · si todo cabe en la página, «Ver más» se oculta');
+
+      // Con más de 20 pendientes, «Ver más» trae la página siguiente
+      for (var k = 31; k <= 42; k++) {
+        TODAS.push({ id: 'ACT_' + k, titulo: 'Trabajo ' + k, estado: 'PROGRAMADA',
+          nodo_codigo: 'CA-T1', nodo_nombre: 'Torre 1',
+          fecha_inicio_plan: '2026-12-01', fecha_fin_plan: '2026-12-05',
+          prioridad: 'MEDIA', avance_aprobado_pct: 0 });
+      }
+      grupo('Pendientes').click();
+      await esperar(250);
+      r.push((textos().length === 20 ? 'OK   ' : 'FALLA') +
+        ' · con 24 pendientes muestra la primera página (' + textos().length + ')');
+      r.push((!mas.hidden ? 'OK   ' : 'FALLA') + ' · aparece «Ver más» (' + mas.textContent + ')');
+
+      mas.click();
+      await esperar(250);
+      r.push((textos().length === 24 && mas.hidden ? 'OK   ' : 'FALLA') +
+        ' · tras «Ver más» hay ' + textos().length + ' y el botón se oculta');
+
+      grupo('Pendientes').click();
+      await esperar(200);
+      var buscador = document.getElementById('buscarActividades');
+      buscador.value = 'bomba';
+      buscador.dispatchEvent(new Event('input'));
+      await esperar(600);
+      var t = textos();
+      r.push((t.length === 1 && t[0].indexOf('Bomba') === 0 ? 'OK   ' : 'FALLA') +
+        ' · buscar «bomba» encuentra «' + t[0] + '»');
+
+      // Error del servidor: mensaje y reintento
+      buscador.value = '';
+      buscador.dispatchEvent(new Event('input'));
+      await esperar(500);
+      window.__fallar = true;
+      grupo('Pendientes').click();
+      await esperar(250);
+      var aviso = document.getElementById('avisoActividades');
+      r.push((aviso && aviso.textContent.indexOf('servidor falló') >= 0 ? 'OK   ' : 'FALLA') +
+        ' · si falla, muestra el mensaje');
+      var reintentar = Array.prototype.slice.call(aviso.querySelectorAll('button'))[0];
+      r.push((reintentar ? 'OK   ' : 'FALLA') + ' · ofrece «Reintentar»');
+      window.__fallar = false;
+      if (reintentar) {
+        reintentar.click();
+        await esperar(250);
+        r.push((textos().length === 20 ? 'OK   ' : 'FALLA') +
+          ' · al reintentar carga ' + textos().length + ' (deben ser 20)');
+      }
+    } catch (e) { r.push('FALLA · ' + e.message); }
+    document.title = r.join(' | ');
+  })();
+})();
+</script>
+</body></html>

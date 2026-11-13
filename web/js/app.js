@@ -201,6 +201,7 @@
     if (window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
     if (rolActual === 'ADMIN') {
       prepararFormulario(t);
+      prepararBuscador();
       const formElemento = document.getElementById('formElemento');
       if (formElemento) {
         formElemento.classList.remove('oculto');
@@ -652,19 +653,131 @@
     return el;
   }
 
-  async function cargarActividades(t) {
+  // Estado de la lista: grupo, búsqueda y páginas ya cargadas.
+  const listaEstado = { grupo: null, texto: '', pagina: 1, cargadas: 0, total: 0, cargando: false };
+  const GRUPOS = [
+    ['PENDIENTES', 'Pendientes'],
+    ['POR_REVISAR', 'Por revisar'],
+    ['TERMINADAS', 'Terminadas'],
+    ['CANCELADAS', 'Canceladas'],
+  ];
+
+  function grupoInicial() {
+    if (rolActual === 'ADMIN' || rolActual === 'SUPERVISOR') return 'POR_REVISAR';
+    return 'PENDIENTES';
+  }
+
+  function pintarGrupos(conteos, grupo) {
+    const caja = document.getElementById('gruposActividades');
+    if (!caja) return;
+    caja.textContent = '';
+    let alguno = false;
+
+    GRUPOS.forEach(function (g) {
+      const n = Number(conteos && conteos[g[0]]) || 0;
+      if (g[0] === 'CANCELADAS' && n === 0) return;
+      if (n > 0) alguno = true;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'grupo-lista' + (g[0] === grupo ? ' activo' : '');
+      b.textContent = g[1];
+      const c = document.createElement('span');
+      c.className = 'cuenta';
+      c.textContent = String(n);
+      b.appendChild(c);
+      b.addEventListener('click', function () {
+        listaEstado.grupo = g[0];
+        listaEstado.pagina = 1;
+        listaEstado.cargadas = 0;
+        cargarActividades(Sesion.token());
+      });
+      caja.appendChild(b);
+    });
+
+    caja.hidden = !alguno;
+  }
+
+  async function cargarActividades(t, opciones) {
     const cont = document.getElementById('listaActividades');
     if (!cont) return;
-    cont.textContent = '';
-    const r = await API.llamar('actividades.listar', { tam: 20 }, { token: t });
-    if (!r.ok) return;
-    const lista = r.data.actividades || [];
-    const conteo = document.getElementById('conteoActividades');
-    if (conteo) conteo.textContent = r.data.total + (r.data.total === 1 ? ' trabajo' : ' trabajos');
-    if (!lista.length) {
-      ver('sinActividades', true);
+    if (listaEstado.cargando) return;
+    const sumar = !!(opciones && opciones.sumar);
+
+    if (!sumar) {
+      if (!listaEstado.grupo) listaEstado.grupo = grupoInicial();
+      listaEstado.pagina = 1;
+      listaEstado.cargadas = 0;
+      cont.textContent = '';
+      listaEstado.cargando = true;
+    }
+
+    const pedir = {
+      tam: 20,
+      pagina: listaEstado.pagina,
+      grupo: listaEstado.grupo,
+    };
+    if (listaEstado.texto) pedir.texto = listaEstado.texto;
+
+    const r = await API.llamar('actividades.listar', pedir, { token: t });
+    listaEstado.cargando = false;
+
+    if (!r.ok) {
+      // Sin esto la lista quedaba en blanco y en silencio.
+      const avisoLista = document.getElementById('avisoActividades');
+      if (avisoLista) {
+        avisoLista.textContent = (r.message || 'No se pudieron cargar los trabajos.') + ' ';
+        avisoLista.className = 'msg mostrar error';
+        const reintentar = document.createElement('button');
+        reintentar.type = 'button';
+        reintentar.className = 'btn sm';
+        reintentar.textContent = 'Reintentar';
+        reintentar.addEventListener('click', function () {
+          avisoLista.className = 'msg';
+          avisoLista.textContent = '';
+          cargarActividades(Sesion.token());
+        });
+        avisoLista.appendChild(reintentar);
+      }
       return;
     }
+
+    const lista = r.data.actividades || [];
+    listaEstado.total = Number(r.data.total) || 0;
+    listaEstado.cargadas += lista.length;
+
+    // Si el grupo quedó vacío, se muestra el que tenga trabajo.
+    if (!sumar && !lista.length && !listaEstado.texto) {
+      const conteos = r.data.conteos || {};
+      const otro = GRUPOS
+        .filter(function (g) { return g[0] !== listaEstado.grupo && Number(conteos[g[0]]) > 0; })
+        .map(function (g) { return g[0]; })[0];
+      if (otro) {
+        listaEstado.grupo = otro;
+        return cargarActividades(t);
+      }
+    }
+
+    pintarGrupos(r.data.conteos, listaEstado.grupo);
+
+    const buscador = document.getElementById('buscarActividades');
+    if (buscador) buscador.hidden = false;
+
+    const conteo = document.getElementById('conteoActividades');
+    if (conteo) {
+      const nombre = (GRUPOS.filter(function (g) { return g[0] === listaEstado.grupo; })[0] || ['', ''])[1];
+      conteo.textContent = listaEstado.total + ' ' + String(nombre).toLowerCase();
+    }
+
+    ver('sinActividades', !lista.length && !sumar);
+    if (!lista.length && !sumar) {
+      const vacio = document.getElementById('sinActividades');
+      if (vacio) {
+        vacio.textContent = listaEstado.texto
+          ? 'Ningún trabajo coincide con «' + listaEstado.texto + '».'
+          : 'No hay trabajos en «' + String(listaEstado.grupo).toLowerCase().replace('_', ' ') + '».';
+      }
+    }
+
     lista.forEach(function (a) {
       const card = tarjetaActividad(a);
       card.tabIndex = 0;
@@ -676,6 +789,33 @@
         if (ev.key === 'Enter' && window.Actividad) Actividad.abrir(a.id, rolActual);
       });
       cont.appendChild(card);
+    });
+
+    const mas = document.getElementById('verMasActividades');
+    if (mas) {
+      const faltan = listaEstado.total - listaEstado.cargadas;
+      mas.hidden = faltan <= 0;
+      mas.textContent = 'Ver más (' + listaEstado.cargadas + ' de ' + listaEstado.total + ')';
+      mas.onclick = function () {
+        listaEstado.pagina += 1;
+        cargarActividades(Sesion.token(), { sumar: true });
+      };
+    }
+  }
+
+  /** Espera a que el usuario deje de escribir antes de buscar. */
+  function prepararBuscador() {
+    const buscador = document.getElementById('buscarActividades');
+    if (!buscador) return;
+    let espera = null;
+    buscador.addEventListener('input', function () {
+      clearTimeout(espera);
+      espera = setTimeout(function () {
+        listaEstado.texto = buscador.value.trim();
+        listaEstado.pagina = 1;
+        listaEstado.cargadas = 0;
+        cargarActividades(Sesion.token());
+      }, 400);
     });
   }
 

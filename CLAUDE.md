@@ -71,3 +71,8 @@ Cada uno costó un fallo en producción. No repetirlos.
 
 11. **Un cambio a la vez, con vuelta atrás lista.** Mezclar separar tarjetas + colores + visibilidad por
     rol hizo imposible saber qué rompió qué. Cada paso va en su commit y se revierte con `git revert`.
+
+12. **Una lista sin paginación en pantalla es una lista que algún día esconde lo nuevo.** La lista de
+    actividades pedía 20 y nunca la página siguiente, ordenadas por fecha de fin ascendente: las
+    aprobadas y canceladas ocupaban los primeros puestos y un trabajo de hoy podía no aparecer.
+    Toda lista que crezca necesita grupos, búsqueda y «ver más».

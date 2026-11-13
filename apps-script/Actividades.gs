@@ -171,6 +171,21 @@ function crearActividad_(ctx, payload, opciones) {
 }
 
 /** Lista actividades visibles para el usuario. */
+/** Grupos de la lista: qué estados entran y cómo se ordenan. */
+const GRUPOS_ACTIVIDAD = {
+  PENDIENTES: ['PROGRAMADA', 'EN_EJECUCION', 'RECHAZADA'],
+  POR_REVISAR: ['REPORTADA'],
+  TERMINADAS: ['APROBADA', 'CERRADA'],
+  CANCELADAS: ['CANCELADA'],
+};
+
+/** Quita tildes y mayúsculas para buscar sin exigir que escriban igual. */
+function sinTildes_(texto) {
+  return String(texto || '').toLowerCase()
+    .replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i')
+    .replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u').replace(/ñ/g, 'n');
+}
+
 function actividadesListar(ctx, payload) {
   const estado = payload.estado ? String(payload.estado).toUpperCase() : null;
   const nodoId = payload.nodo_id || null;
@@ -200,7 +215,52 @@ function actividadesListar(ctx, payload) {
     lista = lista.filter(function (a) { return puedeVerActividad_(ctx, a); });
   }
 
+  // Búsqueda por título o por código y nombre de la sección.
+  const texto = payload.texto ? sinTildes_(payload.texto).trim() : '';
+  if (texto) {
+    lista = lista.filter(function (a) {
+      const nodo = buscarPorId('nodos', a.nodo_id) || {};
+      const heno = sinTildes_([a.titulo, nodo.codigo, nodo.nombre].join(' '));
+      return heno.indexOf(texto) >= 0;
+    });
+  }
+
+  // Conteos por grupo sobre lo que este usuario puede ver, antes de paginar.
+  const conteos = {};
+  Object.keys(GRUPOS_ACTIVIDAD).forEach(function (g) {
+    conteos[g] = lista.filter(function (a) {
+      return GRUPOS_ACTIVIDAD[g].indexOf(String(a.estado)) >= 0;
+    }).length;
+  });
+
+  const grupo = payload.grupo && GRUPOS_ACTIVIDAD[String(payload.grupo).toUpperCase()]
+    ? String(payload.grupo).toUpperCase() : null;
+
+  if (grupo) {
+    const admitidos = GRUPOS_ACTIVIDAD[grupo];
+    lista = lista.filter(function (a) { return admitidos.indexOf(String(a.estado)) >= 0; });
+  }
+
+  const hoy = hoyIso();
   lista.sort(function (a, b) {
+    if (grupo === 'PENDIENTES') {
+      // Lo vencido primero; después, lo que empieza antes.
+      const va = fechaIso_(a.fecha_fin_plan) < hoy ? 0 : 1;
+      const vb = fechaIso_(b.fecha_fin_plan) < hoy ? 0 : 1;
+      if (va !== vb) return va - vb;
+      return String(a.fecha_inicio_plan) < String(b.fecha_inicio_plan) ? -1 : 1;
+    }
+    if (grupo === 'POR_REVISAR') {
+      const fa = String(a.fecha_reporte_final || a.actualizado_en || '');
+      const fb = String(b.fecha_reporte_final || b.actualizado_en || '');
+      return fa < fb ? -1 : fa > fb ? 1 : 0;
+    }
+    if (grupo === 'TERMINADAS') {
+      return String(b.fecha_fin_plan) < String(a.fecha_fin_plan) ? -1 : 1;
+    }
+    if (grupo === 'CANCELADAS') {
+      return String(b.actualizado_en || '') < String(a.actualizado_en || '') ? -1 : 1;
+    }
     const fa = String(a.fecha_fin_plan) + String(a.estado);
     const fb = String(b.fecha_fin_plan) + String(b.estado);
     return fa < fb ? -1 : fa > fb ? 1 : 0;
@@ -213,6 +273,8 @@ function actividadesListar(ctx, payload) {
 
   return {
     total: lista.length,
+    conteos: conteos,
+    grupo: grupo || '',
     pagina: pagina,
     tam: tam,
     actividades: paginaLista.map(function (a) {

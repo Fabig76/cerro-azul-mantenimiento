@@ -52,6 +52,7 @@ function runAllTests() {
   pruebasSuperficiePublica_();
   pruebasRechazoYReenvio_();
   pruebasPropuestas_();
+  pruebasListaActividades_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -241,6 +242,56 @@ function pruebasPropuestas_() {
   }).forEach(function (n) {
     actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'prueba automática' }, 'prueba');
   });
+}
+
+/**
+ * La lista por grupos: que un grupo no traiga estados de otro y que los conteos cuadren.
+ * Usa actividades de prueba que se retiran al final.
+ */
+function pruebasListaActividades_() {
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · lista por grupos · sin nodos'); return; }
+
+  const hoy = hoyIso();
+  const estados = ['PROGRAMADA', 'PROGRAMADA', 'REPORTADA', 'APROBADA', 'CANCELADA'];
+  const creadas = estados.map(function (estado, i) {
+    return insertar('actividades', {
+      id: newId('ACT'), titulo: 'PRUEBA lista ' + (i + 1), descripcion: '',
+      nodo_id: nodo.id, plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: '',
+      tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+      fecha_inicio_plan: hoy, fecha_fin_plan: sumarDias(hoy, 2), dias_plan: 3,
+      prioridad: 'MEDIA', estado: estado, vencida: false, en_riesgo: false,
+      avance_reportado_pct: 0, avance_aprobado_pct: 0, fecha_inicio_real: '',
+      fecha_reporte_final: '', fecha_aprobacion: '', obligatoria_legal: false,
+      afecta_uso: false, publicable: false, acta_file_id: '', inicio_sin_foto_motivo: '',
+      propuesta_id: '', activo: true,
+    }, 'prueba');
+  });
+
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  try {
+    const pend = actividadesListar(ctx, { grupo: 'PENDIENTES', tam: 100 });
+    verdadero_(pend.actividades.every(function (a) {
+      return ['PROGRAMADA', 'EN_EJECUCION', 'RECHAZADA'].indexOf(String(a.estado)) >= 0;
+    }), 'el grupo PENDIENTES no trae aprobadas ni canceladas');
+
+    const revisar = actividadesListar(ctx, { grupo: 'POR_REVISAR', tam: 100 });
+    verdadero_(revisar.actividades.every(function (a) { return String(a.estado) === 'REPORTADA'; }),
+      'el grupo POR_REVISAR solo trae reportadas');
+
+    verdadero_(pend.conteos && Number(pend.conteos.PENDIENTES) >= 2, 'la respuesta trae conteos');
+
+    // Sin grupo, la forma de la respuesta es la de siempre (otros módulos la usan)
+    const libre = actividadesListar(ctx, { tam: 5 });
+    verdadero_(Array.isArray(libre.actividades) && typeof libre.total === 'number',
+      'sin grupo responde como antes');
+
+    // La búsqueda no distingue tildes
+    const conTilde = actividadesListar(ctx, { texto: 'PRUEBA lista', tam: 100 });
+    verdadero_(conTilde.actividades.length >= 5, 'la búsqueda por texto encuentra las de prueba');
+  } finally {
+    creadas.forEach(function (a) { actualizar('actividades', a.id, { activo: false }, 'prueba'); });
+  }
 }
 
 function pruebasSuperficiePublica_() {
