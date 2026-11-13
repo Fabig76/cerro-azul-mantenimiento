@@ -756,6 +756,7 @@
     form.classList.remove('oculto');
     montarEtapasNueva();
     cargarNodosEnFormulario(t);
+    cargarEmpresasEnFormulario(t);
     const cancelar = document.getElementById('btnCancelarActividad');
     if (cancelar) cancelar.addEventListener('click', function () {
       document.getElementById('actTitulo').value = '';
@@ -774,6 +775,8 @@
         fecha_fin_plan: document.getElementById('actFin').value || document.getElementById('actInicio').value,
         prioridad: document.getElementById('actPrioridad').value,
         descripcion: document.getElementById('actDescripcion').value.trim(),
+        empresa_id: (document.getElementById('actEmpresa') || {}).value || '',
+        responsable_id: (document.getElementById('actResponsable') || {}).value || '',
         hitos: (leerEtapasNueva ? leerEtapasNueva() : []),
       }, { token: Sesion.token(), idempotente: true });
       boton.disabled = false;
@@ -787,6 +790,79 @@
       document.getElementById('actTitulo').value = '';
       cargarActividades(Sesion.token());
     });
+  }
+
+  /**
+   * Empresa y responsable de la actividad. Sin empresa, el trabajo no entra en el
+   * cumplimiento por empresa ni queda a cargo de nadie.
+   */
+  async function cargarEmpresasEnFormulario(t) {
+    const selEmpresa = document.getElementById('actEmpresa');
+    const selPersona = document.getElementById('actResponsable');
+    if (!selEmpresa || !selPersona) return;
+
+    const [rEmpresas, rUsuarios] = await Promise.all([
+      API.llamar('empresas.listar', {}, { token: t }),
+      API.llamar('usuarios.listar', {}, { token: t }),
+    ]);
+    const empresas = rEmpresas.ok ? (rEmpresas.data.empresas || []) : [];
+    const usuarios = rUsuarios.ok ? (rUsuarios.data.usuarios || []) : [];
+
+    selEmpresa.textContent = '';
+    const sinEmpresa = document.createElement('option');
+    sinEmpresa.value = '';
+    sinEmpresa.textContent = 'Sin empresa asignada';
+    selEmpresa.appendChild(sinEmpresa);
+
+    empresas
+      .filter(function (e) { return !e.vencida; })
+      .sort(function (a, b) { return String(a.razon_social).localeCompare(String(b.razon_social)); })
+      .forEach(function (e) {
+        const op = document.createElement('option');
+        op.value = e.id;
+        op.textContent = e.razon_social;
+        selEmpresa.appendChild(op);
+      });
+
+    const vencidas = empresas.filter(function (e) { return e.vencida; });
+    if (vencidas.length) {
+      const grupo = document.createElement('optgroup');
+      grupo.label = 'Con contrato vencido (no se puede asignar)';
+      vencidas.forEach(function (e) {
+        const op = document.createElement('option');
+        op.value = e.id;
+        op.textContent = e.razon_social;
+        op.disabled = true;
+        grupo.appendChild(op);
+      });
+      selEmpresa.appendChild(grupo);
+    }
+
+    const elegibles = usuarios.filter(function (u) {
+      return String(u.estado) === 'ACTIVO' && ['CONTRATISTA', 'SUPERVISOR'].indexOf(String(u.rol)) >= 0;
+    });
+
+    const pintarPersonas = function () {
+      const empresaId = selEmpresa.value;
+      selPersona.textContent = '';
+      const nadie = document.createElement('option');
+      nadie.value = '';
+      nadie.textContent = 'Sin responsable';
+      selPersona.appendChild(nadie);
+
+      elegibles
+        .filter(function (u) { return !empresaId || String(u.empresa_id) === String(empresaId); })
+        .sort(function (a, b) { return String(a.nombre || a.email).localeCompare(String(b.nombre || b.email)); })
+        .forEach(function (u) {
+          const op = document.createElement('option');
+          op.value = u.id;
+          op.textContent = u.nombre || u.email;
+          selPersona.appendChild(op);
+        });
+    };
+
+    selEmpresa.addEventListener('change', pintarPersonas);
+    pintarPersonas();
   }
 
   async function cargarNodosEnFormulario(t) {

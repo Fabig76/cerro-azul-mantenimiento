@@ -1012,6 +1012,58 @@
     fila.appendChild(cPrioridad);
     caja.appendChild(fila);
 
+    // A cargo de quién queda: sin empresa, el trabajo no entra en su cumplimiento.
+    const fila2 = el('div', 'fila-campos');
+
+    const cEmpresa = el('div', 'campo');
+    const lEmpresa = el('label', null, 'Empresa');
+    lEmpresa.htmlFor = 'edEmpresa';
+    const sEmpresa = el('select', 'item-input');
+    sEmpresa.id = 'edEmpresa';
+    const opSin = el('option', null, 'Sin empresa asignada');
+    opSin.value = '';
+    sEmpresa.appendChild(opSin);
+    cEmpresa.appendChild(lEmpresa);
+    cEmpresa.appendChild(sEmpresa);
+    fila2.appendChild(cEmpresa);
+
+    const cResp = el('div', 'campo');
+    const lResp = el('label', null, 'Responsable');
+    lResp.htmlFor = 'edResponsable';
+    const sResp = el('select', 'item-input');
+    sResp.id = 'edResponsable';
+    const opNadie = el('option', null, 'Sin responsable');
+    opNadie.value = '';
+    sResp.appendChild(opNadie);
+    cResp.appendChild(lResp);
+    cResp.appendChild(sResp);
+    fila2.appendChild(cResp);
+
+    caja.appendChild(fila2);
+
+    API.llamar('empresas.listar', {}, { token: Sesion.token() }).then(function (r) {
+      if (!r.ok) return;
+      (r.data.empresas || []).forEach(function (e) {
+        const op = el('option', null, e.razon_social + (e.vencida ? ' (contrato vencido)' : ''));
+        op.value = e.id;
+        op.disabled = !!e.vencida;
+        if (String(e.id) === String(a.empresa_id)) op.selected = true;
+        sEmpresa.appendChild(op);
+      });
+    }).catch(function () {});
+
+    API.llamar('usuarios.listar', {}, { token: Sesion.token() }).then(function (r) {
+      if (!r.ok) return;
+      (r.data.usuarios || [])
+        .filter(function (u) { return String(u.estado) === 'ACTIVO'; })
+        .forEach(function (u) {
+          const op = el('option', null, (u.nombre || u.email) + ' · ' + String(u.rol).toLowerCase());
+          op.value = u.id;
+          if (String(u.id) === String(a.responsable_id)) op.selected = true;
+          sResp.appendChild(op);
+        });
+    }).catch(function () {});
+
     const acciones = el('div', 'acciones-form');
     const guardar = el('button', 'btn primary', 'Guardar cambios');
     guardar.type = 'button';
@@ -1026,6 +1078,8 @@
         fecha_inicio_plan: document.getElementById('edInicio').value,
         fecha_fin_plan: document.getElementById('edFin').value || document.getElementById('edInicio').value,
         prioridad: sPrioridad.value,
+        empresa_id: sEmpresa.value,
+        responsable_id: sResp.value,
       }, { token: Sesion.token(), idempotente: true });
       guardar.disabled = false;
       if (!r.ok) return aviso(r.message || 'No se pudo guardar.', 'error');
