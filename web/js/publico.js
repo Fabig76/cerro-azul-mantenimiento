@@ -99,6 +99,7 @@
     pintarResumen(snap);
     pintarArbol(snap);
     pintarMeses(snap);
+    pintarAfecta(snap);
     pintarProximos(snap);
     pintarRecientes(snap);
     pintarAlertas(snap);
@@ -294,6 +295,52 @@
       col.appendChild(el('span', 'mes-pct', m.cumplimiento_pct === null ? '—' : m.cumplimiento_pct + '%'));
       cont.appendChild(col);
     });
+  }
+
+  /**
+   * «Qué me afecta esta semana»: los trabajos de los próximos siete días que
+   * interrumpen el uso de una zona. Es lo que un residente necesita saber hoy.
+   */
+  function pintarAfecta(snap) {
+    const cont = document.getElementById('listaAfecta');
+    if (!cont) return;
+    cont.textContent = '';
+
+    const hoy = new Date();
+    const en7 = new Date(hoy.getTime() + 7 * 86400000);
+    const aIso = function (d) { return d.toISOString().slice(0, 10); };
+
+    const trabajos = (snap.proximos || []).filter(function (p) {
+      if (!p.afecta_uso) return false;
+      if (!pasaFiltro(p)) return false;
+      return String(p.fecha) >= aIso(hoy) && String(p.fecha) <= aIso(en7);
+    });
+
+    if (!trabajos.length) {
+      cont.appendChild(el('p', 'afecta-vacio',
+        'Esta semana ningún trabajo afecta el uso de las zonas comunes.'));
+      return;
+    }
+
+    const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+    const ul = el('ul', 'lista-afecta');
+    trabajos.forEach(function (p) {
+      const li = el('li', 'afecta-item');
+      const f = new Date(String(p.fecha) + 'T12:00:00');
+      const cuando = el('span', 'afecta-dia',
+        DIAS[f.getDay()] + ' ' + f.getDate() + ' ' + MESES[f.getMonth()]);
+      const que = el('span', 'afecta-que');
+      que.textContent = p.titulo;
+      const donde = el('span', 'afecta-zona',
+        p.sensible ? 'Sistema sensible' : (p.seccion ? p.seccion.nombre : (p.nodo_nombre || '')));
+      li.appendChild(cuando);
+      li.appendChild(que);
+      li.appendChild(donde);
+      ul.appendChild(li);
+    });
+    cont.appendChild(ul);
   }
 
   function pintarProximos(snap) {

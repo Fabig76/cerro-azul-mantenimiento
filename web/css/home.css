@@ -310,3 +310,17 @@
   background: var(--card); color: var(--ink);
 }
 @media (max-width: 560px) { .filtro-torre select { flex: 1; } }
+
+/* Qué me afecta esta semana */
+.afecta-semana { border-left: 6px solid var(--warn); }
+.afecta-semana h2 { margin: 2px 0 10px; font-size: 20px; }
+.lista-afecta { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.afecta-item {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px;
+  padding: 10px 12px; border-radius: var(--radius-m);
+  background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+}
+.afecta-dia { font-weight: 800; font-size: 13px; color: var(--warn-ink); text-transform: capitalize; }
+.afecta-que { font-size: 14px; }
+.afecta-zona { font-size: 12.5px; color: var(--muted); margin-left: auto; }
+.afecta-vacio { margin: 0; color: var(--muted); font-size: 14px; }

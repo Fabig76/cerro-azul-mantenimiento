@@ -54,6 +54,19 @@ comprobar(movil.indexOf('Cada trabajo queda con su foto') < iEstado,
     'lo que no tiene sección (áreas comunes) siempre se muestra');
 }
 
+// «Qué me afecta esta semana»
+{
+  const pagina = fs.readFileSync(path.join(raiz, 'web', 'index.html'), 'utf8');
+  comprobar(pagina.indexOf('id="afectaSemana"') > 0 && pagina.indexOf('id="listaAfecta"') > 0,
+    'el portal tiene la tarjeta «Qué me afecta»');
+
+  const js = fs.readFileSync(path.join(raiz, 'web', 'js', 'publico.js'), 'utf8');
+  comprobar(/function pintarAfecta/.test(js), 'la tarjeta se pinta desde el snapshot');
+  comprobar(/if \(!p\.afecta_uso\) return false/.test(js), 'solo cuenta lo que afecta el uso');
+  comprobar(/7 \* 86400000/.test(js), 'solo mira los próximos siete días');
+  comprobar(js.indexOf('ningún trabajo afecta el uso') > 0, 'dice algo cuando no hay nada');
+}
+
 const css = fs.readFileSync(path.join(raiz, 'web', 'css', 'home.css'), 'utf8');
 comprobar(/@media \(max-width: 767px\)[\s\S]*?\.hero \.lead, \.hero \.chips \{ display: none; \}/.test(css),
   'en el celular se ocultan la presentación larga y los chips');
