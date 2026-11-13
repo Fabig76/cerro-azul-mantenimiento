@@ -224,6 +224,17 @@ cerro-azul-mantenimiento/
 - Dominio público: `https://mantenimiento.urbcerroazul.com` mediante un registro CNAME hacia `fabig76.github.io` en el DNS de `urbcerroazul.com`, un archivo `web/CNAME` y "Enforce HTTPS" activado en GitHub Pages. La URL `https://fabig76.github.io/cerro-azul-mantenimiento/` queda como respaldo.
 - Orígenes autorizados del cliente OAuth: `https://mantenimiento.urbcerroazul.com`, `https://fabig76.github.io` y `http://localhost:8000` (pruebas locales).
 
+### 2.2 bis. Listas compartidas y carga por pestaña (v1.4)
+
+- `web/js/datos.js` (`window.Datos`) guarda la promesa de `nodos.arbol`, `empresas.listar`,
+  `usuarios.listar`, `tipos.listar` y `plantillas.listar`: la primera llamada va al servidor y las
+  demás esperan la misma respuesta. Toda escritura que cambie una de esas listas llama a
+  `Datos.invalidar`; un fallo no se guarda.
+- Cada pestaña del panel carga la primera vez que se abre (`cargarPestana`), no al entrar.
+- **Meta medida** con `tools/contar-llamadas.mjs`: al entrar, el administrador hace como máximo
+  **6** llamadas y el contratista **4**, sin ninguna repetida. Antes eran 22, con seis pedidos del
+  mismo árbol.
+
 ## 3. Modelo jerárquico escalable
 
 Todo lo que existe en Cerro Azul es un **nodo** de un árbol de profundidad ilimitada; agregar secciones, niveles o elementos nuevos es crear registros con el mismo estándar, nunca cambiar código.
@@ -706,28 +717,6 @@ Un único endpoint `/exec`: `GET ?action=public.snapshot` para el público y `PO
 El snapshot **nunca** contiene correos, teléfonos, nombres de personas, `ficha_json`, IPs, ids de Drive privados, ni hijos de nodos sensibles (de un nodo sensible se publica solo su fila agregada). Una prueba automática lo verifica (sec. 15).
 
 ## 10. Reglas de negocio y máquina de estados
-
-### 2.2 bis. Listas compartidas y carga por pestaña (v1.4)
-
-- `web/js/datos.js` (`window.Datos`) guarda la promesa de `nodos.arbol`, `empresas.listar`,
-  `usuarios.listar`, `tipos.listar` y `plantillas.listar`: la primera llamada va al servidor y las
-  demás esperan la misma respuesta. Toda escritura que cambie una de esas listas llama a
-  `Datos.invalidar`; un fallo no se guarda.
-- Cada pestaña del panel carga la primera vez que se abre (`cargarPestana`), no al entrar.
-- **Meta medida** con `tools/contar-llamadas.mjs`: al entrar, el administrador hace como máximo
-  **6** llamadas y el contratista **4**, sin ninguna repetida. Antes eran 22, con seis pedidos del
-  mismo árbol.
-
-### 2.2 bis. Listas compartidas y carga por pestaña (v1.4)
-
-- `web/js/datos.js` (`window.Datos`) guarda la promesa de `nodos.arbol`, `empresas.listar`,
-  `usuarios.listar`, `tipos.listar` y `plantillas.listar`: la primera llamada va al servidor y las
-  demás esperan la misma respuesta. Toda escritura que cambie una de esas listas llama a
-  `Datos.invalidar`; un fallo no se guarda.
-- Cada pestaña del panel carga la primera vez que se abre (`cargarPestana`), no al entrar.
-- **Meta medida** con `tools/contar-llamadas.mjs`: al entrar, el administrador hace como máximo
-  **6** llamadas y el contratista **4**, sin ninguna repetida. Antes eran 22, con seis pedidos del
-  mismo árbol.
 
 ### 10.2 ter. Avisos y disparadores (v1.4)
 
