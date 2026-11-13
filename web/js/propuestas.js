@@ -326,6 +326,7 @@
         return aviso(r.message || 'No se pudo enviar.', 'error');
       }
 
+      if (window.Borrador) Borrador.borrar('propuesta');
       const id = r.data.propuesta.id;
       let subidas = 0;
       for (let i = 0; i < fotosNuevas.length; i++) {
@@ -349,6 +350,28 @@
         aviso('Propuesta enviada. La administración la revisará.', 'ok');
       }
       cargar(rolActual);
+    });
+
+    // Lo escrito se guarda mientras se escribe; si el celular recarga, se recupera.
+    const CLAVE_BORRADOR = 'propuesta';
+    const previo = window.Borrador ? Borrador.leer(CLAVE_BORRADOR) : null;
+    if (previo) {
+      if (previo.hallazgo) hallazgo.value = previo.hallazgo;
+      if (previo.alcance) alcance.value = previo.alcance;
+      if (previo.titulo) titulo.value = previo.titulo;
+      if (previo.fecha) inicio.value = previo.fecha;
+    }
+
+    const guardarAvance = function () {
+      if (!window.Borrador) return;
+      Borrador.guardar(CLAVE_BORRADOR, {
+        titulo: titulo.value, hallazgo: hallazgo.value,
+        alcance: alcance.value, fecha: inicio.value, nodo: sel.value,
+      });
+    };
+    [titulo, hallazgo, alcance, inicio].forEach(function (c) {
+      c.addEventListener('input', guardarAvance);
+      c.addEventListener('change', guardarAvance);
     });
 
     caja.appendChild(campo('Sección', sel));

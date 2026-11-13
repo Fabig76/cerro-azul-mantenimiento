@@ -60,8 +60,18 @@
     // Las fotos ya subidas se recuperan del servidor: al reabrir deben seguir ahí.
     fotosAntes = recuperarFotos(r.data.evidencias, 'ANTES');
     fotosDespues = recuperarFotos(r.data.evidencias, 'DESPUES');
+
+    limpiarBorradorSiNoAplica(r.data.actividad);
     pintar();
     mostrar(true);
+    recordarAbierta(r.data.actividad.id);
+
+    // Si se recuperó lo escrito antes de una recarga, se dice.
+    const b = borrador[r.data.actividad.id];
+    if (b && b._recuperado && b.guardado_en) {
+      const cuando = new Date(b.guardado_en);
+      aviso('Recuperamos lo que había escrito el ' + cuando.toLocaleString('es-CO') + '.', 'info');
+    }
   }
 
   function mostrar(visible) {
@@ -80,7 +90,11 @@
     if (visible && vista) vista.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function cerrar() { mostrar(false); if (window.App) App.refrescar(); }
+  function cerrar() {
+    recordarAbierta(null);
+    mostrar(false);
+    if (window.App) App.refrescar();
+  }
 
   function cabecera() {
     const a = datos.actividad;
@@ -441,6 +455,17 @@
     img.src = 'data:' + r.data.mime + ';base64,' + r.data.base64;
   }
 
+  /**
+   * El borrador vive también en el celular: abrir la cámara o recargar la página
+   * no puede llevarse lo que el contratista ya escribió.
+   */
+  const BORRADOR_DIAS = 14;
+
+  function claveBorrador(actividadId) {
+    const usuario = (datos && datos.usuario_id) || (Sesion.usuario && Sesion.usuario() && Sesion.usuario().id) || 'anon';
+    return 'ca_borrador:' + usuario + ':' + actividadId;
+  }
+
   function guardarBorrador(input) {
     if (!datos || !datos.actividad) return;
     const id = datos.actividad.id;
@@ -448,11 +473,65 @@
     if (input.dataset.item) borrador[id].respuestas[input.dataset.item] = input.value;
     else if (input.id === 'condicionFinal') borrador[id].condicion = input.value;
     else if (input.id === 'descripcionReporte') borrador[id].descripcion = input.value;
+    borrador[id].guardado_en = new Date().toISOString();
+    try {
+      localStorage.setItem(claveBorrador(id), JSON.stringify(borrador[id]));
+    } catch (e) { /* sin almacenamiento: se sigue con el de memoria */ }
   }
 
   function borradorDe(id) {
-    borrador[id] = borrador[id] || { respuestas: {}, condicion: '', descripcion: '' };
+    if (!borrador[id]) {
+      let guardado = null;
+      try {
+        const crudo = localStorage.getItem(claveBorrador(id));
+        if (crudo) guardado = JSON.parse(crudo);
+      } catch (e) { guardado = null; }
+      borrador[id] = guardado || { respuestas: {}, condicion: '', descripcion: '' };
+      if (guardado && guardado.guardado_en) borrador[id]._recuperado = true;
+    }
     return borrador[id];
+  }
+
+  /** Solo un trabajo en curso o devuelto conserva borrador. */
+  function limpiarBorradorSiNoAplica(actividad) {
+    if (!actividad) return;
+    if (['EN_EJECUCION', 'RECHAZADA'].indexOf(String(actividad.estado)) < 0) {
+      borrarBorrador(actividad.id);
+    }
+  }
+
+  function borrarBorrador(id) {
+    delete borrador[id];
+    try { localStorage.removeItem(claveBorrador(id)); } catch (e) { /* nada */ }
+  }
+
+  /** Limpia los borradores de más de 14 días. */
+  function limpiarBorradoresViejos() {
+    try {
+      const corte = Date.now() - BORRADOR_DIAS * 86400000;
+      const sobran = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const clave = localStorage.key(i);
+        if (!clave || clave.indexOf('ca_borrador:') !== 0) continue;
+        let guardado = null;
+        try { guardado = JSON.parse(localStorage.getItem(clave) || 'null'); } catch (e) { guardado = null; }
+        const cuando = guardado && guardado.guardado_en ? new Date(guardado.guardado_en).getTime() : 0;
+        if (!cuando || cuando < corte) sobran.push(clave);
+      }
+      sobran.forEach(function (c) { localStorage.removeItem(c); });
+    } catch (e) { /* sin almacenamiento */ }
+  }
+
+  /** Recuerda cuál trabajo estaba abierto, para volver a él tras una recarga. */
+  function recordarAbierta(id) {
+    try {
+      if (id) sessionStorage.setItem('ca_abierta', String(id));
+      else sessionStorage.removeItem('ca_abierta');
+    } catch (e) { /* nada */ }
+  }
+
+  function abiertaRecordada() {
+    try { return sessionStorage.getItem('ca_abierta'); } catch (e) { return null; }
   }
 
   function aplicarBorrador(input) {
@@ -908,6 +987,7 @@
         }, { token: Sesion.token(), idempotente: true });
         btn.disabled = false;
         if (!r.ok) return aviso(r.message || 'No se pudo enviar el reporte.', 'error');
+        borrarBorrador(a.id);
         aviso('Reporte enviado. Queda pendiente de revisión de la administración.', 'ok');
         abrir(a.id, rol);
       });
@@ -1235,12 +1315,19 @@
 
   window.Actividad = {
     abrir: abrir,
+    // Volver al trabajo que estaba abierto tras una recarga, y limpiar borradores viejos.
+    reabrirSiHabia: function (rolUsuario) {
+      const id = abiertaRecordada();
+      if (id) abrir(id, rolUsuario);
+    },
+    limpiarBorradores: limpiarBorradoresViejos,
     // Permite comprobar el dibujado sin servidor (tools/pantalla).
     pintarConDatos: function (falsos, rolFalso) {
       datos = falsos;
       rol = rolFalso || 'CONTRATISTA';
       fotosAntes = recuperarFotos(falsos.evidencias, 'ANTES');
       fotosDespues = recuperarFotos(falsos.evidencias, 'DESPUES');
+      limpiarBorradorSiNoAplica(falsos.actividad);
       pintar();
     },
   };

@@ -115,9 +115,25 @@
       aviso('Novedad reportada. La administración ya la ve.', 'ok');
       document.getElementById('novTitulo').value = '';
       document.getElementById('novDescripcion').value = '';
+      if (window.Borrador) Borrador.borrar('novedad');
       cargar();
     });
   }
 
-  window.Novedades = { cargar: cargar, preparar: preparar };
+  /** La descripción de una novedad se escribe en campo: no se puede perder. */
+  function prepararBorradorNovedad() {
+    const campo = document.getElementById('novDescripcion');
+    if (!campo || !window.Borrador) return;
+    const previo = Borrador.leer('novedad');
+    if (previo && previo.descripcion && !campo.value) campo.value = previo.descripcion;
+    campo.addEventListener('input', function () {
+      Borrador.guardar('novedad', { descripcion: campo.value });
+    });
+  }
+
+  const prepararOriginal = preparar;
+  window.Novedades = {
+    cargar: cargar,
+    preparar: function () { prepararOriginal(); prepararBorradorNovedad(); },
+  };
 })();

@@ -48,3 +48,29 @@
 
   window.API = { llamar: llamar, publico: publico, uuid: uuid };
 })();
+
+/**
+ * Borrador de un formulario largo en el propio celular: escribir en campo y
+ * perderlo por una recarga es lo peor que puede pasar.
+ */
+window.Borrador = {
+  clave: function (nombre) { return 'ca_form:' + nombre; },
+
+  leer: function (nombre) {
+    try {
+      const crudo = localStorage.getItem(window.Borrador.clave(nombre));
+      return crudo ? JSON.parse(crudo) : null;
+    } catch (e) { return null; }
+  },
+
+  guardar: function (nombre, datos) {
+    try {
+      localStorage.setItem(window.Borrador.clave(nombre), JSON.stringify(
+        Object.assign({}, datos, { guardado_en: new Date().toISOString() })));
+    } catch (e) { /* sin almacenamiento */ }
+  },
+
+  borrar: function (nombre) {
+    try { localStorage.removeItem(window.Borrador.clave(nombre)); } catch (e) { /* nada */ }
+  },
+};

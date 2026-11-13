@@ -193,6 +193,14 @@
     window.__rol = rolActual;
     construirPestanas(rolActual);
     // El árbol y las actividades salen a la vez; las propuestas esperan solo al árbol.
+    // Al cargar: limpiar borradores viejos y volver al trabajo que estaba abierto.
+    if (window.Actividad) {
+      if (Actividad.limpiarBorradores) Actividad.limpiarBorradores();
+      setTimeout(function () {
+        if (Actividad.reabrirSiHabia) Actividad.reabrirSiHabia(rolActual);
+      }, 600);
+    }
+
     const arbol = cargarArbol(t, me);
     cargarActividades(t, me);
     arbol.then(function (nodos) {

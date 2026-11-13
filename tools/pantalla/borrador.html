@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title></head>
+<body><div id="contenidoActividad"></div><div class="msg" id="avisoActividad"></div>
+<script>
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+window.API = { llamar: function () { return Promise.resolve({ ok: true, data: {} }); } };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.App = { pestana: function () {}, refrescar: function () {} };
+</script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script>
+(function () {
+  const r = [];
+  const CLAVE = 'ca_borrador:U1:ACT_1';
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+
+  const datos = {
+    usuario_id: 'U1',
+    actividad: { id: 'ACT_1', titulo: 'Fumigación', estado: 'EN_EJECUCION', nodo_id: 'NOD_1',
+      fecha_inicio_plan: '2026-11-10', fecha_fin_plan: '2026-11-15', prioridad: 'MEDIA',
+      avance_aprobado_pct: 0, afecta_uso: false, obligatoria_legal: false, empresa_id: '', responsable_id: '' },
+    nodo: { id: 'NOD_1', codigo: 'CA-T1', nombre: 'Torre 1', sensible: false },
+    plantilla: { id: 'P', nombre: 'X', metodo_avance: 'CHECKLIST', items: [
+      { id: 'I1', orden: 1, grupo: 'G', pregunta: '¿Quedó limpio?', tipo_respuesta: 'SI_NO',
+        obligatorio: true, peso: 1, requiere_foto: false, criterio: '' },
+      { id: 'I2', orden: 2, grupo: 'G', pregunta: '¿Se revisó el motor?', tipo_respuesta: 'SI_NO',
+        obligatorio: true, peso: 1, requiere_foto: false, criterio: '' },
+    ] },
+    hitos: [], reportes: [], evidencias: [], respuestas: [], ultimo_final: null,
+  };
+
+  (async function () {
+    try {
+      // Se simula lo escrito antes de una recarga
+      localStorage.setItem(CLAVE, JSON.stringify({
+        respuestas: { I1: 'SI' }, condicion: 'Operativo',
+        descripcion: 'Se fumigó el cuarto de bombas', guardado_en: new Date().toISOString(),
+      }));
+
+      Actividad.pintarConDatos(datos, 'CONTRATISTA');
+      await esperar(60);
+
+      const i1 = document.querySelector('[data-item="I1"]');
+      r.push((i1 && i1.value === 'SI' ? 'OK   ' : 'FALLA') +
+        ' · recupera la respuesta guardada (' + (i1 ? i1.value : 'sin campo') + ')');
+
+      const desc = document.getElementById('descripcionReporte');
+      r.push((desc && desc.value.indexOf('fumigó') >= 0 ? 'OK   ' : 'FALLA') +
+        ' · recupera el texto escrito');
+
+      // Escribir algo nuevo lo guarda
+      if (i1) { i1.value = 'NO'; i1.dispatchEvent(new Event('change')); }
+      await esperar(40);
+      const guardado = JSON.parse(localStorage.getItem(CLAVE) || '{}');
+      r.push((guardado.respuestas && guardado.respuestas.I1 === 'NO' ? 'OK   ' : 'FALLA') +
+        ' · lo nuevo se guarda en el celular');
+
+      // Un trabajo aprobado ya no guarda borrador
+      const aprobada = JSON.parse(JSON.stringify(datos));
+      aprobada.actividad.estado = 'APROBADA';
+      Actividad.pintarConDatos(aprobada, 'CONTRATISTA');
+      await esperar(60);
+      r.push((localStorage.getItem(CLAVE) === null ? 'OK   ' : 'FALLA') +
+        ' · un trabajo aprobado borra su borrador');
+
+      // Los borradores viejos se limpian
+      localStorage.setItem('ca_borrador:U1:VIEJO', JSON.stringify({
+        respuestas: {}, guardado_en: new Date(Date.now() - 20 * 86400000).toISOString() }));
+      Actividad.limpiarBorradores();
+      r.push((localStorage.getItem('ca_borrador:U1:VIEJO') === null ? 'OK   ' : 'FALLA') +
+        ' · borra los borradores de más de 14 días');
+    } catch (e) { r.push('FALLA · ' + e.message); }
+    document.title = r.join(' | ');
+  })();
+})();
+</script></body></html>
