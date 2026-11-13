@@ -108,7 +108,21 @@
     pintarCuentaNovedades(snap);
     pintarNormativo(snap);
     const sello = document.getElementById('actualizado');
-    if (sello) sello.textContent = 'Actualizado ' + (snap.generado_en || '').replace('T', ' ').slice(0, 16);
+    if (sello) sello.textContent = 'Actualizado ' + cuandoEnPalabras(snap.generado_en);
+  }
+
+  /** «2026-11-13T14:24» → «hoy a las 2:24 p. m.». */
+  function cuandoEnPalabras(iso) {
+    if (!iso) return '—';
+    const f = new Date(iso);
+    if (isNaN(f.getTime())) return String(iso).replace('T', ' ').slice(0, 16);
+    const hora = f.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const hoy = new Date();
+    const mismoDia = f.toDateString() === hoy.toDateString();
+    const ayer = new Date(hoy.getTime() - 86400000).toDateString() === f.toDateString();
+    if (mismoDia) return 'hoy a las ' + hora;
+    if (ayer) return 'ayer a las ' + hora;
+    return f.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' }) + ' a las ' + hora;
   }
 
   function pintarResumen(snap) {
@@ -136,7 +150,8 @@
         }
         return { n: (mes.cumplimiento_pct === null ? '—' : mes.cumplimiento_pct + '%'), l: 'Cumplimiento del mes', acento: 'indigo' };
       })(),
-      { n: (mes.ejecutadas || 0) + ' / ' + (mes.programadas || 0), l: 'Aprobadas de programadas', acento: 'cian' },
+      { n: (mes.ejecutadas || 0) + ' de ' + (mes.programadas || 0),
+        l: 'trabajos del mes terminados y aprobados', acento: 'cian' },
       {
         n: r.novedades_abiertas || 0,
         l: 'Novedades abiertas',
@@ -149,6 +164,29 @@
       caja.appendChild(el('div', 'kpi-n', String(t.n)));
       caja.appendChild(el('div', 'kpi-l', t.l));
       if (t.etiqueta) caja.appendChild(el('span', 'badge ' + t.claseEtiqueta, t.etiqueta));
+
+      // El número solo sirve si se entiende: se explica ahí mismo.
+      if (t.l === 'Salud general') {
+        const ayuda = el('button', 'kpi-ayuda', '¿Qué significa?');
+        ayuda.type = 'button';
+        ayuda.setAttribute('aria-expanded', 'false');
+        const detalle = el('div', 'kpi-explica oculto');
+        [
+          'Mide el estado de los equipos del conjunto con lo último que reportó cada trabajo: ' +
+            'cuenta la condición en que quedó el equipo, el tiempo desde su último mantenimiento y si tiene fallas abiertas.',
+          'Verde: todo al día. Naranja: hay algo que necesita atención. Rojo: hay equipos con fallas o mantenimientos vencidos.',
+          'Se recalcula cada noche y se publica en este portal cada hora.',
+        ].forEach(function (linea) { detalle.appendChild(el('p', null, linea)); });
+        ayuda.addEventListener('click', function () {
+          const abierto = !detalle.classList.contains('oculto');
+          detalle.classList.toggle('oculto', abierto);
+          ayuda.textContent = abierto ? '¿Qué significa?' : 'Ocultar';
+          ayuda.setAttribute('aria-expanded', abierto ? 'false' : 'true');
+        });
+        caja.appendChild(ayuda);
+        caja.appendChild(detalle);
+      }
+
       cont.appendChild(caja);
     });
   }

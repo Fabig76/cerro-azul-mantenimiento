@@ -67,6 +67,20 @@ comprobar(movil.indexOf('Cada trabajo queda con su foto') < iEstado,
   comprobar(js.indexOf('ningún trabajo afecta el uso') > 0, 'dice algo cuando no hay nada');
 }
 
+// 4.4 · Explicar los números
+{
+  const js = fs.readFileSync(path.join(raiz, 'web', 'js', 'publico.js'), 'utf8');
+  comprobar(/function cuandoEnPalabras/.test(js), 'la fecha se convierte a palabras');
+  comprobar(js.indexOf("'hoy a las '") > 0, 'dice «hoy a las …» cuando es del día');
+  comprobar(js.indexOf('¿Qué significa?') > 0, 'la salud general ofrece «¿Qué significa?»');
+  comprobar(js.indexOf('Verde: todo al día') > 0 && js.indexOf('Rojo:') > 0,
+    'explica qué significan verde, naranja y rojo');
+  comprobar(js.indexOf('cada noche') > 0, 'dice cada cuánto se recalcula');
+  comprobar(js.indexOf('trabajos del mes terminados y aprobados') > 0,
+    'el conteo del mes se lee en palabras');
+  comprobar(js.indexOf("'Aprobadas de programadas'") < 0, 'ya no queda el texto técnico anterior');
+}
+
 const css = fs.readFileSync(path.join(raiz, 'web', 'css', 'home.css'), 'utf8');
 comprobar(/@media \(max-width: 767px\)[\s\S]*?\.hero \.lead, \.hero \.chips \{ display: none; \}/.test(css),
   'en el celular se ocultan la presentación larga y los chips');
