@@ -55,14 +55,14 @@
     if (caja) caja.className = 'msg';
     const r = await API.llamar('actividades.get', { id: id }, { token: Sesion.token() });
     if (!r.ok) return aviso(r.message || 'No se pudo abrir la actividad.', 'error');
-    pintarDetalle(r.data);
+    mostrarDetalle(r.data);
   }
 
   /**
    * Pinta el detalle con los datos que ya se tienen. Las escrituras devuelven el
    * detalle completo, así que no hace falta volver a pedirlo.
    */
-  function pintarDetalle(nuevo, silencio) {
+  function mostrarDetalle(nuevo, silencio) {
     datos = nuevo;
 
     // Las fotos ya subidas se recuperan del servidor: al reabrir deben seguir ahí.
@@ -87,7 +87,7 @@
   /** Tras una acción: usa el detalle que vino en la respuesta o lo pide. */
   function refrescarDesde(respuesta, id) {
     const detalle = respuesta && respuesta.data && respuesta.data.detalle;
-    if (detalle && detalle.actividad) { pintarDetalle(detalle); return; }
+    if (detalle && detalle.actividad) { mostrarDetalle(detalle); return; }
     abrir(id, rol);
   }
 
