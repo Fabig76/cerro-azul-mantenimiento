@@ -55,6 +55,7 @@ function runAllTests() {
   pruebasListaActividades_();
   pruebasAvisos_();
   pruebasSubidaRepetida_();
+  pruebasDetalleEnEscrituras_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -362,6 +363,31 @@ function pruebasSubidaRepetida_() {
 
   const antes = filtrar('evidencias', function (e) { return bool(e.activo); }).length;
   verdadero_(antes === filasEv.length, 'reconocerla no agrega una fila nueva');
+}
+
+/**
+ * Las escrituras devuelven el detalle para que el panel no lo pida otra vez.
+ */
+function pruebasDetalleEnEscrituras_() {
+  const act = filtrar('actividades', function (a) {
+    return bool(a.activo) && String(a.estado) === 'PROGRAMADA';
+  })[0];
+  if (!act) { RESULTADOS.detalle.push('OMITE · detalle en escrituras · sin actividades programadas'); return; }
+
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  try {
+    const d = detalleActividad_(ctx, act.id);
+    verdadero_(!!d && !!d.actividad && Array.isArray(d.evidencias),
+      'el detalle de una actividad trae actividad y evidencias');
+
+    // La forma es la misma que devuelve actividades.get
+    const porAccion = actividadesGet(ctx, { id: act.id });
+    verdadero_(Object.keys(porAccion).sort().join(',') === Object.keys(d).sort().join(','),
+      'actividades.get y el detalle interno devuelven las mismas claves');
+  } catch (e) {
+    RESULTADOS.detalle.push('FALLA · detalle · ' + e.message);
+    RESULTADOS.fallidas++;
+  }
 }
 
 function pruebasSuperficiePublica_() {

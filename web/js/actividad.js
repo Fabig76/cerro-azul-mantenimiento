@@ -55,23 +55,40 @@
     if (caja) caja.className = 'msg';
     const r = await API.llamar('actividades.get', { id: id }, { token: Sesion.token() });
     if (!r.ok) return aviso(r.message || 'No se pudo abrir la actividad.', 'error');
-    datos = r.data;
+    pintarDetalle(r.data);
+  }
+
+  /**
+   * Pinta el detalle con los datos que ya se tienen. Las escrituras devuelven el
+   * detalle completo, así que no hace falta volver a pedirlo.
+   */
+  function pintarDetalle(nuevo, silencio) {
+    datos = nuevo;
 
     // Las fotos ya subidas se recuperan del servidor: al reabrir deben seguir ahí.
-    fotosAntes = recuperarFotos(r.data.evidencias, 'ANTES');
-    fotosDespues = recuperarFotos(r.data.evidencias, 'DESPUES');
+    fotosAntes = recuperarFotos(nuevo.evidencias, 'ANTES');
+    fotosDespues = recuperarFotos(nuevo.evidencias, 'DESPUES');
 
-    limpiarBorradorSiNoAplica(r.data.actividad);
+    limpiarBorradorSiNoAplica(nuevo.actividad);
     pintar();
     mostrar(true);
-    recordarAbierta(r.data.actividad.id);
+    recordarAbierta(nuevo.actividad.id);
+
+    if (silencio) return;
 
     // Si se recuperó lo escrito antes de una recarga, se dice.
-    const b = borrador[r.data.actividad.id];
+    const b = borrador[nuevo.actividad.id];
     if (b && b._recuperado && b.guardado_en) {
       const cuando = new Date(b.guardado_en);
       aviso('Recuperamos lo que había escrito el ' + cuando.toLocaleString('es-CO') + '.', 'info');
     }
+  }
+
+  /** Tras una acción: usa el detalle que vino en la respuesta o lo pide. */
+  function refrescarDesde(respuesta, id) {
+    const detalle = respuesta && respuesta.data && respuesta.data.detalle;
+    if (detalle && detalle.actividad) { pintarDetalle(detalle); return; }
+    abrir(id, rol);
   }
 
   /**
@@ -847,7 +864,7 @@
             btn.disabled = false;
             if (!r.ok) return aviso(r.message || 'No se pudo reportar.', 'error');
             aviso('Etapa reportada. La administración debe aprobarla.', 'ok');
-            abrir(a.id, rol);
+            refrescarDesde(r, a.id);
           });
           fila.appendChild(btn);
         }
@@ -923,7 +940,7 @@
           return aviso(r.message || 'No se pudo iniciar.', 'error');
         }
         aviso('Actividad iniciada. Ya puedes reportar el final cuando termines.', 'ok');
-        abrir(a.id, rol);
+        refrescarDesde(r, a.id);
       });
       caja.appendChild(btn);
       if (fotosAntes.length === 0) {
@@ -968,7 +985,7 @@
         btnAvance.textContent = 'Guardar avance de hoy';
         if (!rAv.ok) return aviso(rAv.message || 'No se pudo guardar el avance.', 'error');
         aviso('Avance guardado: ' + rAv.data.avance_reportado_pct + ' %. La actividad sigue abierta.', 'ok');
-        abrir(a.id, rol);
+        refrescarDesde(rAv, a.id);
       });
       caja.appendChild(btnAvance);
       caja.appendChild(el('p', 'bajada-tarjeta',
@@ -995,7 +1012,7 @@
         if (!r.ok) return aviso(r.message || 'No se pudo enviar el reporte.', 'error');
         borrarBorrador(a.id);
         aviso('Reporte enviado. Queda pendiente de revisión de la administración.', 'ok');
-        abrir(a.id, rol);
+        refrescarDesde(r, a.id);
       });
       caja.appendChild(btn);
     }

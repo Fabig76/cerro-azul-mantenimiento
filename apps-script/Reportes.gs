@@ -62,7 +62,11 @@ function actividadesIniciar(ctx, payload) {
     const despues = actualizar('actividades', id, cambios, ctx.usuario.email);
     auditar(ctx.usuario.email, 'ACTIVIDAD_INICIADA', 'actividad', id,
       { estado: act.estado }, { estado: 'EN_EJECUCION', fotos_antes: total, motivo: motivo || null });
-    return { actividad: actividadResumen_(despues), fotos_antes: total };
+    return {
+      actividad: actividadResumen_(despues),
+      fotos_antes: total,
+      detalle: detalleActividad_(ctx, id),
+    };
   });
 }
 
@@ -262,6 +266,8 @@ function reportesCrear(ctx, payload) {
     reporte_id: reporte.id,
     avance_reportado_pct: avance,
     estado: tipo === 'FINAL' ? 'REPORTADA' : (String(act.estado) === 'REPORTADA' ? 'REPORTADA' : 'EN_EJECUCION'),
+    // El panel puede pintar el detalle sin pedirlo otra vez.
+    detalle: detalleActividad_(ctx, actividadId),
   };
 }
 

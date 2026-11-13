@@ -289,6 +289,14 @@ function actividadesListar(ctx, payload) {
 /** Detalle de una actividad con su checklist. */
 function actividadesGet(ctx, payload) {
   const id = exigirTexto(payload.id, 'id');
+  return detalleActividad_(ctx, id);
+}
+
+/**
+ * El detalle completo de una actividad. Lo usan la acción de lectura y las
+ * escrituras que terminan en el detalle, para no pedirlo dos veces.
+ */
+function detalleActividad_(ctx, id) {
   const act = buscarPorId('actividades', id);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
   if (!puedeVerActividad_(ctx, act)) {
