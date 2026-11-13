@@ -281,3 +281,19 @@
 .esq-tarjeta { height: 150px; }
 @keyframes latido { 0% { background-position: 120% 0; } 100% { background-position: -20% 0; } }
 @media (prefers-reduced-motion: reduce) { .esq { animation: none; } }
+
+/* En el celular, primero el estado del conjunto: la presentación se acorta
+   y las cuatro cifras fijas se van al final de la página. */
+@media (max-width: 767px) {
+  .hero { padding: 22px 0 18px; }
+  .hero h1 { font-size: 27px; line-height: 1.18; margin: 10px 0 4px; }
+  .hero h1 br { display: none; }
+  .hero h1 .grad::before { content: " "; }
+  .hero .lead, .hero .chips { display: none; }
+  .hero .stats { display: none; }
+  #cifrasFinal .stats { display: grid; grid-template-columns: repeat(2, 1fr); margin-top: 18px; }
+  #cifrasFinal .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 12px 14px; }
+}
+@media (min-width: 768px) {
+  #cifrasFinal { display: none; }
+}

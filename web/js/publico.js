@@ -319,6 +319,20 @@
     if (d) img.src = 'data:' + d.mime + ';base64,' + d.base64;
   }
 
+  /**
+   * En el celular las cuatro cifras fijas bajan al final: lo primero que se ve
+   * debe ser el estado del conjunto, no la presentación.
+   */
+  function ajustarCifras() {
+    const cifras = document.querySelector('.hero .stats');
+    const destino = document.getElementById('cifrasFinal');
+    const original = document.querySelector('.hero .wrap');
+    if (!cifras || !destino || !original) return;
+    const movil = window.matchMedia('(max-width: 767px)').matches;
+    const destinoFinal = movil ? destino : original;
+    if (cifras.parentNode !== destinoFinal) destinoFinal.appendChild(cifras);
+  }
+
   const NIVEL_ALERTA = {
     CRITICA: { clase: 'critica', icono: '!' },
     URGENTE: { clase: 'urgente', icono: '!' },
@@ -678,6 +692,9 @@
         mostrarTab(a.dataset.ir);
       });
     });
+
+    ajustarCifras();
+    window.addEventListener('resize', ajustarCifras);
 
     cargar().then(function () {
       ultimoSnap = null;
