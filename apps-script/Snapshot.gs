@@ -425,11 +425,14 @@ function publicFoto(param) {
   if (enCache) return ContentService.createTextOutput(enCache).setMimeType(ContentService.MimeType.JSON);
 
   const ev = buscarPorId('evidencias', id);
-  if (!ev || !ev.mini_file_id) return noEncontrada;
+  if (!ev) return noEncontrada;
+  // Las fotos subidas antes de la v1.6 pueden no tener miniatura: se sirve la principal.
+  const archivoId = ev.mini_file_id || ev.drive_file_id;
+  if (!archivoId) return noEncontrada;
 
   let json = '{"error":"no encontrada"}';
   try {
-    const blob = DriveApp.getFileById(ev.mini_file_id).getBlob();
+    const blob = DriveApp.getFileById(archivoId).getBlob();
     json = JSON.stringify({ mime: blob.getContentType(), base64: Utilities.base64Encode(blob.getBytes()) });
     if (json.length < 95000) {
       cachePut(clave, json, 21600);
