@@ -100,6 +100,8 @@
 
   // --- Carga cuando la imagen entra en pantalla ---
   let observador = null;
+  let vistas = 0;
+  const INMEDIATAS = 6;   // las primeras se piden ya; el resto, al entrar en pantalla
 
   function observadorDe() {
     if (observador || !window.IntersectionObserver) return observador;
@@ -158,6 +160,13 @@
     if (datos.propuesta) img.dataset.propuesta = datos.propuesta;
     // Si la imagen no está en la página (o no hay observador), se carga enseguida:
     // observarla sin estar en el documento la dejaría sin cargar para siempre.
+    // Las primeras imágenes se piden de una vez: son las que se ven al abrir.
+    if (vistas < INMEDIATAS) {
+      vistas++;
+      cargar(img);
+      return;
+    }
+
     const obs = observadorDe();
     if (obs && img.isConnected) {
       obs.observe(img);
