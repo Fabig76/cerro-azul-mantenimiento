@@ -769,3 +769,6 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 .residente-foto img { max-width: 200px; border-radius: 8px; border: 1px solid var(--line); }
 .residente-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .residente-form { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); display: grid; gap: 8px; }
+
+/* Selector de etiquetas QR */
+.campo-inline { font-size: 13px; font-weight: 700; color: var(--muted); align-self: center; }

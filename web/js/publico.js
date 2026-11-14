@@ -641,6 +641,35 @@
     mostrarTab('resumen');
   }
 
+  /**
+   * Página del equipo a la que lleva el QR: su estado y un botón grande para
+   * reportar un daño con esa sección ya elegida (v1.6, 7.5).
+   */
+  async function verEquipo(id) {
+    const pantalla = document.getElementById('pantallaReporte');
+    if (pantalla) pantalla.classList.add('oculto');
+    await verNodo(id);
+
+    const cont = document.getElementById('detalle');
+    if (!cont) return;
+    const caja = document.createElement('div');
+    caja.className = 'equipo-acciones';
+
+    const reportar = document.createElement('a');
+    reportar.className = 'btn primary bloque';
+    reportar.href = '#/reportar/' + id;
+    reportar.textContent = 'Reportar un daño en este equipo';
+    caja.appendChild(reportar);
+
+    const interno = document.createElement('a');
+    interno.className = 'btn sm';
+    interno.href = './app.html#/equipo/' + id;
+    interno.textContent = 'Soy contratista o de la administración';
+    caja.appendChild(interno);
+
+    cont.appendChild(caja);
+  }
+
   async function verNodo(id) {
     ocultarTodo();
     const detalle = document.getElementById('detalle');
@@ -844,13 +873,18 @@
 
   function ruta(snap) {
     const h = window.location.hash || '';
-    if (h.indexOf('#/reportar') === 0) return abrirReporte('reportar', '');
+    if (h.indexOf('#/reportar') === 0) {
+      const conNodo = h.match(/^#\/reportar\/([A-Z0-9_]+)/i);
+      return abrirReporte('reportar', conNodo ? conNodo[1] : '');
+    }
     if (h.indexOf('#/consulta') === 0) return abrirReporte('consulta');
     const pantallaReporte = document.getElementById('pantallaReporte');
     if (pantallaReporte) pantallaReporte.classList.add('oculto');
     const m = h.match(/^#\/nodo\/([A-Z0-9_]+)/i);
     if (m) return verNodo(m[1]);
     if (h.indexOf('#/alertas') === 0) return verAlertas(snap);
+    const equipo = h.match(/^#\/equipo\/([A-Z0-9_]+)/i);
+    if (equipo) return verEquipo(equipo[1]);
     const t = h.replace('#/', '');
     mostrarTab(TABS.indexOf(t) >= 0 ? t : 'resumen');
   }

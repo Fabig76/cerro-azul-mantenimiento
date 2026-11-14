@@ -360,3 +360,6 @@
 .campo-trampa {
   position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0;
 }
+
+/* Página del equipo (QR) */
+.equipo-acciones { display: grid; gap: 8px; margin-top: 18px; max-width: 420px; }

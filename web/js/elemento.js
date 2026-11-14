@@ -29,6 +29,31 @@
     return (limpio || 'ELE').slice(0, 4).padEnd(3, 'X');
   }
 
+  /** Selector y botón para imprimir las etiquetas QR de una sección. */
+  function prepararEtiquetas(nodos) {
+    const sel = document.getElementById('selEtiquetas');
+    const btn = document.getElementById('btnEtiquetas');
+    if (!sel || !btn) return;
+
+    sel.textContent = '';
+    const todas = document.createElement('option');
+    todas.value = '';
+    todas.textContent = 'Todo el conjunto';
+    sel.appendChild(todas);
+
+    (nodos || []).forEach(function (n) {
+      const op = document.createElement('option');
+      op.value = n.id;
+      op.textContent = n.codigo + ' · ' + n.nombre;
+      sel.appendChild(op);
+    });
+
+    btn.addEventListener('click', function () {
+      const destino = sel.value ? '?n=' + encodeURIComponent(sel.value) : '';
+      window.open('etiquetas.html' + destino, '_blank');
+    });
+  }
+
   async function cargar() {
     const t = Sesion.token();
     const [rT, rN] = await Promise.all([
@@ -115,6 +140,7 @@
   }
 
   function preparar() {
+    prepararEtiquetas(nodos);
     const form = document.getElementById('formElemento');
     if (!form) return;
 
