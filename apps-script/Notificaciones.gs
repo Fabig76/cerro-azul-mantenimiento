@@ -187,6 +187,29 @@ function textoNotificacion_(tipo, entidadId) {
       ].join('\n'),
     };
   }
+  if (tipo === 'HOJA_GRANDE') {
+    const partes = String(entidadId || '').split(':');
+    const tabla = partes[0];
+    const umbral = Number(partes[1] || 0);
+    const limite = umbral >= configNumero('archivo_limite_filas', 20000);
+    return {
+      asunto: limite
+        ? 'Cerro Azul · la tabla «' + tabla + '» llegó al límite'
+        : 'Cerro Azul · la tabla «' + tabla + '» va creciendo',
+      cuerpo: [
+        'Hola.',
+        '',
+        limite
+          ? 'La tabla «' + tabla + '» pasó las ' + umbral + ' filas. Conviene archivar el año más viejo.'
+          : 'La tabla «' + tabla + '» pasó las ' + umbral + ' filas. Todavía no urge, pero es bueno saberlo.',
+        '',
+        'En el panel, pestaña Sistema, está el tamaño de cada tabla.',
+        '',
+        'Administración — Urbanización Cerro Azul',
+      ].join('\n'),
+    };
+  }
+
   if (tipo === 'USUARIO_NUEVO') {
     return {
       asunto: 'Nuevo registro esperando activación',
@@ -291,11 +314,33 @@ function sistemaEstado(ctx) {
     disparadores = [];
   }
   const esperados = ['regenerarSnapshot', 'recalcularTodoDiario', 'despacharCorreos', 'avisosDiariosDisparador'];
+  const aviso = configNumero('archivo_aviso_filas', 15000);
+  const limite = configNumero('archivo_limite_filas', 20000);
   return {
     correos: correos,
     disparadores: disparadores,
     faltan: esperados.filter(function (f) { return disparadores.indexOf(f) < 0; }),
+    filas: filasPorHoja_(),
+    archivo: { aviso: aviso, limite: limite },
   };
+}
+
+/**
+ * Cuántas filas tiene cada hoja. Se lee el último renglón, no el contenido: es barato
+ * y sirve para saber cuándo toca archivar antes de que el portal se ponga lento.
+ */
+function filasPorHoja_() {
+  const libro = hojaCalculo();
+  const conteo = {};
+  Object.keys(SCHEMA).forEach(function (tabla) {
+    try {
+      const hoja = libro.getSheetByName(tabla);
+      conteo[tabla] = hoja ? Math.max(0, hoja.getLastRow() - 1) : 0;
+    } catch (e) {
+      conteo[tabla] = null;
+    }
+  });
+  return conteo;
 }
 
 /** Resumen de la cola para la pestaña Sistema del panel. */
@@ -356,6 +401,21 @@ function avisosDiarios_() {
       destino.forEach(function (u) { if (encolarUnaVez_(u, 'RECORDATORIO', a.id)) resumen.recordatorio++; });
     });
   } catch (e) { console.error('aviso recordatorio: ' + e.message); }
+
+  // 1 bis. Hojas que crecen: avisa al pasar el umbral de preparación y el límite.
+  try {
+    const conteo = filasPorHoja_();
+    const aviso = configNumero('archivo_aviso_filas', 15000);
+    const limite = configNumero('archivo_limite_filas', 20000);
+    Object.keys(conteo).forEach(function (tabla) {
+      const n = Number(conteo[tabla] || 0);
+      const umbral = n >= limite ? limite : (n >= aviso ? aviso : 0);
+      if (!umbral) return;
+      admins.forEach(function (u) {
+        if (encolarUnaVez_(u, 'HOJA_GRANDE', tabla + ':' + umbral)) resumen.hojas = (resumen.hojas || 0) + 1;
+      });
+    });
+  } catch (e) { console.error('aviso hojas: ' + e.message); }
 
   // 2. Empieza hoy
   try {
@@ -439,6 +499,7 @@ function notificacionesMias(ctx, payload) {
     PROPUESTA_APROBADA: 'Aprobaron tu propuesta',
     PROPUESTA_RECHAZADA: 'No aprobaron tu propuesta',
     USUARIO_NUEVO: 'Se creó tu usuario',
+    HOJA_GRANDE: 'Una tabla del portal está creciendo',
   };
 
   return {

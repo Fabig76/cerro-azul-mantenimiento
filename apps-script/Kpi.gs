@@ -74,7 +74,12 @@ function kpisMes(mes) {
   const m = mes || mesDe_(hoyIso());
   const actividades = filtrar('actividades', function (a) { return bool(a.activo); });
   const reportes = filas('reportes');
-  const empresas = filtrar('empresas', function (e) { return bool(e.activo); });
+  // El mes en curso muestra solo las activas; los meses pasados incluyen las inactivas,
+  // o su historial desaparecería del informe al desactivarlas.
+  const mesActual = mesDe_(hoyIso());
+  const empresas = filtrar('empresas', function (e) {
+    return bool(e.activo) || String(m) !== mesActual;
+  });
 
   const delMes = actividades.filter(function (a) {
     return String(a.estado) !== 'CANCELADA' && mesDe_(a.fecha_fin_plan) === m;

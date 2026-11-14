@@ -61,6 +61,8 @@ function runAllTests() {
   pruebasResponsable_();
   pruebasFotoDeEtapa_();
   pruebasEmpresaEstado_();
+  pruebasArchivoCerrado_();
+  pruebasFilasPorHoja_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -532,6 +534,40 @@ function pruebasEmpresaEstado_() {
   let codigo = '';
   try { empresasEstado(ctx, { id: conTrabajo.id, activo: false }); } catch (e) { codigo = String(e.message); }
   verdadero_(codigo.indexOf('CONFLICTO') === 0, 'no se desactiva una empresa con trabajo sin cerrar');
+
+  // Crear trabajo para una empresa inactiva se rechaza
+  const inactiva = filtrar('empresas', function (e) { return !bool(e.activo); })
+    .filter(function (e) { return String(e.razon_social || '').toUpperCase().indexOf('PRUEBA') < 0; })[0];
+  if (inactiva) {
+    let codigo2 = '';
+    try {
+      crearActividad_({ usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' }, {
+        titulo: 'Prueba empresa inactiva', nodo_id: 'X', fecha_inicio_plan: hoyIso(),
+        empresa_id: inactiva.id,
+      });
+    } catch (e) { codigo2 = String(e.message); }
+    verdadero_(codigo2.indexOf('CONFLICTO') === 0 || codigo2.indexOf('VALIDACION') === 0,
+      'no se crea trabajo para una empresa desactivada');
+  } else {
+    RESULTADOS.detalle.push('OMITE · empresa inactiva · ninguna sin la palabra PRUEBA');
+  }
+}
+
+/**
+ * El archivado viejo está cerrado: si alguien lo llama, recibe PROHIBIDO.
+ */
+function pruebasArchivoCerrado_() {
+  let codigo = '';
+  try { archivarAnteriores_OBSOLETA_(24, 'prueba'); } catch (e) { codigo = String(e.message); }
+  verdadero_(codigo.indexOf('PROHIBIDO') === 0, 'el archivado anterior está desactivado');
+}
+
+/** El monitor de filas cuenta las 25 hojas. */
+function pruebasFilasPorHoja_() {
+  const conteo = filasPorHoja_();
+  const tablas = Object.keys(conteo);
+  verdadero_(tablas.length >= 20, 'el monitor mide las tablas (' + tablas.length + ')');
+  verdadero_(conteo.actividades !== null && conteo.actividades >= 0, 'y la de actividades da un número');
 }
 
 function pruebasSuperficiePublica_() {

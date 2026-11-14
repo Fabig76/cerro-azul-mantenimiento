@@ -138,11 +138,21 @@
 
   async function cambiarEstado(f) {
     const que = f.activo ? 'desactivar' : 'activar';
-    if (f.activo && !window.confirm('¿Desactivar «' + f.razon_social + '»? Dejará de aparecer al asignar trabajo.')) return;
-    const r = await API.llamar('empresas.estado', { id: f.id, activo: !f.activo },
+    let apagarUsuarios = false;
+    if (f.activo) {
+      const cuantos = Number(f.usuarios || 0);
+      const texto = '¿Desactivar «' + f.razon_social + '»?\n\nDejará de aparecer al asignar trabajo.' +
+        (cuantos ? '\n\nTiene ' + cuantos + ' usuario(s) vinculado(s). Se desactivarán también.' : '');
+      if (!window.confirm(texto)) return;
+      apagarUsuarios = cuantos > 0;
+    }
+    const r = await API.llamar('empresas.estado',
+      { id: f.id, activo: !f.activo, desactivar_usuarios: apagarUsuarios },
       { token: Sesion.token(), idempotente: true });
     if (!r.ok) { avisoFicha(r.message || 'No se pudo ' + que + ' la empresa.', 'error'); return; }
-    avisoFicha('Empresa ' + (f.activo ? 'desactivada' : 'activada') + '.', 'ok');
+    const apagados = (r.data && r.data.usuarios_apagados) || 0;
+    avisoFicha('Empresa ' + (f.activo ? 'desactivada' : 'activada') + '.' +
+      (apagados ? ' Se desactivaron ' + apagados + ' usuario(s).' : ''), 'ok');
     await cargarFichas();
   }
 

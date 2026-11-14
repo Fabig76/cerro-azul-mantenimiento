@@ -156,7 +156,7 @@ def auditar_publico():
     print("\nSEGURIDAD · acciones privadas rechazadas sin sesión")
     for accion in ["actividades.listar", "nodos.arbol", "usuarios.listar", "kpi.panel",
                    "tests.ejecutar", "informes.mensual", "actividades.crear", "reportes.revisar",
-                   "respaldos.crear", "archivo.ejecutar", "config.get", "auditoria.listar"]:
+                   "respaldos.crear", "config.get", "auditoria.listar"]:
         probar("sin sesión: " + accion,
                lambda a=accion: post(a), espera_ok=False)
 
@@ -318,7 +318,7 @@ def auditar_escrituras(token):
     probar("informe mensual", lambda: post("informes.mensual", {"mes": "2026-10"}, token=token))
     probar("regenerar snapshot", lambda: post("snapshot.regenerar", token=token))
     probar("crear respaldo", lambda: post("respaldos.crear", token=token))
-    probar("archivo de datos viejos", lambda: post("archivo.ejecutar", {"meses": 24}, token=token))
+    probar("archivo de datos viejos (retirado)", lambda: post("archivo.ejecutar", {"meses": 24}, token=token))
 
     # Cierre: la actividad aprobada no se cancela, así que se deja y se limpia al final
     probar("una actividad aprobada no se cancela",

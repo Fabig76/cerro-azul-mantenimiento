@@ -339,6 +339,8 @@ function semillaConfig() {
     ['snapshot_minutos', '60', 'Frecuencia de regeneración del snapshot público'],
     ['sesion_horas', '12', 'Vigencia de la sesión'],
     ['sesion_horas_propio', '168', 'Vigencia de la sesión en el celular propio (7 días)'],
+    ['archivo_aviso_filas', '15000', 'Filas a partir de las cuales se avisa que una tabla crece'],
+    ['archivo_limite_filas', '20000', 'Filas a partir de las cuales hay que archivar'],
     ['enlace_minutos', '15', 'Vigencia del enlace de ingreso por correo'],
     ['recordatorio_dias', '1', 'Días antes del vencimiento para recordar al contratista'],
     ['dias_aviso_poliza', '30', 'Días de anticipación del aviso de vencimiento de póliza'],

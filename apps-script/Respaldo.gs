@@ -45,10 +45,17 @@ function listarRespaldos() {
 }
 
 /**
- * Archiva actividades cerradas de años anteriores: copia las filas a un libro aparte
- * y luego las limpia del libro principal en bloque (sin deleteRow, que es lentísimo).
+ * OBSOLETA. Archivaba solo `actividades`: dejaba huérfanos sus hitos, reportes,
+ * respuestas y evidencias, y borraba el contenido de las filas sin quitarlas.
+ * Cualquiera con sesión de administrador podía ejecutarla por la API y perder meses
+ * del historial. La reemplaza `archivarAnio_` (SPEC 10.2 sexies).
  */
-function archivarAnteriores(meses, usuario) {
+function archivarAnteriores_OBSOLETA_(meses, usuario) {
+  fallar_('PROHIBIDO', 'El archivado anterior está desactivado: dejaba trabajos sin sus fotos ni reportes. Se reemplaza por el archivado por año.');
+}
+
+/** Versión anterior, sin candado, conservada solo como referencia. No llamar. */
+function archivarAnteriores_REFERENCIA_(meses, usuario) {
   const limite = Math.max(1, Number(meses || 24));
   const corte = sumarDias(hoyIso(), -limite * 30);
   const candidatas = filtrar('actividades', function (a) {

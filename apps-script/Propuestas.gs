@@ -260,6 +260,9 @@ function propuestasAprobar(ctx, payload) {
         'El contratista cambió de empresa desde que propuso. No apruebes esta propuesta: que proponga de nuevo.');
     }
     const empresa = p.empresa_id ? buscarPorId('empresas', p.empresa_id) : null;
+    if (empresa && !bool(empresa.activo)) {
+      fallar_('CONFLICTO', 'La empresa de esta propuesta está desactivada.');
+    }
     if (empresa && empresa.vigencia_hasta && String(empresa.vigencia_hasta) < hoyIso()) {
       fallar_('CONFLICTO', 'La empresa tiene el contrato vencido (RN-18).');
     }

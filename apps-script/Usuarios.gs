@@ -211,14 +211,33 @@ function empresasEstado(ctx, payload) {
   if (!e) fallar_('NO_ENCONTRADO', 'La empresa no existe.');
 
   if (!activo) {
+    // RECHAZADA también cuenta: el contratista todavía tiene que corregirla.
     const abiertas = filtrar('actividades', function (a) {
       if (!bool(a.activo)) return false;
       if (String(a.empresa_id) !== String(id)) return false;
-      return ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA'].indexOf(String(a.estado)) >= 0;
+      return ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA', 'RECHAZADA'].indexOf(String(a.estado)) >= 0;
     });
     if (abiertas.length) {
       fallar_('CONFLICTO', 'La empresa tiene ' + abiertas.length +
         ' trabajo(s) sin cerrar. Termínalos o reasígnalos antes de desactivarla.');
+    }
+
+    const recurrencias = filtrar('recurrencias', function (r) {
+      return bool(r.activo) && String(r.empresa_id) === String(id);
+    });
+    if (recurrencias.length) {
+      fallar_('CONFLICTO', 'La empresa tiene ' + recurrencias.length +
+        ' plan(es) recurrente(s) activo(s). Páusalos o cámbialos de empresa antes de desactivarla.');
+    }
+
+    const pendientes = filtrar('propuestas', function (p) {
+      if (!bool(p.activo) || String(p.estado) !== 'PENDIENTE') return false;
+      const u = buscarPorId('usuarios', p.usuario_id);
+      return u && String(u.empresa_id) === String(id);
+    });
+    if (pendientes.length) {
+      fallar_('CONFLICTO', 'La empresa tiene ' + pendientes.length +
+        ' propuesta(s) sin responder. Resuélvelas antes de desactivarla.');
     }
   }
 
@@ -226,9 +245,21 @@ function empresasEstado(ctx, payload) {
     activo: activo,
     estado: activo ? 'ACTIVA' : 'INACTIVA',
   }, ctx.usuario.email);
+
+  // Opcional: apagar también a su gente, para que no sigan entrando a trabajar.
+  let usuariosApagados = 0;
+  if (!activo && payload.desactivar_usuarios) {
+    filtrar('usuarios', function (u) {
+      return !u.suprimido_en && String(u.empresa_id) === String(id) && String(u.estado) === 'ACTIVO';
+    }).forEach(function (u) {
+      actualizar('usuarios', u.id, { estado: 'INACTIVO', inactivo_desde: ahoraIso() }, ctx.usuario.email);
+      usuariosApagados++;
+    });
+  }
+
   auditar(ctx.usuario.email, activo ? 'EMPRESA_ACTIVADA' : 'EMPRESA_DESACTIVADA', 'empresa', id,
-    { activo: bool(e.activo) }, { activo: activo });
-  return { empresa: { id: despues.id, activo: bool(despues.activo) } };
+    { activo: bool(e.activo) }, { activo: activo, usuarios_apagados: usuariosApagados });
+  return { empresa: { id: despues.id, activo: bool(despues.activo) }, usuarios_apagados: usuariosApagados };
 }
 
 function empresasGuardar(ctx, payload) {

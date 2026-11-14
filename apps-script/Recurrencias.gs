@@ -155,6 +155,16 @@ function generarActividadesPendientes(usuario) {
     const limite = sumarDias(hoy, anticipacion);
     if (proxima > limite) return;
 
+    // Una empresa desactivada no debe seguir generando trabajo solo.
+    if (r.empresa_id) {
+      const empresa = buscarPorId('empresas', r.empresa_id);
+      if (empresa && !bool(empresa.activo)) {
+        omitidas.push({ recurrencia: r.id, motivo: 'la empresa está desactivada' });
+        console.log('Recurrencia ' + r.id + ' omitida: la empresa está desactivada.');
+        return;
+      }
+    }
+
     const abierta = filtrar('actividades', function (a) {
       return String(a.recurrencia_id) === String(r.id) &&
         ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA'].indexOf(String(a.estado)) >= 0;

@@ -79,7 +79,6 @@ const ACCIONES = {
   'novedades.editar': { fn: novedadesEditar, sesion: true, roles: ['ADMIN'] },
   'respaldos.listar': { fn: accionRespaldos, sesion: true, roles: ['ADMIN'] },
   'respaldos.crear': { fn: accionRespaldo, sesion: true, roles: ['ADMIN'] },
-  'archivo.ejecutar': { fn: accionArchivo, sesion: true, roles: ['ADMIN'] },
   'config.guardar': { fn: configGuardar, sesion: true, roles: ['ADMIN'] },
   'recurrencias.listar': { fn: recurrenciasListar, sesion: true },
   'recurrencias.guardar': { fn: recurrenciasGuardar, sesion: true, roles: ['ADMIN'] },
@@ -243,8 +242,12 @@ function accionRespaldo(ctx) {
   return respaldarLibro(ctx.usuario.email);
 }
 
+/**
+ * OBSOLETA: la acción `archivo.ejecutar` se retiró del Router. Se deja esta función
+ * apuntando al candado para que una llamada antigua reciba el motivo y no un error raro.
+ */
 function accionArchivo(ctx, payload) {
-  return archivarAnteriores(payload && payload.meses ? Number(payload.meses) : 24, ctx.usuario.email);
+  return archivarAnteriores_OBSOLETA_(payload && payload.meses ? Number(payload.meses) : 24, ctx.usuario.email);
 }
 
 function accionInforme(ctx, payload) {

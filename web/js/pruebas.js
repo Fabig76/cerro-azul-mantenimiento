@@ -115,6 +115,53 @@
       partes.push('Los ' + (r.data.disparadores || []).length + ' disparadores están instalados');
     }
     caja.textContent = partes.join(' · ') + '.';
+    pintarFilas(r.data.filas || {}, r.data.archivo || {});
+  }
+
+  /** Cuántas filas tiene cada tabla y cuándo hay que archivar. */
+  function pintarFilas(filas, archivo) {
+    const cont = document.getElementById('tablaFilas');
+    if (!cont) return;
+    cont.textContent = '';
+    const aviso = Number(archivo.aviso || 15000);
+    const limite = Number(archivo.limite || 20000);
+
+    const tabla = document.createElement('div');
+    tabla.className = 'tabla-filas';
+    const cab = document.createElement('div');
+    cab.className = 'tabla-fila tabla-cab';
+    ['Tabla', 'Filas', 'Estado'].forEach(function (t) {
+      const c = document.createElement('span');
+      c.textContent = t;
+      cab.appendChild(c);
+    });
+    tabla.appendChild(cab);
+
+    const nombres = Object.keys(filas).sort(function (a, b) { return Number(filas[b]) - Number(filas[a]); });
+    nombres.forEach(function (nombre) {
+      const n = Number(filas[nombre] || 0);
+      const fila = document.createElement('div');
+      fila.className = 'tabla-fila';
+
+      const c1 = document.createElement('span');
+      c1.textContent = nombre;
+      fila.appendChild(c1);
+
+      const c2 = document.createElement('span');
+      c2.textContent = String(n);
+      fila.appendChild(c2);
+
+      const c3 = document.createElement('span');
+      const marca = document.createElement('span');
+      if (n >= limite) { marca.className = 'badge danger'; marca.textContent = 'Archivar ya'; }
+      else if (n >= aviso) { marca.className = 'badge warn'; marca.textContent = 'Preparar archivo'; }
+      else { marca.className = 'badge ok'; marca.textContent = 'Normal'; }
+      c3.appendChild(marca);
+      fila.appendChild(c3);
+
+      tabla.appendChild(fila);
+    });
+    cont.appendChild(tabla);
   }
 
   window.Pruebas = {

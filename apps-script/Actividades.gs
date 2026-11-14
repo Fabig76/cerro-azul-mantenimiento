@@ -116,6 +116,8 @@ function crearActividad_(ctx, payload, opciones) {
   if (payload.empresa_id) {
     const empresa = buscarPorId('empresas', payload.empresa_id);
     if (!empresa) fallar_('VALIDACION', 'La empresa no existe.');
+    // Ocultar la empresa en el formulario no basta: la API también tiene que negarse.
+    if (!bool(empresa.activo)) fallar_('CONFLICTO', 'La empresa está desactivada.');
     if (empresa.vigencia_hasta && String(empresa.vigencia_hasta) < hoyIso()) {
       fallar_('CONFLICTO', 'La empresa tiene el contrato vencido (RN-18). Habilítela o cambie de empresa.');
     }
@@ -481,6 +483,9 @@ function editarActividad_(ctx, payload, id) {
   if (payload.empresa_id !== undefined) {
     const empresa = payload.empresa_id ? buscarPorId('empresas', payload.empresa_id) : null;
     if (payload.empresa_id && !empresa) fallar_('VALIDACION', 'La empresa no existe.');
+    if (empresa && String(payload.empresa_id) !== String(act.empresa_id) && !bool(empresa.activo)) {
+      fallar_('CONFLICTO', 'La empresa está desactivada.');
+    }
     // La vigencia solo importa si la empresa CAMBIA: una actividad de una empresa
     // vencida se tiene que poder editar igual.
     if (empresa && String(payload.empresa_id) !== String(act.empresa_id) &&
