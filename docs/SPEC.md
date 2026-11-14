@@ -742,6 +742,66 @@ El snapshot **nunca** contiene correos, teléfonos, nombres de personas, `ficha_
 
 ## 10. Reglas de negocio y máquina de estados
 
+### 10.2 quater. Evidencia por etapa (v1.5)
+
+Hoy la evidencia es del **trabajo completo**: 1–2 fotos ANTES, 0–2 DURANTE por avance y 1–2 DESPUÉS al
+cerrar. Una etapa se reporta solo con texto. En un trabajo con cinco etapas, la administración aprueba
+las cinco con un juego de fotos del final, sin poder ver qué se hizo en cada una.
+
+**Cambio:** el contratista puede adjuntar **una foto opcional** al reportar una etapa.
+
+**Modelo: no hay columnas nuevas.** Una foto de etapa es una evidencia con:
+
+- `momento = 'DURANTE'` (las reglas de ANTES y DESPUÉS quedan intactas);
+- `reporte_id` = el reporte de avance de esa etapa;
+- la etapa se deduce del reporte: `reportes.hito_id` → `hitos`.
+
+Se reutiliza `evidencias.reporte_id`, que existe desde la v1.0 y hoy nadie llena.
+
+**Reglas nuevas**
+
+- **RN-33.** Una foto con `reporte_id` pertenece a ese reporte. El servidor comprueba que el reporte sea
+  de la misma actividad y del mismo usuario, y que la actividad siga abierta.
+- **RN-34.** Una etapa admite **una** foto (`evidenciasDeEtapa_`). Si ya tiene, el panel ofrece
+  reemplazarla; la anterior se desactiva y queda ligada a su reporte.
+- **RN-35.** Las fotos de etapa **no cuentan** como ANTES ni DESPUÉS: `evidenciasDe_().antes` y
+  `.despues` siguen filtrando solo por su momento, y el reporte final no cambia sus mínimos.
+
+**Límites para que no pese** (decisión del administrador, 14/11/2026)
+
+- Máximo **1 foto por etapa**.
+- Máximo **10 etapas** por trabajo (`config.max_etapas`, por defecto 10).
+- Las listas y el acta usan **la miniatura**; la foto grande se pide solo al tocarla.
+- Las fotos de etapa nacen `publicable: false`: **no aparecen en el portal público**.
+
+**Efecto en cada módulo** (revisado en el código, uno por uno)
+
+| Módulo | Qué hace hoy con `evidencias` | Efecto | Acción |
+| --- | --- | --- | --- |
+| `Evidencias.gs` · `evidenciasUpload` | guarda `reporte_id` si llega | ninguno | validar RN-33 |
+| `Evidencias.gs` · `evidenciasDe_` | separa ANTES y DESPUES por momento | ninguno | sin cambio |
+| `Reportes.gs` | exige 1–2 ANTES y 1–2 DESPUES | ninguno | verificar que no cuente DURANTE |
+| `Informe.gs` · acta | lista todas las evidencias en una tabla | **el acta se vuelve un álbum** | agrupar por etapa y usar miniaturas |
+| `Snapshot.gs` | filtra `publicable` | ninguno | las nuevas nacen privadas |
+| `Kpi.gs`, `Salud.gs` | no las usan | ninguno | sin cambio |
+| `Limpieza.gs` | desactiva evidencias de la actividad | cubre las nuevas | sin cambio |
+| `Entrega.gs`, `Respaldo.gs` | exportan y copian el libro | filas nuevas | sin cambio |
+| `Tests.gs` | pruebas | — | pruebas nuevas |
+
+**Pruebas**
+
+- Servidor: una foto con `reporte_id` de otra actividad da `VALIDACION`; una segunda foto de la misma
+  etapa reemplaza a la anterior; el conteo de ANTES y DESPUES no cambia.
+- Pantalla: reportar una etapa con foto deja la miniatura dentro de la etapa; sin foto, la etapa se
+  reporta igual que hoy (dos toques).
+
+**Orden de trabajo**
+
+1. Servidor: validación RN-33 y tope de una foto por etapa, con sus pruebas.
+2. Panel del contratista: foto opcional en el formulario de la etapa.
+3. Panel del administrador y acta: ver las fotos dentro de su etapa.
+4. Documentación y despliegue.
+
 ### 10.2 ter. Avisos y disparadores (v1.4)
 
 Cuatro disparadores; `instalarDisparadores()` los deja siempre iguales y no duplica:
