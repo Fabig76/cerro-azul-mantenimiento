@@ -81,6 +81,15 @@
       caja.appendChild(datos);
 
       const acciones = el('div', 'ficha-acciones');
+      const soloLectura = document.body.dataset.rol === 'CONSEJO';
+      if (soloLectura) {
+        // Solo mirar: ni corregir, ni activar, ni desactivar.
+        if (!f.contacto && !f.email && !f.telefono) {
+          caja.appendChild(el('p', 'bajada-tarjeta', 'Los datos de contacto no se muestran al consejo.'));
+        }
+        cont.appendChild(caja);
+        return;
+      }
       const editar = el('button', 'btn sm', 'Corregir');
       editar.type = 'button';
       editar.addEventListener('click', function () { abrirFormulario(f); });
@@ -248,6 +257,14 @@
   }
 
   function preparar() {
+    // El consejo no administra empresas: ve la ficha, sin botones de escritura.
+    const soloLectura = document.body.dataset.rol === 'CONSEJO';
+    if (soloLectura) {
+      const form = document.getElementById('formEmpresa');
+      const nueva = document.getElementById('btnNuevaEmpresa');
+      if (form) form.remove();
+      if (nueva) nueva.remove();
+    }
     prepararFichas();
     cargarFichas();
 

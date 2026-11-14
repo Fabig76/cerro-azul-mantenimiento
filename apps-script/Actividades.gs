@@ -16,7 +16,7 @@ function plantillaConItems_(plantillaId, version) {
 
 /** ¿El usuario puede ver esta actividad? */
 function puedeVerActividad_(ctx, act) {
-  if (ctx.rol === 'ADMIN' || ctx.rol === 'SUPERVISOR') return true;
+  if (puedeLeerTodo_(ctx)) return true;
   if (String(act.responsable_id) === String(ctx.usuario.id)) return true;
   if (act.empresa_id && String(act.empresa_id) === String(ctx.usuario.empresa_id || '')) return true;
   const nodo = buscarPorId('nodos', act.nodo_id);

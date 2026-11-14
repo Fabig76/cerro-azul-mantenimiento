@@ -61,7 +61,7 @@ function usuariosActivar(ctx, payload) {
   if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');
   if (String(u.estado) === 'ACTIVO') fallar_('ESTADO_INVALIDO', 'Ese usuario ya está activo.');
 
-  const rol = exigirEnEnum(payload.rol || 'CONTRATISTA', 'rol', ['CONTRATISTA', 'SUPERVISOR', 'ADMIN']);
+  const rol = exigirEnEnum(payload.rol || 'CONTRATISTA', 'rol', ['CONTRATISTA', 'SUPERVISOR', 'ADMIN', 'CONSEJO']);
   const empresaId = payload.empresa_id || '';
   if (empresaId && !buscarPorId('empresas', empresaId)) fallar_('VALIDACION', 'La empresa no existe.');
   if (rol === 'CONTRATISTA' && !empresaId) {
@@ -91,7 +91,7 @@ function usuariosEditar(ctx, payload) {
   if (payload.nombre !== undefined) cambios.nombre = exigirTexto(payload.nombre, 'nombre', 120);
   if (payload.telefono !== undefined) cambios.telefono = String(payload.telefono || '').slice(0, 30);
   if (payload.rol !== undefined) {
-    cambios.rol = exigirEnEnum(payload.rol, 'rol', ['CONTRATISTA', 'SUPERVISOR', 'ADMIN']);
+    cambios.rol = exigirEnEnum(payload.rol, 'rol', ['CONTRATISTA', 'SUPERVISOR', 'ADMIN', 'CONSEJO']);
     if (String(cambios.rol) !== String(u.rol)) {
       // Cambiar el rol revoca sesiones (RN-19).
       revocarSesiones_(id, ctx.usuario.email);
@@ -186,9 +186,13 @@ function empresasListar(ctx, payload) {
         const usuarios = filtrar('usuarios', function (u) {
           return !u.suprimido_en && String(u.empresa_id) === String(e.id);
         });
+        const esConsejo = ctx && ctx.rol === 'CONSEJO';
         return {
-          id: e.id, razon_social: e.razon_social, nit: e.nit, contacto: e.contacto || '',
-          email: e.email || '', telefono: e.telefono || '',
+          id: e.id, razon_social: e.razon_social, nit: e.nit,
+          // RN-42: el consejo no necesita los datos de contacto de las empresas.
+          contacto: esConsejo ? undefined : (e.contacto || ''),
+          email: esConsejo ? undefined : (e.email || ''),
+          telefono: esConsejo ? undefined : (e.telefono || ''),
           contrato_numero: e.contrato_numero || '',
           vigencia_desde: e.vigencia_desde || '', vigencia_hasta: e.vigencia_hasta || '',
           poliza_vence: e.poliza_vence || '',

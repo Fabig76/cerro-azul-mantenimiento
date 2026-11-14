@@ -167,7 +167,7 @@ function propuestasListar(ctx, payload) {
 
   if (ctx.rol === 'CONTRATISTA') {
     lista = lista.filter(function (p) { return String(p.propuesta_por) === String(ctx.usuario.id); });
-  } else if (['ADMIN', 'SUPERVISOR'].indexOf(ctx.rol) < 0) {
+  } else if (!puedeLeerTodo_(ctx)) {
     fallar_('PROHIBIDO', 'No tienes acceso a las propuestas.');
   }
 
@@ -205,7 +205,7 @@ function propuestasGet(ctx, payload) {
   if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
 
   const autor = String(p.propuesta_por) === String(ctx.usuario.id);
-  const esAdmin = ['ADMIN', 'SUPERVISOR'].indexOf(ctx.rol) >= 0;
+  const esAdmin = puedeLeerTodo_(ctx);
   if (!autor && !esAdmin) fallar_('PROHIBIDO', 'No puedes ver esta propuesta.');
 
   const salida = { propuesta: propuestaResumen_(p, ctx) };
@@ -469,7 +469,7 @@ function propuestasFotoGet(ctx, payload) {
   if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
 
   const autor = String(p.propuesta_por) === String(ctx.usuario.id);
-  const esAdmin = ['ADMIN', 'SUPERVISOR'].indexOf(ctx.rol) >= 0;
+  const esAdmin = puedeLeerTodo_(ctx);
   let puede = autor || esAdmin;
   if (!puede && p.actividad_id) {
     const act = buscarPorId('actividades', p.actividad_id);

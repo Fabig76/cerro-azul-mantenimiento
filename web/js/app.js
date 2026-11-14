@@ -221,6 +221,11 @@
       if (formElemento) formElemento.classList.remove('oculto');
     }
 
+    document.body.dataset.rol = rolActual || '';
+    // El consejo entra a mirar, no a tocar: se dice siempre, arriba.
+    const marcaConsejo = document.getElementById('etiquetaConsejo');
+    if (marcaConsejo) marcaConsejo.classList.toggle('oculto', rolActual !== 'CONSEJO');
+
     // Cada pestaña carga la primera vez que se abre; antes se cargaban todas al entrar.
     cargarPestana(pestanaActual());
     if (rolActual === 'CONTRATISTA') cargarNovedadesMias();
@@ -672,7 +677,7 @@
   ];
 
   function grupoInicial() {
-    if (rolActual === 'ADMIN' || rolActual === 'SUPERVISOR') return 'POR_REVISAR';
+    if (rolActual === 'ADMIN' || rolActual === 'SUPERVISOR' || rolActual === 'CONSEJO') return 'POR_REVISAR';
     return 'PENDIENTES';
   }
 

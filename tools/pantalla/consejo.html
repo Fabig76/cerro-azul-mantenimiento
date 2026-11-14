@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body data-rol="CONSEJO">
+<div id="barraPestanas">
+  <span class="etiqueta-consejo oculto" id="etiquetaConsejo">Consejo · solo lectura</span>
+  <button class="pestana" data-pestana="actividades" data-roles="ADMIN,SUPERVISOR,CONTRATISTA,CONSEJO">Actividades</button>
+  <button class="pestana" data-pestana="plan" data-roles="ADMIN">Plan</button>
+  <button class="pestana" data-pestana="empresas" data-roles="ADMIN,SUPERVISOR,CONSEJO">Empresas</button>
+  <button class="pestana" data-pestana="usuarios" data-roles="ADMIN">Usuarios</button>
+</div>
+<div class="card" id="tarjetaEmpresasFicha" data-panel="empresas">
+  <div class="cabecera-seccion"><h2>Empresas contratistas</h2><span class="codigo" id="conteoFichas"></span></div>
+  <div id="listaFichas" class="lista-fichas"></div>
+  <form id="formEmpresa" class="form-novedad oculto"></form>
+  <div class="acciones-form"><button id="btnNuevaEmpresa" type="button">Nueva empresa</button></div>
+  <select id="empMes"></select>
+</div>
+<script>
+window.API = { llamar: function (accion) {
+  if (accion === 'empresas.listar') return Promise.resolve({ ok: true, data: { empresas: [
+    { id: 'E1', razon_social: 'MAXCONTROL S.A.S.', nit: '900.416.068', activo: true, usuarios: 1, vencida: false },
+  ] } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; } };
+window.Datos = { invalidar: function () {} };
+</script>
+<script src="../../web/js/empresas.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  try {
+    Empresas.preparar();
+    await esperar(400);
+
+    const texto = document.getElementById('listaFichas').textContent;
+    r.push((texto.indexOf('MAXCONTROL') >= 0 ? 'OK   ' : 'FALLA') + ' · el consejo ve las empresas');
+    r.push((texto.indexOf('900.416.068') >= 0 ? 'OK   ' : 'FALLA') + ' · con su NIT');
+
+    const botones = Array.prototype.slice.call(document.querySelectorAll('#listaFichas button'))
+      .map(function (b) { return b.textContent; });
+    r.push((botones.indexOf('Corregir') < 0 ? 'OK   ' : 'FALLA') + ' · sin «Corregir»');
+    r.push((botones.indexOf('Desactivar') < 0 ? 'OK   ' : 'FALLA') + ' · sin «Desactivar»');
+    r.push((!document.getElementById('btnNuevaEmpresa') ? 'OK   ' : 'FALLA') + ' · sin «Nueva empresa»');
+    r.push((!document.getElementById('formEmpresa') ? 'OK   ' : 'FALLA') + ' · sin formulario de edición');
+  } catch (e) { r.push('FALLA · ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

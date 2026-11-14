@@ -63,6 +63,7 @@ function runAllTests() {
   pruebasEmpresaEstado_();
   pruebasArchivoCerrado_();
   pruebasCotizacion_();
+  pruebasConsejoSoloLectura_();
   pruebasFilasPorHoja_();
 
   // Las fallas van primero: son lo único que hay que leer.
@@ -610,6 +611,37 @@ function pruebasCotizacion_() {
   } else {
     RESULTADOS.detalle.push('OMITE · cotización · sin propuestas');
   }
+}
+
+/**
+ * RN-41: el consejo solo lee. Se comprueba la lista blanca contra todas las acciones,
+ * así una acción nueva de escritura queda cerrada por defecto.
+ */
+function pruebasConsejoSoloLectura_() {
+  const escrituras = Object.keys(ACCIONES).filter(function (a) {
+    // Lo que no termina en lectura es escritura, salvo los disparadores internos.
+    return !/(\.(listar|get|panel|me|arbol|ver|pdf|ficha)|^ping$)/.test(a);
+  });
+
+  const coladas = escrituras.filter(function (a) {
+    return ACCIONES_LECTURA_CONSEJO.indexOf(a) >= 0;
+  });
+  verdadero_(coladas.length === 0,
+    'la lista del consejo no incluye escrituras' + (coladas.length ? ': ' + coladas.join(', ') : ''));
+
+  const inventadas = ACCIONES_LECTURA_CONSEJO.filter(function (a) { return !ACCIONES[a]; });
+  verdadero_(inventadas.length === 0,
+    'todas las acciones de la lista del consejo existen' + (inventadas.length ? ': ' + inventadas.join(', ') : ''));
+
+  verdadero_(ACCIONES_LECTURA_CONSEJO.indexOf('usuarios.listar') < 0,
+    'el consejo no puede listar usuarios');
+  verdadero_(ACCIONES_LECTURA_CONSEJO.indexOf('actividades.crear') < 0,
+    'el consejo no puede crear actividades');
+
+  // Y la regla del rol, aislada
+  const ctx = { usuario: { id: 'C1', email: 'consejo@x.com' }, rol: 'CONSEJO' };
+  verdadero_(puedeLeerTodo_(ctx), 'el consejo puede leer lo que lee el administrador');
+  verdadero_(!puedeLeerTodo_({ rol: 'CONTRATISTA' }), 'un contratista no');
 }
 
 function pruebasSuperficiePublica_() {

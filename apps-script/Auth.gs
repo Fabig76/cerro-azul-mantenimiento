@@ -148,9 +148,17 @@ function puedeEjecutarActividad_(ctx, act) {
   });
 }
 
+/**
+ * Los que pueden leer todo: administrador, supervisor y el consejo.
+ * El consejo es de solo lectura; el Router le impide escribir.
+ */
+function puedeLeerTodo_(ctx) {
+  return ['ADMIN', 'SUPERVISOR', 'CONSEJO'].indexOf(String(ctx && ctx.rol)) >= 0;
+}
+
 /** Exige que el usuario tenga acceso al nodo (o a un ancestro suyo). */
 function requireNodo_(ctx, nodo) {
-  if (ctx.rol === 'ADMIN' || ctx.rol === 'SUPERVISOR') return true;
+  if (puedeLeerTodo_(ctx)) return true;
   const asignados = nodosAsignados_(ctx.usuario.id);
   const propio = nodo.ruta_ids + '/' + nodo.id;
   const permitido = asignados.some(function (a) {
@@ -337,7 +345,7 @@ function crearTokenRegistro_(email) {
 // ---------------------------------------------------------------------------
 
 function authMe(ctx) {
-  const asignados = ctx.rol === 'ADMIN' || ctx.rol === 'SUPERVISOR' ? [] : nodosAsignados_(ctx.usuario.id);
+  const asignados = puedeLeerTodo_(ctx) ? [] : nodosAsignados_(ctx.usuario.id);
   return {
     usuario: {
       id: ctx.usuario.id,

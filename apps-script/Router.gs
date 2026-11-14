@@ -7,6 +7,20 @@
  *  - La autorización se decide aquí y en Auth.gs; el frontend solo oculta botones.
  */
 
+/**
+ * RN-41 · Lo único que puede llamar un usuario CONSEJO. Todo lo demás responde
+ * PROHIBIDO antes de ejecutar nada: una acción nueva queda cerrada por defecto.
+ */
+const ACCIONES_LECTURA_CONSEJO = [
+  'auth.me', 'auth.salir',
+  'actividades.listar', 'actividades.get', 'actividades.acta',
+  'nodos.arbol', 'kpi.panel', 'informes.mensual',
+  'empresas.listar', 'empresas.ficha', 'empresas.ficha.pdf',
+  'propuestas.listar', 'propuestas.get', 'propuestas.foto.get', 'propuestas.cotizacion.get',
+  'novedades.listar', 'alertas.listar', 'evidencias.get',
+  'consejo.resumen',
+];
+
 const ACCIONES = {
   ping: { fn: accionPing, publica: true },
   'snapshot.regenerar': { fn: accionRegenerarSnapshot, sesion: true, roles: ['ADMIN'] },
@@ -157,6 +171,12 @@ function doPost(e) {
       if (cuerpo.requestId) {
         const previa = cacheGet('req:' + String(ctx.usuario.id) + ':' + accion + ':' + cuerpo.requestId);
         if (previa) return responder(JSON.parse(previa));
+      }
+
+      // El consejo es de solo lectura: la lista blanca manda sobre cualquier `roles`.
+      if (ctx.rol === 'CONSEJO' && ACCIONES_LECTURA_CONSEJO.indexOf(accion) < 0) {
+        auditar(ctx.usuario.email, 'DENEGADO', accion, '', null, { rol: ctx.rol, motivo: 'solo lectura' });
+        return responder(err('PROHIBIDO', 'El consejo tiene acceso de solo lectura.'));
       }
 
       if (def.roles && def.roles.indexOf(ctx.rol) < 0) {
