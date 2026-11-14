@@ -28,7 +28,8 @@ $(correr cotizacion.html)
 $(correr consejo.html)
 $(correr consejo-inicio.html)
 $(correr reporte-publico.html)
-$(correr residentes-panel.html)"
+$(correr residentes-panel.html)
+$(correr contratista-completo.html)"
 
 echo "$SALIDA"
 echo "$SALIDA" | grep -q FALLA && exit 1

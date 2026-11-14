@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div id="barraPestanas">
+  <button class="pestana activa" data-pestana="inicio" data-roles="CONSEJO">Inicio</button>
+  <button class="pestana" data-pestana="actividades" data-roles="ADMIN,SUPERVISOR,CONTRATISTA,CONSEJO">Actividades</button>
+  <button class="pestana" data-pestana="secciones" data-roles="ADMIN,SUPERVISOR,CONTRATISTA,CONSEJO">Secciones</button>
+  <button class="pestana" data-pestana="novedades" data-roles="ADMIN,SUPERVISOR,CONTRATISTA,CONSEJO">Novedades</button>
+  <button class="pestana" data-pestana="plan" data-roles="ADMIN">Plan</button>
+  <button class="pestana" data-pestana="empresas" data-roles="ADMIN,SUPERVISOR,CONSEJO">Empresas</button>
+  <button class="pestana" data-pestana="usuarios" data-roles="ADMIN">Usuarios</button>
+  <button class="pestana" data-pestana="sistema" data-roles="ADMIN">Sistema</button>
+</div>
+<div class="card" id="tarjetaActividades" data-panel="actividades">
+  <span class="codigo" id="conteoActividades"></span>
+  <div id="novedadesMias" class="oculto"></div>
+  <div class="grupos-lista" id="gruposActividades" hidden></div>
+  <input type="search" id="buscarActividades" class="input" hidden>
+  <div class="msg" id="avisoActividades"></div>
+  <div id="listaActividades" class="lista-actividades"></div>
+  <div id="sinActividades" class="vacio oculto"></div>
+  <button id="verMasActividades" type="button" hidden>Ver más</button>
+</div>
+<div class="card oculto" id="tarjetaPropuestas" data-panel="actividades" data-propia="1"></div>
+<div class="card oculto" id="bloquePropuestasContratista"></div>
+<div id="vistaActividad" hidden></div>
+<div id="contenidoActividad"></div>
+<div class="msg" id="avisoActividad"></div>
+<script>
+window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'QUJD', base64_mini: 'QUJD', kb: 180 }); } };
+window.__llamadas = [];
+</script>
+<script src="../../web/js/api.js"></script>
+<script src="../../web/js/datos.js"></script>
+<script src="../../web/js/asignacion.js"></script>
+<script src="../../web/js/sesion.js"></script>
+<script src="../../web/js/fotocache.js"></script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script src="../../web/js/propuestas.js"></script>
+<script src="../../web/js/novedades.js"></script>
+<script src="../../web/js/app.js"></script>
+<script>
+// Datos EXACTOS del contratista de pruebas «Computadores y Portátiles».
+const HITOS = [
+  { id: 'HIT_1', orden: 1, nombre: 'Revisión de discos', peso: 1, fecha_plan: '2026-11-14', estado: 'PENDIENTE' },
+  { id: 'HIT_2', orden: 2, nombre: 'Prueba de grabación', peso: 1, fecha_plan: '2026-11-15', estado: 'PENDIENTE' },
+];
+const DETALLE = {
+  actividad: { id: 'ACT_PRUEBA', titulo: 'Prueba de actividad', estado: 'EN_EJECUCION',
+    nodo_id: 'NOD_01M69S4WSSC87B9F93C0C247F8', empresa_id: 'EMP_01M6AKKYDBF65E92F17CDA4FA6',
+    responsable_id: 'USU_01M6A1ZD14C85B38D3AD984346', fecha_inicio_plan: '2026-11-11',
+    fecha_fin_plan: '2026-11-15', prioridad: 'MEDIA', avance_aprobado_pct: 0,
+    afecta_uso: false, obligatoria_legal: false },
+  descripcion: 'Prueba con el contratista de pruebas',
+  nodo: { id: 'NOD_01M69S4WSSC87B9F93C0C247F8', codigo: 'CA-AC-CAM', nombre: 'Cámaras (CCTV)', sensible: false },
+  plantilla: { id: 'P1', nombre: 'CCTV', metodo_avance: 'HITOS', items: [] },
+  hitos: HITOS, reportes: [], evidencias: [], respuestas: [], ultimo_final: null, propuesta: null,
+};
+
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload || {} });
+  if (accion === 'auth.me') return Promise.resolve({ ok: true, data: { usuario: {
+    id: 'USU_01M6A1ZD14C85B38D3AD984346', email: 'computadores.y.portatiles@gmail.com',
+    nombre: 'Heyler guaza', rol: 'CONTRATISTA' }, permisos: [] } });
+  if (accion === 'actividades.listar') return Promise.resolve({ ok: true, data: {
+    actividades: [{ id: 'ACT_PRUEBA', titulo: 'Prueba de actividad', estado: 'PROGRAMADA',
+      nodo_id: 'NOD_01M69S4WSSC87B9F93C0C247F8', empresa_id: 'EMP_01M6AKKYDBF65E92F17CDA4FA6',
+      fecha_inicio_plan: '2026-11-11', fecha_fin_plan: '2026-11-15', prioridad: 'MEDIA' }],
+    total: 1, conteos: { PENDIENTES: 1 } } });
+  if (accion === 'actividades.get') return Promise.resolve({ ok: true, data: DETALLE });
+  if (accion === 'reportes.crear') return Promise.resolve({ ok: true, data: { reporte_id: 'REP_NUEVO' } });
+  if (accion === 'evidencias.upload') return Promise.resolve({ ok: true, data: { evidencia_id: 'EVI_NUEVA' } });
+  if (accion === 'propuestas.listar') return Promise.resolve({ ok: true, data: { propuestas: [] } });
+  if (accion === 'propuestas.crear') return Promise.resolve({ ok: true, data: { propuesta: { id: 'PRO_NUEVA' } } });
+  if (accion === 'propuestas.cotizacion.subir') return Promise.resolve({ ok: true, data: { cotizacion: {} } });
+  if (accion === 'nodos.arbol') return Promise.resolve({ ok: true, data: { nodos: [
+    { id: 'NOD_01M69S4WSSC87B9F93C0C247F8', codigo: 'CA-AC-CAM', nombre: 'Cámaras (CCTV)' } ] } });
+  if (accion === 'empresas.listar') return Promise.resolve({ ok: true, data: { empresas: [
+    { id: 'EMP_01M6AKKYDBF65E92F17CDA4FA6', razon_social: 'Computadores y Portátiles' } ] } });
+  if (accion === 'usuarios.listar') return Promise.resolve({ ok: true, data: { usuarios: [
+    { id: 'USU_01M6A1ZD14C85B38D3AD984346', nombre: 'Heyler guaza', rol: 'CONTRATISTA',
+      estado: 'ACTIVO', empresa_id: 'EMP_01M6AKKYDBF65E92F17CDA4FA6', asignaciones: [{ nodo_id: 'NOD_01M69S4WSSC87B9F93C0C247F8' }] } ] } });
+  if (accion === 'notificaciones.mias') return Promise.resolve({ ok: true, data: { novedades: [
+    { id: 'N1', tipo: 'ACTIVIDAD_ASIGNADA', etiqueta: 'Te asignaron un trabajo',
+      titulo: 'Prueba de actividad', fecha: '2026-11-14T08:00:00-05:00' } ] } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'token-de-prueba'; }, limpiar: function () {},
+  usuario: function () { return { id: 'USU_01M6A1ZD14C85B38D3AD984346' }; } };
+</script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function texto(sel) { const n = document.querySelector(sel); return n ? n.textContent : ''; }
+
+  try {
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    await esperar(900);
+
+    // 1 · Lo que ve al entrar
+    const lista = texto('#listaActividades');
+    r.push((lista.indexOf('Prueba de actividad') >= 0 ? 'OK   ' : 'FALLA') + ' · ve su trabajo');
+    r.push((document.querySelectorAll('#listaActividades .actividad').length === 1 ? 'OK   ' : 'FALLA') +
+      ' · y solo el suyo (el servidor le manda 1)');
+
+    const pestanas = Array.prototype.slice.call(document.querySelectorAll('#barraPestanas .pestana'))
+      .filter(function (b) { return !b.hidden; }).map(function (b) { return b.dataset.pestana; });
+    r.push((pestanas.join(',') === 'actividades,secciones,novedades' ? 'OK   ' : 'FALLA') +
+      ' · pestañas: ' + pestanas.join(', '));
+    r.push((pestanas.indexOf('sistema') < 0 && pestanas.indexOf('usuarios') < 0 ? 'OK   ' : 'FALLA') +
+      ' · sin Sistema ni Usuarios');
+
+    const propuestasAdmin = document.getElementById('tarjetaPropuestas');
+    r.push((propuestasAdmin.classList.contains('oculto') ? 'OK   ' : 'FALLA') +
+      ' · no ve la tarjeta de propuestas del administrador');
+
+    r.push((texto('#novedadesMias').indexOf('Te asignaron un trabajo') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · ve sus novedades');
+
+    // 2 · Abrir el trabajo y reportar una etapa con foto
+    await Actividad.abrir('ACT_PRUEBA', 'CONTRATISTA');
+    await esperar(300);
+    const detalle = document.getElementById('contenidoActividad').textContent;
+    r.push((detalle.indexOf('Revisión de discos') >= 0 ? 'OK   ' : 'FALLA') + ' · abre el trabajo con sus etapas');
+    r.push((detalle.indexOf('Revisar') < 0 ? 'OK   ' : 'FALLA') + ' · y no le pide checklist de plantilla');
+
+    const botonEtapa = Array.prototype.slice.call(document.querySelectorAll('#contenidoActividad button'))
+      .filter(function (b) { return b.textContent === 'Reportar esta etapa'; })[0];
+    r.push((botonEtapa ? 'OK   ' : 'FALLA') + ' · puede reportar una etapa');
+    botonEtapa.click();
+    await esperar(150);
+    const form = document.getElementById('etapaForm');
+    r.push((form && form.textContent.indexOf('Adjuntar una foto (opcional)') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · con foto opcional');
+
+    const elegir = Array.prototype.slice.call(form.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent.indexOf('Adjuntar una foto') >= 0; })[0];
+    const inputFoto = form.querySelector('input[type=file]');
+    Object.defineProperty(inputFoto, 'files', { value: [new File(['x'], 'ev.jpg', { type: 'image/jpeg' })] });
+    elegir.click();
+    inputFoto.dispatchEvent(new Event('change'));
+    await esperar(200);
+
+    const enviar = Array.prototype.slice.call(form.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent.indexOf('Enviar reporte de la etapa') >= 0; })[0];
+    window.__llamadas = [];
+    enviar.click();
+    await esperar(500);
+
+    const reporte = window.__llamadas.filter(function (x) { return x.accion === 'reportes.crear'; })[0];
+    r.push((reporte && reporte.payload.hito_id === 'HIT_1' ? 'OK   ' : 'FALLA') + ' · reporta la etapa elegida');
+    const foto = window.__llamadas.filter(function (x) { return x.accion === 'evidencias.upload'; })[0];
+    r.push((foto && foto.payload.momento === 'DURANTE' ? 'OK   ' : 'FALLA') + ' · la foto entra como DURANTE');
+    r.push((foto && foto.payload.reporte_id === 'REP_NUEVO' ? 'OK   ' : 'FALLA') +
+      ' · y queda ligada al reporte de esa etapa');
+
+    // 3 · Proponer con cotización
+    await Propuestas.cargar('CONTRATISTA', [{ id: 'NOD_01M69S4WSSC87B9F93C0C247F8', codigo: 'CA-AC-CAM', nombre: 'Cámaras (CCTV)' }]);
+    await esperar(300);
+    const proponer = Array.prototype.slice.call(document.querySelectorAll('#bloquePropuestasContratista button'))
+      .filter(function (b) { return b.textContent === 'Proponer una actividad'; })[0];
+    r.push((proponer ? 'OK   ' : 'FALLA') + ' · puede proponer un trabajo');
+    proponer.click();
+    await esperar(200);
+
+    document.getElementById('prNodo').value = 'NOD_01M69S4WSSC87B9F93C0C247F8';
+    document.getElementById('prTitulo').value = 'Cambiar un disco del DVR';
+    document.getElementById('prHallazgo').value = 'El disco del grabador hace ruido y pierde grabaciones';
+    document.getElementById('prAlcance').value = 'Cambiar el disco por uno de 4 TB y verificar la grabación';
+    document.getElementById('prInicio').value = '2026-11-20';
+    document.getElementById('prValor').value = '1250000';
+    document.getElementById('prVigencia').value = '2026-11-30';
+
+    const enviarProp = Array.prototype.slice.call(document.querySelectorAll('#bloquePropuestasContratista button'))
+      .filter(function (b) { return b.textContent === 'Enviar propuesta'; })[0];
+    window.__llamadas = [];
+    enviarProp.click();
+    await esperar(500);
+
+    const creada = window.__llamadas.filter(function (x) { return x.accion === 'propuestas.crear'; })[0];
+    r.push((creada && Number(creada.payload.valor_cotizado) === 1250000 ? 'OK   ' : 'FALLA') +
+      ' · la propuesta lleva el valor cotizado');
+    r.push((creada && creada.payload.cotizacion_vigente_hasta === '2026-11-30' ? 'OK   ' : 'FALLA') +
+      ' · y hasta cuándo vale');
+  } catch (e) { r.push('FALLA · ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>
