@@ -163,17 +163,68 @@ function usuariosDesactivar(ctx, payload) {
   return { usuario: usuarioResumen_(despues) };
 }
 
-/** Empresas contratistas disponibles para asignar. */
-function empresasListar(ctx) {
+/**
+ * Empresas contratistas. Sin `todas` devuelve solo las activas (es lo que necesitan
+ * los formularios de asignación); con `todas` devuelve la ficha completa para
+ * administrarlas desde la pestaña Empresas.
+ */
+function empresasListar(ctx, payload) {
+  const todas = !!(payload && payload.todas);
   return {
-    empresas: filtrar('empresas', function (e) { return bool(e.activo) }).map(function (e) {
-      return {
-        id: e.id, razon_social: e.razon_social, nit: e.nit,
-        vigencia_hasta: e.vigencia_hasta || '', poliza_vence: e.poliza_vence || '',
-        vencida: !!(e.vigencia_hasta && String(e.vigencia_hasta) < hoyIso()),
-      };
-    }),
+    empresas: filtrar('empresas', function (e) { return todas || bool(e.activo); })
+      .sort(function (a, b) {
+        const activaA = bool(a.activo) ? 0 : 1;
+        const activaB = bool(b.activo) ? 0 : 1;
+        if (activaA !== activaB) return activaA - activaB;
+        return String(a.razon_social).localeCompare(String(b.razon_social));
+      })
+      .map(function (e) {
+        const usuarios = filtrar('usuarios', function (u) {
+          return !u.suprimido_en && String(u.empresa_id) === String(e.id);
+        });
+        return {
+          id: e.id, razon_social: e.razon_social, nit: e.nit, contacto: e.contacto || '',
+          email: e.email || '', telefono: e.telefono || '',
+          contrato_numero: e.contrato_numero || '',
+          vigencia_desde: e.vigencia_desde || '', vigencia_hasta: e.vigencia_hasta || '',
+          poliza_vence: e.poliza_vence || '',
+          estado: e.estado || '', activo: bool(e.activo),
+          usuarios: usuarios.length,
+          vencida: !!(e.vigencia_hasta && String(e.vigencia_hasta) < hoyIso()),
+        };
+      }),
   };
+}
+
+/**
+ * Activa o desactiva una empresa. No se desactiva con trabajo en curso: dejaría
+ * actividades asignadas a una empresa invisible.
+ */
+function empresasEstado(ctx, payload) {
+  const id = exigirTexto(payload.id, 'id');
+  const activo = !!payload.activo;
+  const e = buscarPorId('empresas', id);
+  if (!e) fallar_('NO_ENCONTRADO', 'La empresa no existe.');
+
+  if (!activo) {
+    const abiertas = filtrar('actividades', function (a) {
+      if (!bool(a.activo)) return false;
+      if (String(a.empresa_id) !== String(id)) return false;
+      return ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA'].indexOf(String(a.estado)) >= 0;
+    });
+    if (abiertas.length) {
+      fallar_('CONFLICTO', 'La empresa tiene ' + abiertas.length +
+        ' trabajo(s) sin cerrar. Termínalos o reasígnalos antes de desactivarla.');
+    }
+  }
+
+  const despues = actualizar('empresas', id, {
+    activo: activo,
+    estado: activo ? 'ACTIVA' : 'INACTIVA',
+  }, ctx.usuario.email);
+  auditar(ctx.usuario.email, activo ? 'EMPRESA_ACTIVADA' : 'EMPRESA_DESACTIVADA', 'empresa', id,
+    { activo: bool(e.activo) }, { activo: activo });
+  return { empresa: { id: despues.id, activo: bool(despues.activo) } };
 }
 
 function empresasGuardar(ctx, payload) {

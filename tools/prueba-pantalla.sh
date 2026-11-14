@@ -21,7 +21,8 @@ $(correr borrador.html)
 $(correr abrir.html)
 $(correr lista-contratista.html)
 $(correr novedades-mias.html)
-$(correr tarjetas-vacias.html)"
+$(correr tarjetas-vacias.html)
+$(correr fichas-empresa.html)"
 
 echo "$SALIDA"
 echo "$SALIDA" | grep -q FALLA && exit 1

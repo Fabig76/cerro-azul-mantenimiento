@@ -60,6 +60,7 @@ function runAllTests() {
   pruebasSeccionRaiz_();
   pruebasResponsable_();
   pruebasFotoDeEtapa_();
+  pruebasEmpresaEstado_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -511,6 +512,26 @@ function pruebasFotoDeEtapa_() {
   const despues = evidenciasDe_(act.id).despues;
   const colada = antes.concat(despues).filter(function (e) { return e.reporte_id; });
   verdadero_(colada.length === 0, 'las fotos de etapa no entran en antes ni en después');
+}
+
+/**
+ * Empresas: no se desactiva una con trabajo sin cerrar.
+ */
+function pruebasEmpresaEstado_() {
+  const conTrabajo = filtrar('empresas', function (e) {
+    if (!bool(e.activo)) return false;
+    return filtrar('actividades', function (a) {
+      return bool(a.activo) && String(a.empresa_id) === String(e.id) &&
+        ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA'].indexOf(String(a.estado)) >= 0;
+    }).length > 0;
+  })[0];
+
+  if (!conTrabajo) { RESULTADOS.detalle.push('OMITE · empresa con trabajo abierto · ninguna'); return; }
+
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  let codigo = '';
+  try { empresasEstado(ctx, { id: conTrabajo.id, activo: false }); } catch (e) { codigo = String(e.message); }
+  verdadero_(codigo.indexOf('CONFLICTO') === 0, 'no se desactiva una empresa con trabajo sin cerrar');
 }
 
 function pruebasSuperficiePublica_() {

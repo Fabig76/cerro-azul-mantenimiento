@@ -13,10 +13,10 @@
 <link rel="manifest" href="./site.webmanifest">
 <meta name="theme-color" content="#4f46e5">
 <title>Mantenimiento · Panel Cerro Azul</title>
-<link rel="stylesheet" href="./css/tokens.css?v=139">
-<link rel="stylesheet" href="./css/base.css?v=139">
-<link rel="stylesheet" href="./css/app.css?v=139">
-<script src="./js/tema.js?v=139"></script>
+<link rel="stylesheet" href="./css/tokens.css?v=140">
+<link rel="stylesheet" href="./css/base.css?v=140">
+<link rel="stylesheet" href="./css/app.css?v=140">
+<script src="./js/tema.js?v=140"></script>
 </head>
 <body>
 
@@ -205,6 +205,66 @@
         </div>
         <div class="msg" id="avisoNovedad" role="status" aria-live="polite"></div>
       </form>
+    </div>
+
+    <div class="card seccion-panel oculto" id="tarjetaEmpresasFicha" data-panel="empresas">
+      <div class="cabecera-seccion">
+        <h2>Empresas contratistas</h2>
+        <span class="codigo" id="conteoFichas"></span>
+      </div>
+      <p class="bajada-tarjeta">La ficha completa de cada empresa: NIT, contacto, correo, teléfono, contrato y vigencia. Desde aquí se crean, se corrigen y se activan o desactivan.</p>
+      <div id="listaFichas" class="lista-fichas"></div>
+      <form id="formEmpresa" class="form-novedad oculto" novalidate>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="empRazon">Razón social</label>
+            <input id="empRazon" type="text" maxlength="160" required placeholder="Fumigaciones del Quindío S.A.S.">
+          </div>
+          <div class="campo">
+            <label for="empNit">NIT</label>
+            <input id="empNit" type="text" maxlength="30" placeholder="900.416.068-1">
+          </div>
+        </div>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="empContacto">Contacto</label>
+            <input id="empContacto" type="text" maxlength="120" placeholder="Nombre de la persona">
+          </div>
+          <div class="campo">
+            <label for="empCorreo">Correo</label>
+            <input id="empCorreo" type="email" maxlength="160" placeholder="contacto@empresa.com">
+          </div>
+        </div>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="empTelefono">Teléfono</label>
+            <input id="empTelefono" type="tel" maxlength="40" placeholder="300 000 0000">
+          </div>
+          <div class="campo">
+            <label for="empContrato">Contrato</label>
+            <input id="empContrato" type="text" maxlength="60" placeholder="Número o referencia">
+          </div>
+        </div>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="empDesde">Vigencia desde</label>
+            <input id="empDesde" type="date">
+          </div>
+          <div class="campo">
+            <label for="empHasta">Vigencia hasta</label>
+            <input id="empHasta" type="date">
+          </div>
+        </div>
+        <div class="acciones-form">
+          <button class="btn primary" id="btnGuardarEmpresa" type="submit">Guardar empresa</button>
+          <button class="btn" id="btnCancelarEmpresa" type="button">Cancelar</button>
+        </div>
+        <div class="msg" id="avisoFicha" role="status" aria-live="polite"></div>
+      </form>
+      <div class="acciones-form">
+        <button class="btn" id="btnNuevaEmpresa" type="button">Nueva empresa</button>
+        <label class="casilla-datos"><input type="checkbox" id="empVerInactivas"><span>Ver también las inactivas</span></label>
+      </div>
     </div>
 
     <div class="card seccion-panel oculto" id="tarjetaEmpresas" data-panel="empresas">
@@ -583,26 +643,26 @@
 </footer>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="./config.js?v=139"></script>
-<script src="./js/api.js?v=139"></script>
-<script src="./js/datos.js?v=139"></script>
-<script src="./js/asignacion.js?v=139"></script>
-<script src="./js/fotocache.js?v=139"></script>
-<script src="./js/sesion.js?v=139"></script>
-<script src="./js/google.js?v=139"></script>
-<script src="./js/fotos.js?v=139"></script>
-<script src="./js/etapas.js?v=139"></script>
-<script src="./js/propuestas.js?v=139"></script>
-<script src="./js/actividad.js?v=139"></script>
-<script src="./js/usuarios.js?v=139"></script>
-<script src="./js/elemento.js?v=139"></script>
-<script src="./js/novedades.js?v=139"></script>
-<script src="./js/alertas.js?v=139"></script>
-<script src="./js/plan.js?v=139"></script>
-<script src="./js/catalogo.js?v=139"></script>
-<script src="./js/empresas.js?v=139"></script>
-<script src="./js/respaldo.js?v=139"></script>
-<script src="./js/pruebas.js?v=139"></script>
-<script src="./js/app.js?v=139"></script>
+<script src="./config.js?v=140"></script>
+<script src="./js/api.js?v=140"></script>
+<script src="./js/datos.js?v=140"></script>
+<script src="./js/asignacion.js?v=140"></script>
+<script src="./js/fotocache.js?v=140"></script>
+<script src="./js/sesion.js?v=140"></script>
+<script src="./js/google.js?v=140"></script>
+<script src="./js/fotos.js?v=140"></script>
+<script src="./js/etapas.js?v=140"></script>
+<script src="./js/propuestas.js?v=140"></script>
+<script src="./js/actividad.js?v=140"></script>
+<script src="./js/usuarios.js?v=140"></script>
+<script src="./js/elemento.js?v=140"></script>
+<script src="./js/novedades.js?v=140"></script>
+<script src="./js/alertas.js?v=140"></script>
+<script src="./js/plan.js?v=140"></script>
+<script src="./js/catalogo.js?v=140"></script>
+<script src="./js/empresas.js?v=140"></script>
+<script src="./js/respaldo.js?v=140"></script>
+<script src="./js/pruebas.js?v=140"></script>
+<script src="./js/app.js?v=140"></script>
 </body>
 </html>

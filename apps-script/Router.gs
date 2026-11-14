@@ -49,6 +49,7 @@ const ACCIONES = {
   'nodos.desactivar': { fn: nodosDesactivar, sesion: true, roles: ['ADMIN'] },
   'plantillas.listar': { fn: plantillasListar, sesion: true },
   'empresas.listar': { fn: empresasListar, sesion: true, roles: ['ADMIN'] },
+  'empresas.estado': { fn: empresasEstado, sesion: true, roles: ['ADMIN'] },
   'empresas.guardar': { fn: empresasGuardar, sesion: true, roles: ['ADMIN'] },
   'evidencias.upload': { fn: evidenciasUpload, sesion: true },
   'evidencias.get': { fn: evidenciasGet, sesion: true },

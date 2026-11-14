@@ -714,3 +714,17 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 .etapa-nota { margin: 4px 0 0; font-size: 13.5px; color: var(--ink); }
 .etapa-foto { margin: 8px 0 0; max-width: 220px; }
 .etapa-foto .foto-mini { width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+
+/* Ficha de empresa */
+.lista-fichas { display: grid; gap: 10px; margin-top: 10px; }
+.ficha {
+  border: 1px solid var(--line); border-radius: var(--radius-m);
+  padding: 12px 14px; background: var(--card-2);
+}
+.ficha-inactiva { opacity: .72; }
+.ficha-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.ficha-cab h3 { margin: 0; font-size: 15.5px; }
+.ficha-datos { display: grid; gap: 2px; }
+.ficha-linea { margin: 0; font-size: 13.5px; display: flex; gap: 6px; flex-wrap: wrap; }
+.ficha-etiqueta { color: var(--muted); min-width: 76px; font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; }
+.ficha-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }

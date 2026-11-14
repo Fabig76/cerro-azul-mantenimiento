@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div class="card" id="tarjetaEmpresasFicha" data-panel="empresas">
+  <div class="cabecera-seccion"><h2>Empresas contratistas</h2><span class="codigo" id="conteoFichas"></span></div>
+  <div id="listaFichas" class="lista-fichas"></div>
+  <form id="formEmpresa" class="form-novedad oculto" novalidate>
+    <input id="empRazon"><input id="empNit"><input id="empContacto"><input id="empCorreo">
+    <input id="empTelefono"><input id="empContrato"><input id="empDesde" type="date"><input id="empHasta" type="date">
+    <button id="btnGuardarEmpresa" type="submit">Guardar empresa</button>
+    <button id="btnCancelarEmpresa" type="button">Cancelar</button>
+    <div class="msg" id="avisoFicha"></div>
+  </form>
+  <div class="acciones-form">
+    <button id="btnNuevaEmpresa" type="button">Nueva empresa</button>
+    <label class="casilla-datos"><input type="checkbox" id="empVerInactivas"><span>Ver también las inactivas</span></label>
+  </div>
+  <select id="empMes"></select>
+</div>
+<script>
+window.__llamadas = [];
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload });
+  if (accion === 'empresas.estado') return Promise.resolve({ ok: true, data: {} });
+  if (accion === 'empresas.guardar') return Promise.resolve({ ok: true, data: {} });
+  if (accion === 'empresas.listar') return Promise.resolve({ ok: true, data: { empresas: [
+    { id: 'E1', razon_social: 'MAXCONTROL S.A.S.', nit: '900.416.068', contacto: 'Luis Pérez',
+      email: 'info@maxcontrol.com.co', telefono: '300 111 2222', contrato_numero: 'CT-2026-14',
+      vigencia_desde: '2026-01-01', vigencia_hasta: '2026-12-31', activo: true, usuarios: 1, vencida: false },
+    { id: 'E2', razon_social: 'MAXCONTROL', nit: '', contacto: '', email: 'ejecutivocuenta3@maxcontrol.com.co',
+      telefono: '', contrato_numero: '', vigencia_desde: '', vigencia_hasta: '', activo: true, usuarios: 1, vencida: false },
+  ] } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; } };
+window.Datos = { invalidar: function () {} };
+</script>
+<script src="../../web/js/empresas.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function textos(sel) {
+    return Array.prototype.slice.call(document.querySelectorAll(sel)).map(function (n) { return n.textContent; });
+  }
+
+  try {
+    Empresas.preparar();
+    await esperar(400);
+
+    r.push((textos('#listaFichas .ficha').length === 2 ? 'OK   ' : 'FALLA') + ' · lista las dos empresas');
+    const texto = document.getElementById('listaFichas').textContent;
+    r.push((texto.indexOf('900.416.068') >= 0 ? 'OK   ' : 'FALLA') + ' · muestra el NIT');
+    r.push((texto.indexOf('info@maxcontrol.com.co') >= 0 ? 'OK   ' : 'FALLA') + ' · muestra el correo');
+    r.push((texto.indexOf('CT-2026-14') >= 0 ? 'OK   ' : 'FALLA') + ' · muestra el contrato');
+
+    const botones = textos('#listaFichas .ficha-acciones button');
+    r.push((botones.indexOf('Desactivar') >= 0 ? 'OK   ' : 'FALLA') + ' · cada empresa ofrece Desactivar');
+    r.push((botones.indexOf('Corregir') >= 0 ? 'OK   ' : 'FALLA') + ' · y Corregir');
+
+    // Desactivar manda el estado contrario
+    const desactivar = Array.prototype.slice.call(document.querySelectorAll('#listaFichas .ficha-acciones button'))
+      .filter(function (b) { return b.textContent === 'Desactivar'; })[0];
+    window.confirm = function () { return true; };
+    desactivar.click();
+    await esperar(300);
+    const pedido = window.__llamadas.filter(function (x) { return x.accion === 'empresas.estado'; })[0];
+    r.push((pedido ? 'OK   ' : 'FALLA') + ' · desactivar llama al servidor');
+    r.push((pedido && pedido.payload.activo === false ? 'OK   ' : 'FALLA') + ' · y pide activo: false');
+
+    // Corregir abre el formulario con los datos
+    const corregir = Array.prototype.slice.call(document.querySelectorAll('#listaFichas .ficha-acciones button'))
+      .filter(function (b) { return b.textContent === 'Corregir'; })[0];
+    corregir.click();
+    await esperar(100);
+    r.push((!document.getElementById('formEmpresa').classList.contains('oculto') ? 'OK   ' : 'FALLA') +
+      ' · Corregir abre la ficha');
+    r.push((document.getElementById('empCorreo').value === 'info@maxcontrol.com.co' ? 'OK   ' : 'FALLA') +
+      ' · con el correo ya puesto');
+
+    // Guardar manda el id de la empresa editada
+    document.getElementById('formEmpresa').dispatchEvent(new Event('submit'));
+    await esperar(300);
+    const guardado = window.__llamadas.filter(function (x) { return x.accion === 'empresas.guardar'; })[0];
+    r.push((guardado && guardado.payload.id === 'E1' ? 'OK   ' : 'FALLA') +
+      ' · guardar corrige la misma empresa');
+  } catch (e) { r.push('FALLA · ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>
