@@ -59,6 +59,11 @@
     });
     document.querySelectorAll('[data-panel]').forEach(function (panel) {
       const visible = panel.dataset.panel === id;
+      // Una tarjeta con abrir y cerrar propio no se abre sola al entrar a la pestaña.
+      if (panel.dataset.propia === '1') {
+        if (!visible) panel.classList.add('oculto');
+        return;
+      }
       panel.classList.toggle('oculto', !visible);
     });
     // El detalle de una actividad solo vive dentro de su pestaña y nunca se duplica con la lista.
@@ -1001,70 +1006,21 @@
   async function cargarEmpresasEnFormulario(t) {
     const selEmpresa = document.getElementById('actEmpresa');
     const selPersona = document.getElementById('actResponsable');
-    if (!selEmpresa || !selPersona) return;
+    const selNodo = document.getElementById('actNodo');
+    if (!selEmpresa || !selPersona || !window.Asignacion) return;
 
-    const [rEmpresas, rUsuarios] = await Promise.all([
-      Datos.obtener('empresas.listar', t),
-      Datos.obtener('usuarios.listar', t),
-    ]);
-    const empresas = rEmpresas.ok ? (rEmpresas.data.empresas || []) : [];
-    const usuarios = rUsuarios.ok ? (rUsuarios.data.usuarios || []) : [];
-
-    selEmpresa.textContent = '';
-    const sinEmpresa = document.createElement('option');
-    sinEmpresa.value = '';
-    sinEmpresa.textContent = 'Sin empresa asignada';
-    selEmpresa.appendChild(sinEmpresa);
-
-    empresas
-      .filter(function (e) { return !e.vencida; })
-      .sort(function (a, b) { return String(a.razon_social).localeCompare(String(b.razon_social)); })
-      .forEach(function (e) {
-        const op = document.createElement('option');
-        op.value = e.id;
-        op.textContent = e.razon_social;
-        selEmpresa.appendChild(op);
-      });
-
-    const vencidas = empresas.filter(function (e) { return e.vencida; });
-    if (vencidas.length) {
-      const grupo = document.createElement('optgroup');
-      grupo.label = 'Con contrato vencido (no se puede asignar)';
-      vencidas.forEach(function (e) {
-        const op = document.createElement('option');
-        op.value = e.id;
-        op.textContent = e.razon_social;
-        op.disabled = true;
-        grupo.appendChild(op);
-      });
-      selEmpresa.appendChild(grupo);
+    let nodo = null;
+    if (selNodo && selNodo.value) {
+      const arbol = await Datos.obtener('nodos.arbol', t);
+      if (arbol && arbol.ok) nodo = (arbol.data.nodos || []).filter(function (n) {
+        return String(n.id) === String(selNodo.value);
+      })[0] || null;
     }
 
-    const elegibles = usuarios.filter(function (u) {
-      return String(u.estado) === 'ACTIVO' && ['CONTRATISTA', 'SUPERVISOR'].indexOf(String(u.rol)) >= 0;
+    Asignacion.montar(selEmpresa, selPersona, {
+      nodo: nodo,
+      alAvisar: function (texto) { aviso(texto, 'info'); },
     });
-
-    const pintarPersonas = function () {
-      const empresaId = selEmpresa.value;
-      selPersona.textContent = '';
-      const nadie = document.createElement('option');
-      nadie.value = '';
-      nadie.textContent = 'Sin responsable';
-      selPersona.appendChild(nadie);
-
-      elegibles
-        .filter(function (u) { return !empresaId || String(u.empresa_id) === String(empresaId); })
-        .sort(function (a, b) { return String(a.nombre || a.email).localeCompare(String(b.nombre || b.email)); })
-        .forEach(function (u) {
-          const op = document.createElement('option');
-          op.value = u.id;
-          op.textContent = u.nombre || u.email;
-          selPersona.appendChild(op);
-        });
-    };
-
-    selEmpresa.addEventListener('change', pintarPersonas);
-    pintarPersonas();
   }
 
   async function cargarNodosEnFormulario(t) {

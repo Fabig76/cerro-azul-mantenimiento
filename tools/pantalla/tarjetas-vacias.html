@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title></head>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+<body>
+<div id="barraPestanas">
+  <button class="pestana activa" type="button" data-pestana="actividades" data-roles="ADMIN,SUPERVISOR,CONTRATISTA">Actividades</button>
+  <button class="pestana" type="button" data-pestana="novedades" data-roles="ADMIN,SUPERVISOR,CONTRATISTA">Novedades</button>
+</div>
+<div class="card oculto" id="tarjetaPropuestas" data-panel="actividades" data-propia="1"></div>
+<div class="card" id="tarjetaActividades" data-panel="actividades"></div>
+<div class="card oculto" id="tarjetaNovedades" data-panel="novedades"></div>
+<div id="listaActividades"></div><div id="sinActividades" class="oculto"></div>
+<div id="gruposActividades" hidden></div><div id="verMasActividades" hidden></div>
+<div id="novedadesMias" class="oculto"></div>
+<div id="vistaActividad" hidden></div>
+<div class="msg" id="avisoActividades"></div>
+<script>
+window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+</script>
+<script src="../../web/js/api.js"></script>
+<script src="../../web/js/datos.js"></script>
+<script src="../../web/js/asignacion.js"></script>
+<script src="../../web/js/sesion.js"></script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script src="../../web/js/propuestas.js"></script>
+<script src="../../web/js/novedades.js"></script>
+<script src="../../web/js/app.js"></script>
+<script>
+// Después de los módulos, para que no los pisen.
+window.API = { llamar: function (accion) {
+  if (accion === 'auth.me') return Promise.resolve({ ok: true, data: { usuario: {
+    id: 'U1', email: 'a@b.c', nombre: 'Contratista', rol: 'CONTRATISTA' }, permisos: [] } });
+  if (accion === 'actividades.listar') return Promise.resolve({ ok: true, data: { actividades: [], total: 0, conteos: {} } });
+  if (accion === 'propuestas.listar') return Promise.resolve({ ok: true, data: { propuestas: [] } });
+  if (accion === 'nodos.arbol') return Promise.resolve({ ok: true, data: { nodos: [] } });
+  if (accion === 'notificaciones.mias') return Promise.resolve({ ok: true, data: { novedades: [] } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, limpiar: function () {}, usuario: function () { return { id: 'U1' }; } };
+</script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function visible(id) {
+    const n = document.getElementById(id);
+    if (!n) return 'no existe';
+    return getComputedStyle(n).display === 'none' ? 'oculto' : 'visible';
+  }
+  function pestana(id) {
+    const b = document.querySelector('[data-pestana="' + id + '"]');
+    if (b) b.click();
+  }
+
+  try {
+    await esperar(700);
+    r.push((visible('tarjetaPropuestas') === 'oculto' ? 'OK   ' : 'FALLA') +
+      ' · al entrar, el contratista no ve la tarjeta de propuestas del administrador');
+
+    pestana('novedades'); await esperar(150);
+    pestana('actividades'); await esperar(150);
+    r.push((visible('tarjetaPropuestas') === 'oculto' ? 'OK   ' : 'FALLA') +
+      ' · después de ir a Novedades y volver, sigue oculta');
+    r.push((visible('tarjetaActividades') === 'visible' ? 'OK   ' : 'FALLA') +
+      ' · su lista sí se ve');
+  } catch (e) { r.push('FALLA · ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

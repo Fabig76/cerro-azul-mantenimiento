@@ -46,6 +46,41 @@ function actividadResumenBase_(a) {
   };
 }
 
+/**
+ * El responsable tiene que existir, estar activo, ser contratista o supervisor y,
+ * si la actividad tiene empresa, pertenecer a ella.
+ */
+function validarResponsable_(responsableId, empresaId) {
+  if (!responsableId) return null;
+  const u = buscarPorId('usuarios', responsableId);
+  if (!u) fallar_('VALIDACION', 'Ese responsable no existe.');
+  if (String(u.estado) !== 'ACTIVO') {
+    fallar_('VALIDACION', (u.nombre || u.email) + ' no está activo.');
+  }
+  if (['CONTRATISTA', 'SUPERVISOR'].indexOf(String(u.rol)) < 0) {
+    fallar_('VALIDACION', (u.nombre || u.email) + ' es ' + String(u.rol).toLowerCase() +
+      ': un trabajo se asigna a un contratista o a un supervisor.');
+  }
+  if (empresaId && String(u.empresa_id || '') !== String(empresaId)) {
+    const empresa = buscarPorId('empresas', empresaId);
+    fallar_('VALIDACION', (u.nombre || u.email) + ' no pertenece a ' +
+      (empresa ? empresa.razon_social : 'esa empresa') + '.');
+  }
+  return u;
+}
+
+/** ¿El responsable tiene asignada la sección? Si no, se avisa pero no se bloquea. */
+function responsableSinAsignacion_(responsableId, nodoId) {
+  if (!responsableId || !nodoId) return false;
+  const nodo = buscarPorId('nodos', nodoId);
+  if (!nodo) return false;
+  const propio = nodo.ruta_ids + '/' + nodo.id;
+  return !nodosAsignados_(responsableId).some(function (a) {
+    const raiz = a.ruta_ids + '/' + a.id;
+    return propio === raiz || propio.indexOf(raiz + '/') === 0;
+  });
+}
+
 /** Crea una actividad. Solo ADMIN. */
 function actividadesCrear(ctx, payload) {
   desdePortal_(payload);
@@ -112,6 +147,8 @@ function crearActividad_(ctx, payload, opciones) {
     }
   }
 
+  validarResponsable_(payload.responsable_id, payload.empresa_id);
+
   const actividad = insertar('actividades', {
     id: newId('ACT'),
     titulo: titulo,
@@ -167,7 +204,10 @@ function crearActividad_(ctx, payload, opciones) {
   }
   auditar(ctx.usuario.email, 'ACTIVIDAD_CREADA', 'actividad', actividad.id, null,
     { titulo: titulo, nodo: nodo.codigo, dias: dias });
-  return { actividad: actividadResumen_(actividad), hitos: hitos.length };
+  const advertencias = [];
+  if (responsableSinAsignacion_(payload.responsable_id, nodoId)) advertencias.push('SIN_ASIGNACION');
+
+  return { actividad: actividadResumen_(actividad), hitos: hitos.length, advertencias: advertencias };
 }
 
 /** Lista actividades visibles para el usuario. */
@@ -439,12 +479,20 @@ function editarActividad_(ctx, payload, id) {
   if (payload.empresa_id !== undefined) {
     const empresa = payload.empresa_id ? buscarPorId('empresas', payload.empresa_id) : null;
     if (payload.empresa_id && !empresa) fallar_('VALIDACION', 'La empresa no existe.');
-    if (empresa && empresa.vigencia_hasta && String(empresa.vigencia_hasta) < hoyIso()) {
+    // La vigencia solo importa si la empresa CAMBIA: una actividad de una empresa
+    // vencida se tiene que poder editar igual.
+    if (empresa && String(payload.empresa_id) !== String(act.empresa_id) &&
+        empresa.vigencia_hasta && String(empresa.vigencia_hasta) < hoyIso()) {
       fallar_('CONFLICTO', 'La empresa tiene el contrato vencido (RN-18).');
     }
     cambios.empresa_id = payload.empresa_id || '';
   }
-  if (payload.responsable_id !== undefined) cambios.responsable_id = payload.responsable_id || '';
+
+  if (payload.responsable_id !== undefined) {
+    const empresaFinal = cambios.empresa_id !== undefined ? cambios.empresa_id : act.empresa_id;
+    validarResponsable_(payload.responsable_id, empresaFinal);
+    cambios.responsable_id = payload.responsable_id || '';
+  }
 
   if (!Object.keys(cambios).length) fallar_('VALIDACION', 'No hay cambios para guardar.');
 
@@ -452,7 +500,18 @@ function editarActividad_(ctx, payload, id) {
   auditar(ctx.usuario.email, 'ACTIVIDAD_EDITADA', 'actividad', id,
     { titulo: act.titulo, inicio: act.fecha_inicio_plan, fin: act.fecha_fin_plan, prioridad: act.prioridad },
     cambios);
-  return { actividad: actividadResumen_(despues) };
+
+  // Reasignar un trabajo tiene que avisar al nuevo responsable.
+  if (cambios.responsable_id && String(cambios.responsable_id) !== String(act.responsable_id || '')) {
+    encolar_(cambios.responsable_id, 'ACTIVIDAD_ASIGNADA', id);
+  }
+
+  const advertencias = [];
+  const responsableFinal = cambios.responsable_id !== undefined ? cambios.responsable_id : act.responsable_id;
+  const nodoFinal = cambios.nodo_id !== undefined ? cambios.nodo_id : act.nodo_id;
+  if (responsableSinAsignacion_(responsableFinal, nodoFinal)) advertencias.push('SIN_ASIGNACION');
+
+  return { actividad: actividadResumen_(despues), advertencias: advertencias };
 }
 
 /** Cancela una actividad con motivo obligatorio. No borra: deja el registro (RN-13). */

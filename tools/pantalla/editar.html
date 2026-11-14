@@ -12,6 +12,8 @@ window.API = { llamar: function (accion, payload) {
 window.Fotos = { preparar: function () { return Promise.resolve({}); } };
 window.App = { pestana: function () {}, refrescar: function () {} };
 </script>
+<script src="../../web/js/datos.js"></script>
+<script src="../../web/js/asignacion.js"></script>
 <script src="../../web/js/etapas.js"></script>
 <script src="../../web/js/actividad.js"></script>
 <script>
@@ -32,7 +34,9 @@ window.App = { pestana: function () {}, refrescar: function () {} };
   };
 
   window.__empresas = function () { return new Promise(function (r) { setTimeout(function () {
-    r({ ok: true, data: { empresas: [{ id: 'EMP_1', razon_social: 'Fumigaciones SAS', vencida: false }] } }); }, 300); }); };
+    r({ ok: true, data: { empresas: [
+      { id: 'EMP_1', razon_social: 'Fumigaciones SAS', vencida: false },
+      { id: 'EMP_2', razon_social: 'Hidro Bombas SAS', vencida: false }] } }); }, 300); }); };
   window.__usuarios = function () { return new Promise(function (r) { setTimeout(function () {
     r({ ok: true, data: { usuarios: [{ id: 'USU_1', nombre: 'Juan', rol: 'CONTRATISTA', estado: 'ACTIVO', empresa_id: 'EMP_1' }] } }); }, 300); }); };
 
@@ -56,17 +60,33 @@ window.App = { pestana: function () {}, refrescar: function () {} };
       r.push((l1 && !borra ? 'OK   ' : 'FALLA') +
         ' · guardar antes de cargar no envía empresa (valor: ' + (l1 ? String(l1.payload.empresa_id) : 'sin llamada') + ')');
 
-      // Caso 2: con las listas ya cargadas, guardar sí manda la empresa
+      // Caso 2: con las listas cargadas y sin cambios, tampoco se envía
       window.__llamadas = [];
       Actividad.pintarConDatos(datos, 'ADMIN');
       await esperar(60);
       porTexto('Editar').click();
-      await esperar(500);
+      await esperar(600);
       porTexto('Guardar cambios').click();
-      await esperar(80);
+      await esperar(100);
       const l2 = window.__llamadas.filter(function (x) { return x.accion === 'actividades.editar'; }).pop();
-      r.push((l2 && l2.payload.empresa_id === 'EMP_1' ? 'OK   ' : 'FALLA') +
-        ' · con las listas cargadas envía la empresa («' + (l2 ? String(l2.payload.empresa_id) : 'sin llamada') + '»)');
+      r.push((l2 && l2.payload.empresa_id === undefined ? 'OK   ' : 'FALLA') +
+        ' · si la empresa no cambió, no se envía (valor: ' + (l2 ? String(l2.payload.empresa_id) : 'sin llamada') + ')');
+
+      // Caso 3: si la empresa cambia, sí se envía
+      window.__llamadas = [];
+      Actividad.pintarConDatos(datos, 'ADMIN');
+      await esperar(60);
+      porTexto('Editar').click();
+      await esperar(600);
+      const sel = document.getElementById('edEmpresa');
+      sel.value = 'EMP_2';
+      sel.dispatchEvent(new Event('change'));
+      await esperar(60);
+      porTexto('Guardar cambios').click();
+      await esperar(100);
+      const l3 = window.__llamadas.filter(function (x) { return x.accion === 'actividades.editar'; }).pop();
+      r.push((l3 && l3.payload.empresa_id === 'EMP_2' ? 'OK   ' : 'FALLA') +
+        ' · si la empresa cambia, se envía la nueva («' + (l3 ? String(l3.payload.empresa_id) : 'sin llamada') + '»)');
     } catch (e) { r.push('FALLA · ' + e.message); }
     document.title = r.join(' | ');
   })();

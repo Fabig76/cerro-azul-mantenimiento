@@ -224,6 +224,19 @@ cerro-azul-mantenimiento/
 - Dominio público: `https://mantenimiento.urbcerroazul.com` mediante un registro CNAME hacia `fabig76.github.io` en el DNS de `urbcerroazul.com`, un archivo `web/CNAME` y "Enforce HTTPS" activado en GitHub Pages. La URL `https://fabig76.github.io/cerro-azul-mantenimiento/` queda como respaldo.
 - Orígenes autorizados del cliente OAuth: `https://mantenimiento.urbcerroazul.com`, `https://fabig76.github.io` y `http://localhost:8000` (pruebas locales).
 
+### 2.2 quater. Empresa y responsable de una actividad (v1.4)
+
+- **`validarResponsable_(responsableId, empresaId)`**: el usuario tiene que existir, estar ACTIVO, ser
+  CONTRATISTA o SUPERVISOR y, si la actividad tiene empresa, pertenecer a ella. Se llama al crear y al
+  editar; si falla responde `VALIDACION` con el nombre y el motivo.
+- **`advertencias: ['SIN_ASIGNACION']`**: si el responsable no tiene asignada la sección, la actividad
+  se crea o se edita igual, pero la respuesta lo advierte y el panel lo muestra.
+- **Editar envía empresa y responsable solo si cambian.** Mientras las listas no carguen, los dos
+  desplegables quedan deshabilitados con el valor actual: guardar antes de tiempo los borraría.
+- **La vigencia del contrato (RN-18) solo se revisa si la empresa cambia**, para que una actividad de
+  una empresa vencida se pueda seguir editando.
+- **Reasignar avisa**: si el responsable cambia a alguien, se encola `ACTIVIDAD_ASIGNADA`.
+
 ### 2.2 ter. Sesión larga en el celular propio (v1.4, decisión del administrador)
 
 - La sesión normal sigue durando `sesion_horas` (12) y vive en la pestaña.

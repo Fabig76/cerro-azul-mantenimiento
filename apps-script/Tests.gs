@@ -58,6 +58,7 @@ function runAllTests() {
   pruebasDetalleEnEscrituras_();
   pruebasNovedadesMias_();
   pruebasSeccionRaiz_();
+  pruebasResponsable_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -447,6 +448,39 @@ function pruebasSeccionRaiz_() {
       'un hijo apunta a la sección de primer nivel');
   } else {
     RESULTADOS.detalle.push('OMITE · sección raíz · la primera sección no tiene hijos');
+  }
+}
+
+/**
+ * El responsable se valida: activo, contratista o supervisor, y de la empresa.
+ */
+function pruebasResponsable_() {
+  const usuarios = filtrar('usuarios', function (u) { return bool(u.activo); });
+  const admin = usuarios.filter(function (u) { return String(u.rol) === 'ADMIN'; })[0];
+  if (admin) {
+    let codigo = '';
+    try { validarResponsable_(admin.id, ''); } catch (e) { codigo = String(e.message); }
+    verdadero_(codigo.indexOf('VALIDACION') === 0, 'un administrador no puede ser responsable');
+  }
+
+  let inventado = '';
+  try { validarResponsable_('NO_EXISTE', ''); } catch (e) { inventado = String(e.message); }
+  verdadero_(inventado.indexOf('VALIDACION') === 0, 'un responsable inexistente se rechaza');
+
+  const contratistas = usuarios.filter(function (u) {
+    return String(u.rol) === 'CONTRATISTA' && u.empresa_id;
+  });
+  if (contratistas.length >= 2) {
+    const a = contratistas[0];
+    const otra = contratistas.filter(function (u) { return String(u.empresa_id) !== String(a.empresa_id); });
+    if (otra.length) {
+      let codigo = '';
+      try { validarResponsable_(otra[0].id, a.empresa_id); } catch (e) { codigo = String(e.message); }
+      verdadero_(codigo.indexOf('VALIDACION') === 0, 'un responsable de otra empresa se rechaza');
+    }
+    verdadero_(!!validarResponsable_(a.id, a.empresa_id), 'un contratista de la empresa sí se acepta');
+  } else {
+    RESULTADOS.detalle.push('OMITE · responsable · hacen falta dos contratistas con empresa');
   }
 }
 

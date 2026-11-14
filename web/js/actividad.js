@@ -1132,9 +1132,6 @@
     lEmpresa.htmlFor = 'edEmpresa';
     const sEmpresa = el('select', 'item-input');
     sEmpresa.id = 'edEmpresa';
-    const opSin = el('option', null, 'Sin empresa asignada');
-    opSin.value = '';
-    sEmpresa.appendChild(opSin);
     cEmpresa.appendChild(lEmpresa);
     cEmpresa.appendChild(sEmpresa);
     fila2.appendChild(cEmpresa);
@@ -1144,41 +1141,21 @@
     lResp.htmlFor = 'edResponsable';
     const sResp = el('select', 'item-input');
     sResp.id = 'edResponsable';
-    const opNadie = el('option', null, 'Sin responsable');
-    opNadie.value = '';
-    sResp.appendChild(opNadie);
     cResp.appendChild(lResp);
     cResp.appendChild(sResp);
     fila2.appendChild(cResp);
 
     caja.appendChild(fila2);
 
-    const pintarEmpresas = Datos.obtener('empresas.listar', Sesion.token()).then(function (r) {
-      if (!r.ok) return;
-      (r.data.empresas || []).forEach(function (e) {
-        const op = el('option', null, e.razon_social + (e.vencida ? ' (contrato vencido)' : ''));
-        op.value = e.id;
-        op.disabled = !!e.vencida;
-        if (String(e.id) === String(a.empresa_id)) op.selected = true;
-        sEmpresa.appendChild(op);
+    if (window.Asignacion) {
+      const montaje = Asignacion.montar(sEmpresa, sResp, {
+        empresa: a.empresa_id || '',
+        responsable: a.responsable_id || '',
+        nodo: datos.nodo,
+        alAvisar: function (texto) { aviso(texto, 'info'); },
       });
-    }).catch(function () {});
-
-    const pintarPersonas = Datos.obtener('usuarios.listar', Sesion.token()).then(function (r) {
-      if (!r.ok) return;
-      (r.data.usuarios || [])
-        .filter(function (u) { return String(u.estado) === 'ACTIVO'; })
-        .forEach(function (u) {
-          const op = el('option', null, (u.nombre || u.email) + ' · ' + String(u.rol).toLowerCase());
-          op.value = u.id;
-          if (String(u.id) === String(a.responsable_id)) op.selected = true;
-          sResp.appendChild(op);
-        });
-    }).catch(function () {});
-
-    Promise.all([pintarEmpresas, pintarPersonas]).catch(function () {}).then(function () {
-      listasListas = true;
-    });
+      montaje.listo.then(function (bien) { listasListas = !!bien; });
+    }
 
     const acciones = el('div', 'acciones-form');
     const guardar = el('button', 'btn primary', 'Guardar cambios');
@@ -1195,15 +1172,20 @@
         fecha_fin_plan: document.getElementById('edFin').value || document.getElementById('edInicio').value,
         prioridad: sPrioridad.value,
       };
-      // Solo se envían si las listas cargaron: si no, se borrarían sin querer.
+      // Solo se envían si cambiaron y si las listas cargaron: si no, se borrarían.
       if (listasListas) {
-        payload.empresa_id = sEmpresa.value;
-        payload.responsable_id = sResp.value;
+        if (String(sEmpresa.value) !== String(a.empresa_id || '')) payload.empresa_id = sEmpresa.value;
+        if (String(sResp.value) !== String(a.responsable_id || '')) payload.responsable_id = sResp.value;
       }
       const r = await API.llamar('actividades.editar', payload, { token: Sesion.token(), idempotente: true });
       guardar.disabled = false;
       if (!r.ok) return aviso(r.message || 'No se pudo guardar.', 'error');
-      aviso('Actividad actualizada.', 'ok');
+      const avisos = (r.data && r.data.advertencias) || [];
+      if (avisos.indexOf('SIN_ASIGNACION') >= 0) {
+        aviso('Actividad actualizada. El responsable no tiene asignada esta sección: la verá, pero no podrá iniciarla.', 'info');
+      } else {
+        aviso('Actividad actualizada.', 'ok');
+      }
       abrir(a.id, rol);
     });
     acciones.appendChild(guardar);
