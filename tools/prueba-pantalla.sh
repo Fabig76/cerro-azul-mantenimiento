@@ -23,7 +23,8 @@ $(correr lista-contratista.html)
 $(correr novedades-mias.html)
 $(correr tarjetas-vacias.html)
 $(correr fichas-empresa.html)
-$(correr usuarios-empresa.html)"
+$(correr usuarios-empresa.html)
+$(correr cotizacion.html)"
 
 echo "$SALIDA"
 echo "$SALIDA" | grep -q FALLA && exit 1

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div class="card" id="bloquePropuestasContratista"></div>
+<div class="card oculto" id="tarjetaPropuestas" data-panel="actividades"></div>
+<script>
+window.__llamadas = [];
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload });
+  if (accion === 'propuestas.listar') return Promise.resolve({ ok: true, data: { propuestas: [
+    { id: 'P1', titulo: 'Cambio de empaque', nodo_id: 'N1', nodo_codigo: 'CA-AC', nodo_nombre: 'Áreas comunes',
+      hallazgo: 'El empaque del domo está partido y entra agua', alcance: 'Cambiar el empaque y sellar',
+      fecha_inicio_sugerida: '2026-11-20', fecha_fin_sugerida: '2026-11-21', prioridad_sugerida: 'MEDIA',
+      estado: 'PENDIENTE', fotos: ['F1'], propuesta_por: 'U1', propuesta_por_nombre: 'Luis',
+      valor_cotizado: 1250000, cotizacion_vigente_hasta: '2026-11-30',
+      cotizacion: { nombre: 'cotizacion.pdf', bytes: 840000 } },
+  ] } });
+  if (accion === 'propuestas.get') return Promise.resolve({ ok: true, data: { propuesta: {
+    id: 'P1', titulo: 'Cambio de empaque', nodo_id: 'N1', nodo_codigo: 'CA-AC', nodo_nombre: 'Áreas comunes',
+    hallazgo: 'El empaque del domo está partido y entra agua', alcance: 'Cambiar el empaque y sellar',
+    fecha_inicio_sugerida: '2026-11-20', fecha_fin_sugerida: '2026-11-21', prioridad_sugerida: 'MEDIA',
+    estado: 'PENDIENTE', fotos: ['F1'], propuesta_por: 'U1', propuesta_por_nombre: 'Luis',
+    valor_cotizado: 1250000, cotizacion_vigente_hasta: '2025-01-01',
+    cotizacion: { nombre: 'cotizacion.pdf', bytes: 840000 } }, evidencias: [] } });
+  if (accion === 'nodos.arbol') return Promise.resolve({ ok: true, data: { nodos: [
+    { id: 'N1', codigo: 'CA-AC', nombre: 'Áreas comunes', nivel: 2 } ] } });
+  if (accion === 'propuestas.cotizacion.get') return Promise.resolve({ ok: true, data: {
+    base64: 'JVBERi0xLjQK', mime: 'application/pdf', nombre: 'cotizacion.pdf' } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; } };
+window.Datos = { obtener: function (a) { return window.API.llamar(a); }, invalidar: function () {} };
+window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'x', base64_mini: 'y', kb: 10 }); } };
+</script>
+<script src="../../web/js/propuestas.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  try {
+    await Propuestas.cargar('CONTRATISTA', [{ id: 'N1', codigo: 'CA-AC', nombre: 'Áreas comunes', nivel: 2 }]);
+    await esperar(300);
+
+    const texto = document.getElementById('bloquePropuestasContratista').textContent;
+    r.push((texto.indexOf('$ 1.250.000') >= 0 ? 'OK   ' : 'FALLA') + ' · la tarjeta muestra el valor cotizado');
+    r.push((texto.indexOf('cotizacion.pdf') >= 0 ? 'OK   ' : 'FALLA') + ' · y el nombre del PDF');
+
+    // El formulario tiene los dos campos nuevos
+    const boton = Array.prototype.slice.call(document.querySelectorAll('#bloquePropuestasContratista button'))
+      .filter(function (b) { return b.textContent === 'Proponer una actividad'; })[0];
+    boton.click();
+    await esperar(200);
+    r.push((document.getElementById('prValor') ? 'OK   ' : 'FALLA') + ' · el formulario pide el valor de la cotización');
+    r.push((document.getElementById('prVigencia') ? 'OK   ' : 'FALLA') + ' · y hasta cuándo vale');
+    const pdf = Array.prototype.slice.call(document.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent === 'Adjuntar cotización (PDF)'; })[0];
+    r.push((pdf ? 'OK   ' : 'FALLA') + ' · y ofrece adjuntar el PDF');
+
+    // El valor se formatea al salir del campo
+    const valor = document.getElementById('prValor');
+    valor.value = '1250000';
+    valor.dispatchEvent(new Event('blur'));
+    await esperar(50);
+    r.push((valor.value.indexOf('$') === 0 ? 'OK   ' : 'FALLA') + ' · el valor se muestra como «' + valor.value + '»');
+  } catch (e) { r.push('FALLA · ' + e.message); }
+
+  // Revisión del administrador
+  try {
+    await Propuestas.cargar('ADMIN', [{ id: 'N1', codigo: 'CA-AC', nombre: 'Áreas comunes', nivel: 2 }]);
+    await esperar(300);
+    const revisar = document.querySelector('#tarjetaPropuestas .fila-propuesta');
+    if (revisar) {
+      revisar.click();
+      await esperar(400);
+      const cuerpo = document.body.textContent;
+      r.push((cuerpo.indexOf('Cotización: $ 1.250.000') >= 0 ? 'OK   ' : 'FALLA') + ' · la revisión muestra la cotización');
+      r.push((Array.prototype.slice.call(document.querySelectorAll('button'))
+        .some(function (b) { return b.textContent === 'Ver PDF'; }) ? 'OK   ' : 'FALLA') + ' · y ofrece «Ver PDF»');
+      r.push((document.getElementById('rvValor') ? 'OK   ' : 'FALLA') + ' · con el campo «Valor aprobado»');
+      r.push((cuerpo.indexOf('venció el') >= 0 ? 'OK   ' : 'FALLA') + ' · avisa si la cotización venció');
+    } else {
+      r.push('FALLA · no hay botón para revisar');
+    }
+  } catch (e) { r.push('FALLA · revisión: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

@@ -42,6 +42,57 @@
     if (texto) caja.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
+  /** Lee un archivo como base64 sin el encabezado `data:`. */
+  function leerPdfComoBase64(archivo) {
+    return new Promise(function (resolver, rechazar) {
+      const lector = new FileReader();
+      lector.onload = function () {
+        const texto = String(lector.result || '');
+        resolver(texto.indexOf(',') >= 0 ? texto.split(',')[1] : texto);
+      };
+      lector.onerror = function () { rechazar(new Error('No se pudo leer el archivo.')); };
+      lector.readAsDataURL(archivo);
+    });
+  }
+
+  /** Abre la cotización. Si el navegador bloquea la vista, la ofrece descargar. */
+  async function abrirPdf(propuestaId, boton) {
+    boton.disabled = true;
+    const antes = boton.textContent;
+    boton.textContent = 'Abriendo…';
+    try {
+      const r = await API.llamar('propuestas.cotizacion.get', { propuesta_id: propuestaId },
+        { token: Sesion.token() });
+      if (!r.ok) throw new Error(r.message || 'No se pudo abrir la cotización.');
+
+      const binario = atob(r.data.base64);
+      const bytes = new Uint8Array(binario.length);
+      for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+
+      const ventana = window.open(url, '_blank');
+      if (!ventana) {
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = r.data.nombre || 'cotizacion.pdf';
+        enlace.textContent = 'Descargar ' + (r.data.nombre || 'cotizacion.pdf');
+        enlace.className = 'btn-mini';
+        boton.parentNode.appendChild(enlace);
+        aviso('El navegador no abrió el PDF: use «Descargar».', 'info');
+      }
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    } catch (e) {
+      aviso(e.message || 'No se pudo abrir la cotización.', 'error');
+    }
+    boton.disabled = false;
+    boton.textContent = antes;
+  }
+
+  function formatoPesos(n) {
+    return '$ ' + Number(n || 0).toLocaleString('es-CO');
+  }
+
   function campo(etiqueta, control, ayuda) {
     const c = el('div', 'campo');
     const l = el('label', null, etiqueta);
@@ -132,6 +183,15 @@
       meta.textContent = p.nodo_codigo + ' · ' + p.nodo_nombre +
         ' · inicio ' + p.fecha_inicio_sugerida + ' · ' + p.fotos.length + ' foto(s)';
       card.appendChild(meta);
+
+      // v1.6: el valor y su cotización, cuando el rol puede verlos.
+      if (p.valor_cotizado !== undefined && Number(p.valor_cotizado) > 0) {
+        const linea = el('p', 'propuesta-valor');
+        linea.textContent = 'Cotización: ' + formatoPesos(p.valor_cotizado) +
+          (p.cotizacion ? ' · ' + p.cotizacion.nombre +
+            ' (' + Math.round((p.cotizacion.bytes || 0) / 1024) + ' KB)' : ' · falta el PDF');
+        card.appendChild(linea);
+      }
 
       if (p.estado === 'RECHAZADA' && p.motivo_rechazo) {
         card.appendChild(el('p', 'propuesta-motivo', 'Motivo: ' + p.motivo_rechazo));
@@ -259,6 +319,42 @@
     etiquetaAfecta.appendChild(afecta);
     etiquetaAfecta.appendChild(el('span', null, 'Afecta el uso de la zona mientras se trabaja'));
 
+    // v1.6: cuánto cuesta y el PDF de la cotización (opcional, pero con valor).
+    const valor = el('input', 'item-input');
+    valor.id = 'prValor';
+    valor.type = 'text';
+    valor.inputMode = 'numeric';
+    valor.placeholder = '$ 1.250.000';
+    valor.addEventListener('blur', function () {
+      const n = Number(String(valor.value).replace(/[^\d]/g, ''));
+      if (n > 0) valor.value = '$ ' + n.toLocaleString('es-CO');
+    });
+
+    const vigencia = el('input', 'item-input');
+    vigencia.id = 'prVigencia';
+    vigencia.type = 'date';
+
+    let cotizacion = null;
+    const inpPdf = el('input');
+    inpPdf.type = 'file';
+    inpPdf.accept = 'application/pdf';
+    inpPdf.className = 'oculto';
+    const btnPdf = boton('Adjuntar cotización (PDF)');
+    const nombrePdf = el('p', 'bajada-tarjeta');
+    btnPdf.addEventListener('click', function () { inpPdf.click(); });
+    inpPdf.addEventListener('change', function () {
+      const file = inpPdf.files && inpPdf.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        cotizacion = null;
+        nombrePdf.textContent = '';
+        inpPdf.value = '';
+        return aviso('La cotización pesa más de 5 MB. Guárdela de nuevo en menor calidad o pida una versión liviana.', 'error');
+      }
+      cotizacion = file;
+      nombrePdf.textContent = 'Cotización lista: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+    });
+
     const fotos = el('div', 'fotos');
     const inp = el('input');
     inp.type = 'file';
@@ -308,6 +404,11 @@
       if (alcance.value.trim().length < 20) return aviso('Cuenta con al menos 20 caracteres qué propones hacer.', 'error');
       if (!inicio.value) return aviso('Indica una fecha de inicio.', 'error');
 
+      const valorNum = Number(String(valor.value).replace(/[^\d]/g, '')) || 0;
+      if (cotizacion && !valorNum) {
+        return aviso('Escribe el valor de la cotización antes de adjuntar el PDF.', 'error');
+      }
+
       enviar.disabled = true;
       enviar.textContent = 'Enviando…';
       const r = await API.llamar('propuestas.crear', {
@@ -319,6 +420,8 @@
         fecha_fin_sugerida: fin.value || inicio.value,
         prioridad_sugerida: prioridad.value,
         afecta_uso: afecta.checked,
+        valor_cotizado: valorNum,
+        cotizacion_vigente_hasta: vigencia.value || '',
       }, { token: Sesion.token(), idempotente: true });
       if (!r.ok) {
         enviar.disabled = false;
@@ -340,9 +443,30 @@
         if (f.ok) subidas++;
       }
 
+      // La cotización va al final: si falla, la propuesta ya quedó y se puede reintentar.
+      let pdfFallo = false;
+      if (cotizacion) {
+        enviar.textContent = 'Subiendo la cotización…';
+        try {
+          const base64 = await leerPdfComoBase64(cotizacion);
+          const rc = await API.llamar('propuestas.cotizacion.subir', {
+            propuesta_id: id,
+            base64: base64,
+            nombre: cotizacion.name,
+            valor_cotizado: valorNum,
+            cotizacion_vigente_hasta: vigencia.value || '',
+          }, { token: Sesion.token(), idempotente: true });
+          pdfFallo = !rc.ok;
+        } catch (e) {
+          pdfFallo = true;
+        }
+      }
+
       enviar.disabled = false;
       enviar.textContent = 'Enviar propuesta';
-      if (fotosNuevas.length && subidas < fotosNuevas.length) {
+      if (pdfFallo) {
+        aviso('La propuesta se envió, pero la cotización no subió. Toca «Falta la cotización» en la tarjeta para intentarlo otra vez.', 'info');
+      } else if (fotosNuevas.length && subidas < fotosNuevas.length) {
         const faltan = fotosNuevas.length - subidas;
         aviso('La propuesta se envió, pero falta ' + faltan + (faltan === 1 ? ' foto' : ' fotos') +
           '. Toca «Agregar foto» en la propuesta para subirla.', 'info');
@@ -384,6 +508,12 @@
     fila.appendChild(campo('Prioridad', prioridad));
     caja.appendChild(fila);
     caja.appendChild(etiquetaAfecta);
+    caja.appendChild(campo('Valor de la cotización (COP)', valor,
+      'Solo el número. Si no hay cotización, déjalo vacío.'));
+    caja.appendChild(campo('Vigente hasta (opcional)', vigencia));
+    caja.appendChild(btnPdf);
+    caja.appendChild(inpPdf);
+    caja.appendChild(nombrePdf);
     caja.appendChild(campo('Fotos de la visita (0 a 3)', fotos,
       'Estas fotos no reemplazan la foto de antes.'));
     caja.appendChild(btnFoto);
@@ -448,6 +578,42 @@
     original.appendChild(el('div', 'kicker', 'Lo que propuso el contratista'));
     original.appendChild(el('p', 'texto-reportado', abierta.propuesta.hallazgo));
     original.appendChild(el('p', 'bajada-tarjeta', 'Propone: ' + abierta.propuesta.alcance));
+    // v1.6: cuánto cuesta y el PDF de la cotización (opcional, pero con valor).
+    const valor = el('input', 'item-input');
+    valor.id = 'prValor';
+    valor.type = 'text';
+    valor.inputMode = 'numeric';
+    valor.placeholder = '$ 1.250.000';
+    valor.addEventListener('blur', function () {
+      const n = Number(String(valor.value).replace(/[^\d]/g, ''));
+      if (n > 0) valor.value = '$ ' + n.toLocaleString('es-CO');
+    });
+
+    const vigencia = el('input', 'item-input');
+    vigencia.id = 'prVigencia';
+    vigencia.type = 'date';
+
+    let cotizacion = null;
+    const inpPdf = el('input');
+    inpPdf.type = 'file';
+    inpPdf.accept = 'application/pdf';
+    inpPdf.className = 'oculto';
+    const btnPdf = boton('Adjuntar cotización (PDF)');
+    const nombrePdf = el('p', 'bajada-tarjeta');
+    btnPdf.addEventListener('click', function () { inpPdf.click(); });
+    inpPdf.addEventListener('change', function () {
+      const file = inpPdf.files && inpPdf.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        cotizacion = null;
+        nombrePdf.textContent = '';
+        inpPdf.value = '';
+        return aviso('La cotización pesa más de 5 MB. Guárdela de nuevo en menor calidad o pida una versión liviana.', 'error');
+      }
+      cotizacion = file;
+      nombrePdf.textContent = 'Cotización lista: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+    });
+
     const fotos = el('div', 'fotos');
     (abierta.propuesta.fotos || []).forEach(function (fotoId, i) {
       const figura = el('figure', 'foto-item');
@@ -560,6 +726,41 @@
     fila.appendChild(campo('Fin', fin));
     fila.appendChild(campo('Prioridad', prioridad));
     form.appendChild(fila);
+
+    // v1.6: la cotización a la vista y el valor que se aprueba.
+    let valorAprobado = null;
+    if (abierta.propuesta.valor_cotizado !== undefined) {
+      const cajaCot = el('div', 'propuesta-cotizacion');
+      const cot = abierta.propuesta.cotizacion;
+      const texto = 'Cotización: ' + formatoPesos(abierta.propuesta.valor_cotizado) +
+        (cot ? ' · ' + cot.nombre + ' (' + Math.round((cot.bytes || 0) / 1024) + ' KB)' : ' · sin PDF');
+      cajaCot.appendChild(el('p', 'propuesta-valor', texto));
+
+      if (cot) {
+        const verPdf = boton('Ver PDF', 'btn-mini');
+        verPdf.addEventListener('click', function () { abrirPdf(abierta.propuesta.id, verPdf); });
+        cajaCot.appendChild(verPdf);
+      }
+
+      const vence = abierta.propuesta.cotizacion_vigente_hasta;
+      if (vence && vence < new Date().toISOString().slice(0, 10)) {
+        cajaCot.appendChild(el('p', 'bajada-tarjeta', 'La cotización venció el ' + vence + '.'));
+      }
+
+      valorAprobado = el('input', 'item-input');
+      valorAprobado.id = 'rvValor';
+      valorAprobado.type = 'text';
+      valorAprobado.inputMode = 'numeric';
+      valorAprobado.value = String(abierta.propuesta.valor_cotizado || '');
+      valorAprobado.addEventListener('blur', function () {
+        const n = Number(String(valorAprobado.value).replace(/[^\d]/g, ''));
+        if (n > 0) valorAprobado.value = String(n);
+      });
+      cajaCot.appendChild(campo('Valor aprobado (COP)', valorAprobado,
+        'Si lo deja igual, se aprueba el valor cotizado.'));
+      form.appendChild(cajaCot);
+    }
+
     form.appendChild(el('p', 'bajada-tarjeta',
       'La plantilla, las etapas y la publicación se ajustan después en la actividad, como siempre.'));
 
@@ -587,6 +788,8 @@
         fecha_inicio_plan: inicio.value,
         fecha_fin_plan: fin.value || inicio.value,
         prioridad: prioridad.value,
+        valor_aprobado: valorAprobado
+          ? (Number(String(valorAprobado.value).replace(/[^\d]/g, '')) || 0) : undefined,
       }, { token: Sesion.token(), idempotente: true });
       aprobar.disabled = false;
       aprobar.textContent = 'Aprobar y crear la actividad';
