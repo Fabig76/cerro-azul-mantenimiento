@@ -90,6 +90,11 @@
         cont.appendChild(caja);
         return;
       }
+      const desempeno = el('button', 'btn sm', 'Ver desempeño');
+      desempeno.type = 'button';
+      desempeno.addEventListener('click', function () { abrirFicha(f, desempeno); });
+      acciones.appendChild(desempeno);
+
       const editar = el('button', 'btn sm', 'Corregir');
       editar.type = 'button';
       editar.addEventListener('click', function () { abrirFormulario(f); });
@@ -104,6 +109,83 @@
 
       cont.appendChild(caja);
     });
+  }
+
+  /** Ficha de desempeño de una empresa, con su semáforo y su tendencia. */
+  async function abrirFicha(f, boton) {
+    const previa = document.getElementById('fichaDesempeno');
+    if (previa) { previa.remove(); if (boton.dataset.abierta === '1') { boton.dataset.abierta = '0'; return; } }
+    boton.dataset.abierta = '1';
+    boton.disabled = true;
+
+    const caja = el('div', 'ficha-desempeno');
+    caja.id = 'fichaDesempeno';
+    caja.appendChild(el('p', 'bajada-tarjeta', 'Calculando el desempeño…'));
+    const contenedor = boton.closest('.ficha');
+    if (contenedor) contenedor.appendChild(caja);
+
+    const r = await API.llamar('empresas.ficha', { empresa_id: f.id }, { token: Sesion.token() });
+    boton.disabled = false;
+    if (!r.ok) {
+      caja.textContent = '';
+      caja.appendChild(el('p', 'msg mostrar error', r.message || 'No se pudo calcular la ficha.'));
+      return;
+    }
+    caja.textContent = '';
+
+    const d = r.data;
+    const s = d.semaforo || {};
+    const semaforo = el('div', 'ficha-semaforo ' + String(s.estado || '').toLowerCase());
+    semaforo.appendChild(el('strong', null, s.etiqueta || s.estado || ''));
+    if (s.motivo) semaforo.appendChild(el('span', null, ' · ' + s.motivo));
+    caja.appendChild(semaforo);
+
+    const ind = d.indicadores || {};
+    const filas = [
+      ['Trabajos asignados', ind.asignados],
+      ['Terminados', ind.terminados],
+      ['A tiempo', ind.a_tiempo_pct === null ? '—' : ind.a_tiempo_pct + ' %'],
+      ['Devueltos', ind.devueltos_pct === null ? '—' : ind.devueltos_pct + ' %'],
+      ['Vencidos hoy', ind.vencidos_hoy],
+      ['Días para empezar', ind.dias_para_iniciar === null ? '—' : ind.dias_para_iniciar + ' d'],
+      ['Novedades en sus equipos', ind.novedades_abiertas + ' abiertas · ' + ind.novedades_resueltas + ' resueltas'],
+      ['Propuestas', ind.propuestas_enviadas + ' enviadas · ' + ind.propuestas_aprobadas + ' aprobadas'],
+      ['Valor aprobado', '$ ' + Number(ind.valor_aprobado || 0).toLocaleString('es-CO')],
+      ['Contrato', d.empresa.vigencia_hasta
+        ? d.empresa.vigencia_hasta + (d.empresa.dias_contrato !== null ? ' · ' + d.empresa.dias_contrato + ' días' : '')
+        : 'Sin fecha'],
+    ];
+    const lista = el('div', 'ficha-indicadores');
+    filas.forEach(function (par) {
+      const linea = el('p', 'ficha-linea');
+      linea.appendChild(el('span', 'ficha-etiqueta', par[0]));
+      linea.appendChild(el('span', null, String(par[1] === null || par[1] === undefined ? '—' : par[1])));
+      lista.appendChild(linea);
+    });
+    caja.appendChild(lista);
+
+    // Tendencia: barras propias, sin librerías
+    const tendencia = d.tendencia || [];
+    if (tendencia.length) {
+      caja.appendChild(el('p', 'ficha-etiqueta', 'A tiempo y devueltos por mes'));
+      const grafica = el('div', 'ficha-tendencia');
+      tendencia.forEach(function (t) {
+        const col = el('div', 'ficha-mes');
+        const barra = el('div', 'ficha-barra');
+        const alto = t.a_tiempo_pct === null ? 0 : Math.max(2, t.a_tiempo_pct);
+        barra.style.height = alto + '%';
+        barra.title = t.mes + ': ' + (t.a_tiempo_pct === null ? 'sin datos' : t.a_tiempo_pct + ' % a tiempo');
+        if (t.rechazo_pct) barra.classList.add('con-devueltos');
+        col.appendChild(barra);
+        col.appendChild(el('span', 'ficha-mes-etiqueta', t.mes.slice(5)));
+        grafica.appendChild(col);
+      });
+      caja.appendChild(grafica);
+      if ((d.meses_sin_datos || []).length) {
+        caja.appendChild(el('p', 'bajada-tarjeta',
+          'Sin datos de ' + d.meses_sin_datos.join(', ') + '.'));
+      }
+    }
   }
 
   function abrirFormulario(f) {

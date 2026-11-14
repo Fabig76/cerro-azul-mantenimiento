@@ -63,6 +63,8 @@ const ACCIONES = {
   'nodos.desactivar': { fn: nodosDesactivar, sesion: true, roles: ['ADMIN'] },
   'plantillas.listar': { fn: plantillasListar, sesion: true },
   'empresas.listar': { fn: empresasListar, sesion: true, roles: ['ADMIN'] },
+  'empresas.ficha': { fn: empresasFicha, sesion: true, roles: ['ADMIN', 'SUPERVISOR', 'CONSEJO'] },
+  'consejo.resumen': { fn: consejoResumen, sesion: true, roles: ['ADMIN', 'SUPERVISOR', 'CONSEJO'] },
   'empresas.estado': { fn: empresasEstado, sesion: true, roles: ['ADMIN'] },
   'empresas.guardar': { fn: empresasGuardar, sesion: true, roles: ['ADMIN'] },
   'evidencias.upload': { fn: evidenciasUpload, sesion: true },

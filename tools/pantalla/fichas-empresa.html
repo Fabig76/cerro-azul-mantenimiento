@@ -27,6 +27,17 @@ window.API = { llamar: function (accion, payload) {
   window.__llamadas.push({ accion: accion, payload: payload });
   if (accion === 'empresas.estado') return Promise.resolve({ ok: true, data: {} });
   if (accion === 'empresas.guardar') return Promise.resolve({ ok: true, data: {} });
+  if (accion === 'empresas.ficha') return Promise.resolve({ ok: true, data: {
+    empresa: { id: 'E1', razon_social: 'MAXCONTROL S.A.S.', vigencia_hasta: '2026-12-31', dias_contrato: 47 },
+    periodo: { desde: '2025-11-14', hasta: '2026-11-14', meses: 13 },
+    indicadores: { asignados: 12, terminados: 10, a_tiempo: 9, a_tiempo_pct: 90, devueltos_pct: 8,
+      vencidos_hoy: 1, dias_para_iniciar: 2, novedades_abiertas: 2, novedades_resueltas: 5,
+      propuestas_enviadas: 4, propuestas_aprobadas: 3, valor_aprobado: 4850000 },
+    tendencia: [ { mes: '2026-09', a_tiempo_pct: 80, rechazo_pct: 10, sin_datos: false },
+                 { mes: '2026-10', a_tiempo_pct: 100, rechazo_pct: 0, sin_datos: false } ],
+    meses_sin_datos: ['2026-08'],
+    semaforo: { estado: 'VERDE', etiqueta: 'Buen desempeño' },
+  } });
   if (accion === 'empresas.listar') return Promise.resolve({ ok: true, data: { empresas: [
     { id: 'E1', razon_social: 'MAXCONTROL S.A.S.', nit: '900.416.068', contacto: 'Luis Pérez',
       email: 'info@maxcontrol.com.co', telefono: '300 111 2222', contrato_numero: 'CT-2026-14',
@@ -88,6 +99,23 @@ window.Datos = { invalidar: function () {} };
     const guardado = window.__llamadas.filter(function (x) { return x.accion === 'empresas.guardar'; })[0];
     r.push((guardado && guardado.payload.id === 'E1' ? 'OK   ' : 'FALLA') +
       ' · guardar corrige la misma empresa');
+
+    // Ficha de desempeño
+    document.getElementById('formEmpresa').classList.add('oculto');
+    const ver = Array.prototype.slice.call(document.querySelectorAll('#listaFichas button'))
+      .filter(function (b) { return b.textContent === 'Ver desempeño'; })[0];
+    r.push((ver ? 'OK   ' : 'FALLA') + ' · cada empresa ofrece «Ver desempeño»');
+    if (ver) {
+      ver.click();
+      await esperar(400);
+      const ficha = document.getElementById('fichaDesempeno');
+      const t = ficha ? ficha.textContent : '';
+      r.push((t.indexOf('Buen desempeño') >= 0 ? 'OK   ' : 'FALLA') + ' · muestra el semáforo');
+      r.push((t.indexOf('90 %') >= 0 ? 'OK   ' : 'FALLA') + ' · el porcentaje a tiempo');
+      r.push((t.indexOf('4.850.000') >= 0 ? 'OK   ' : 'FALLA') + ' · el valor aprobado');
+      r.push((t.indexOf('Sin datos de 2026-08') >= 0 ? 'OK   ' : 'FALLA') + ' · dice qué mes no tiene datos');
+      r.push((ficha.querySelectorAll('.ficha-mes').length === 2 ? 'OK   ' : 'FALLA') + ' · dibuja la tendencia');
+    }
   } catch (e) { r.push('FALLA · ' + e.message); }
   document.title = r.join(' | ');
 })();

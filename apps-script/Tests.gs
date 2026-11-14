@@ -64,6 +64,7 @@ function runAllTests() {
   pruebasArchivoCerrado_();
   pruebasCotizacion_();
   pruebasConsejoSoloLectura_();
+  pruebasFicha_();
   pruebasFilasPorHoja_();
 
   // Las fallas van primero: son lo único que hay que leer.
@@ -642,6 +643,34 @@ function pruebasConsejoSoloLectura_() {
   const ctx = { usuario: { id: 'C1', email: 'consejo@x.com' }, rol: 'CONSEJO' };
   verdadero_(puedeLeerTodo_(ctx), 'el consejo puede leer lo que lee el administrador');
   verdadero_(!puedeLeerTodo_({ rol: 'CONTRATISTA' }), 'un contratista no');
+}
+
+/**
+ * Ficha de desempeño (v1.6, 5.6): semáforo con umbrales y sin juzgar con pocos datos.
+ */
+function pruebasFicha_() {
+  // RN-45: con menos de 5 terminados no hay semáforo
+  verdadero_(semaforoFicha_(3, 100, 0).estado === 'POCOS_DATOS', 'con 3 terminados dice «Pocos datos»');
+  verdadero_(semaforoFicha_(10, 95, 5).estado === 'VERDE', 'con 10 terminados, 95 % a tiempo y 5 % devueltos es verde');
+  verdadero_(semaforoFicha_(10, 60, 5).estado === 'ROJO', 'con 60 % a tiempo es rojo');
+  verdadero_(semaforoFicha_(10, 95, 30).estado === 'ROJO', 'con 30 % devueltos es rojo');
+  verdadero_(semaforoFicha_(10, 80, 15).estado === 'NARANJA', 'en el medio es naranja');
+
+  // La fecha de un periodo se mueve bien de mes
+  verdadero_(sumarMeses_('2026-01-15', -1) === '2025-12-15', 'restar un mes cruza el año');
+  verdadero_(sumarMeses_('2026-11-14', -12) === '2025-11-14', 'restar doce meses');
+
+  // La ficha de una empresa real devuelve la forma esperada
+  const empresa = filtrar('empresas', function (e) { return bool(e.activo); })[0];
+  if (empresa) {
+    const f = fichaEmpresa_(empresa.id);
+    verdadero_(!!f.empresa && !!f.indicadores && Array.isArray(f.tendencia),
+      'la ficha trae empresa, indicadores y tendencia');
+    verdadero_(f.tendencia.length >= 1 && f.tendencia.length <= 13, 'la tendencia cubre el periodo');
+    verdadero_(!!f.semaforo && !!f.semaforo.estado, 'y un semáforo con estado');
+  } else {
+    RESULTADOS.detalle.push('OMITE · ficha · sin empresas');
+  }
 }
 
 function pruebasSuperficiePublica_() {
