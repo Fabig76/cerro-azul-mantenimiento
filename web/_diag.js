@@ -1,7 +1,7 @@
 (function () {
   var log = [];
   var s = document.createElement('script');
-  s.src = '/js/fotocache.js';
+  s.src = './js/fotocache.js';
   s.onload = function () {
     var img = document.createElement('img');
     document.body.appendChild(img);
