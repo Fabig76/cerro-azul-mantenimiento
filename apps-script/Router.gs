@@ -19,6 +19,7 @@ const ACCIONES_LECTURA_CONSEJO = [
   'propuestas.listar', 'propuestas.get', 'propuestas.foto.get', 'propuestas.cotizacion.get',
   'novedades.listar', 'alertas.listar', 'evidencias.get',
   'consejo.resumen',
+  'residentes.listar', 'residentes.foto.get',
 ];
 
 const ACCIONES = {
@@ -28,6 +29,12 @@ const ACCIONES = {
   'public.foto': { fn: publicFoto, publica: true, crudo: true },
   'public.nodo': { fn: publicNodo, publica: true, crudo: true },
 
+  'residentes.reportar': { fn: residentesReportar, publica: true },
+  'public.reporte': { fn: publicReporteEstado, publica: true },
+  'residentes.listar': { fn: residentesListar, sesion: true, roles: ['ADMIN', 'SUPERVISOR', 'CONSEJO'] },
+  'residentes.foto.get': { fn: residentesFotoGet, sesion: true, roles: ['ADMIN', 'SUPERVISOR', 'CONSEJO'] },
+  'residentes.convertir': { fn: residentesConvertir, sesion: true, roles: ['ADMIN'] },
+  'residentes.descartar': { fn: residentesDescartar, sesion: true, roles: ['ADMIN'] },
   'auth.google': { fn: authGoogle, publica: true },
   'auth.enlace.solicitar': { fn: authEnlaceSolicitar, publica: true },
   'auth.enlace.canjear': { fn: authEnlaceCanjear, publica: true },
@@ -114,7 +121,7 @@ const ACCIONES = {
 // Entradas HTTP
 // ---------------------------------------------------------------------------
 
-const ACCIONES_PUBLICAS_GET = ['ping', 'public.snapshot', 'public.foto', 'public.nodo'];
+const ACCIONES_PUBLICAS_GET = ['ping', 'public.snapshot', 'public.foto', 'public.nodo', 'public.reporte'];
 
 function doGet(e) {
   const p = (e && e.parameter) || {};

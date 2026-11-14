@@ -7,7 +7,7 @@ const CAMPOS_AUDITORIA = ['creado_en', 'creado_por', 'actualizado_en', 'actualiz
 
 // Sube este número cada vez que cambie el esquema: la app lo compara con la
 // propiedad de script y crea las pestañas o columnas nuevas sin exigir setup().
-const ESQUEMA_VERSION = 4;
+const ESQUEMA_VERSION = 5;
 
 const SCHEMA = {
   nodos: [
@@ -63,6 +63,14 @@ const SCHEMA = {
     'propuesta_id',
     // v1.6: el valor aprobado y su cotización viven también en la actividad.
     'valor_aprobado', 'cotizacion_file_id',
+  ].concat(CAMPOS_AUDITORIA),
+
+  // v1.6: reportes de daños hechos por residentes desde el portal público.
+  // Hoja aparte: es un flujo que termina en aprobación (CLAUDE.md, error 1).
+  reportes_residentes: [
+    'id', 'codigo_consulta', 'nodo_id', 'descripcion', 'foto_file_id', 'foto_mini_file_id',
+    'foto_sha256', 'estado', 'dispositivo_hash', 'revisado_por', 'revisado_en',
+    'motivo_descarte', 'novedad_id', 'foto_purgada_en',
   ].concat(CAMPOS_AUDITORIA),
 
   hitos: ['id', 'actividad_id', 'orden', 'nombre', 'peso', 'fecha_plan', 'estado', 'fecha_aprobacion']

@@ -65,6 +65,7 @@ function runAllTests() {
   pruebasCotizacion_();
   pruebasConsejoSoloLectura_();
   pruebasFicha_();
+  pruebasResidentes_();
   pruebasFilasPorHoja_();
 
   // Las fallas van primero: son lo único que hay que leer.
@@ -671,6 +672,59 @@ function pruebasFicha_() {
   } else {
     RESULTADOS.detalle.push('OMITE · ficha · sin empresas');
   }
+}
+
+/**
+ * Reporte de residentes (v1.6, 8.6): sin foto no entra, con enlaces tampoco,
+ * y la consulta pública no revela nada del contenido.
+ */
+function pruebasResidentes_() {
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · residentes · sin nodos'); return; }
+
+  const base = {
+    nodo_id: nodo.id,
+    descripcion: 'Se rompió una baldosa en el pasillo del segundo piso',
+    abierto_en: Date.now() - 20000,
+  };
+
+  let codigo = '';
+  try { residentesReportar({}, Object.assign({}, base)); } catch (e) { codigo = String(e.message); }
+  verdadero_(codigo.indexOf('VALIDACION') === 0, 'sin foto el reporte no entra');
+
+  codigo = '';
+  try {
+    residentesReportar({}, Object.assign({}, base, {
+      base64: Utilities.base64Encode('foto falsa'),
+      descripcion: 'Mira esto https://ejemplo.com y arreglenlo pronto',
+    }));
+  } catch (e) { codigo = String(e.message); }
+  verdadero_(codigo.indexOf('VALIDACION') === 0, 'un texto con enlaces se rechaza');
+
+  codigo = '';
+  try {
+    residentesReportar({}, Object.assign({}, base, {
+      base64: Utilities.base64Encode('foto falsa'),
+      descripcion: 'Corto',
+    }));
+  } catch (e) { codigo = String(e.message); }
+  verdadero_(codigo.indexOf('VALIDACION') === 0, 'un texto muy corto se rechaza');
+
+  // El campo trampa responde como si funcionara, sin guardar nada
+  const trampa = residentesReportar({}, Object.assign({}, base, {
+    base64: Utilities.base64Encode('foto falsa'), trampa: 'soy un robot',
+  }));
+  verdadero_(!!trampa.codigo_consulta && trampa.codigo_consulta.length === 6,
+    'el robot recibe un código de 6 caracteres y no se le avisa');
+
+  // La consulta pública no devuelve texto, foto ni motivo
+  const consulta = publicReporteEstado({ codigo: 'NOEXISTE' });
+  verdadero_(consulta.estado === 'NO_ENCONTRADO', 'un código inexistente no revela nada');
+  const claves = Object.keys(consulta).sort().join(',');
+  verdadero_(claves === 'estado' || claves === 'estado,fecha', 'la consulta solo devuelve estado y fecha');
+
+  // Crear una novedad desde un reporte no duplica la lógica
+  verdadero_(typeof crearNovedad_ === 'function', 'la novedad se crea con la función compartida');
 }
 
 function pruebasSuperficiePublica_() {

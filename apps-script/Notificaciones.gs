@@ -187,6 +187,27 @@ function textoNotificacion_(tipo, entidadId) {
       ].join('\n'),
     };
   }
+  if (tipo === 'REPORTE_RESIDENTE') {
+    const r = buscarPorId('reportes_residentes', entidadId);
+    if (!r) return null;
+    const nodo = buscarPorId('nodos', r.nodo_id);
+    const donde = nodo ? (esSensible(nodo) ? 'Sistema de seguridad' : nodo.nombre) : 'una sección';
+    return {
+      asunto: 'Cerro Azul · un residente reportó un daño',
+      cuerpo: [
+        'Hola.',
+        '',
+        'Un residente reportó un daño en ' + donde + ':',
+        '',
+        r.descripcion,
+        '',
+        'Revíselo en el panel, pestaña Novedades, tarjeta «Reportes de residentes».',
+        '',
+        'Administración — Urbanización Cerro Azul',
+      ].join('\n'),
+    };
+  }
+
   if (tipo === 'HOJA_GRANDE') {
     const partes = String(entidadId || '').split(':');
     const tabla = partes[0];
@@ -401,6 +422,19 @@ function avisosDiarios_() {
       destino.forEach(function (u) { if (encolarUnaVez_(u, 'RECORDATORIO', a.id)) resumen.recordatorio++; });
     });
   } catch (e) { console.error('aviso recordatorio: ' + e.message); }
+
+  // 1 ter. Reportes de residentes esperando más de 48 horas
+  try {
+    const limite = sumarDias(hoyIso(), -2);
+    filtrar('reportes_residentes', function (r) {
+      return bool(r.activo) && String(r.estado) === 'POR_REVISAR' &&
+        fechaIso_(r.creado_en) <= limite;
+    }).forEach(function (r) {
+      admins.forEach(function (u) {
+        if (encolarUnaVez_(u, 'REPORTE_RESIDENTE', r.id + ':tarde')) resumen.residentes = (resumen.residentes || 0) + 1;
+      });
+    });
+  } catch (e) { console.error('aviso residentes: ' + e.message); }
 
   // 1 bis. Hojas que crecen: avisa al pasar el umbral de preparación y el límite.
   try {

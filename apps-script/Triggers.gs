@@ -49,6 +49,7 @@ function recalcularTodoDiario() {
   // Purga de fotos de propuestas viejas: si falla, el resto del disparador sigue.
   try {
     const purga = purgarPropuestas_();
+    purgarReportesResidentes_();
     if (purga && purga.purgadas) console.log('Propuestas purgadas: ' + purga.purgadas);
   } catch (e) {
     console.error('purga de propuestas: ' + e.message);

@@ -66,22 +66,44 @@ function novedadesCrear(ctx, payload) {
   const tipo = exigirEnEnum(payload.tipo || 'DANO', 'tipo', ['DANO', 'FALLA', 'RIESGO', 'OBSERVACION']);
   const gravedad = exigirEnEnum(payload.gravedad || 'MEDIA', 'gravedad', ['BAJA', 'MEDIA', 'ALTA', 'CRITICA']);
 
+  return crearNovedad_(ctx, {
+    nodo_id: nodoId, titulo: titulo, descripcion: payload.descripcion,
+    tipo: tipo, gravedad: gravedad, actividad_id: payload.actividad_id,
+    fecha_compromiso: payload.fecha_compromiso,
+    origen: ctx.rol === 'ADMIN' ? 'ADMIN' : 'CONTRATISTA',
+    reportada_por: ctx.usuario.email,
+  });
+}
+
+/**
+ * Crea la novedad. La usan la acción normal y la conversión de un reporte de
+ * residente: una sola implementación, no dos.
+ */
+function crearNovedad_(ctx, datos) {
+  const nodoId = datos.nodo_id;
+  const nodo = buscarPorId('nodos', nodoId);
+  if (!nodo) fallar_('NO_ENCONTRADO', 'La sección no existe.');
+
+  const titulo = exigirTexto(datos.titulo, 'titulo', 120);
+  const tipo = exigirEnEnum(datos.tipo || 'DANO', 'tipo', ['DANO', 'FALLA', 'RIESGO', 'OBSERVACION']);
+  const gravedad = exigirEnEnum(datos.gravedad || 'MEDIA', 'gravedad', ['BAJA', 'MEDIA', 'ALTA', 'CRITICA']);
+
   const novedad = insertar('novedades', {
     id: newId('NOV'),
     nodo_id: nodoId,
     titulo: titulo,
-    descripcion: payload.descripcion ? String(payload.descripcion).slice(0, 2000) : '',
+    descripcion: datos.descripcion ? String(datos.descripcion).slice(0, 2000) : '',
     tipo: tipo,
     gravedad: gravedad,
     estado: 'ABIERTA',
-    reportada_por: ctx.usuario.email,
-    origen: ctx.rol === 'ADMIN' ? 'ADMIN' : 'CONTRATISTA',
-    actividad_origen_id: payload.actividad_id || '',
+    reportada_por: datos.reportada_por || '',
+    origen: datos.origen || 'ADMIN',
+    actividad_origen_id: datos.actividad_id || '',
     actividad_correctiva_id: '',
     fecha_deteccion: hoyIso(),
-    fecha_compromiso: payload.fecha_compromiso || '',
+    fecha_compromiso: datos.fecha_compromiso || '',
     fecha_resolucion: '',
-    publicable: false,
+    publicable: !!datos.publicable,
     texto_publico: '',
     activo: true,
   }, ctx.usuario.email);
