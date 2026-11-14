@@ -33,7 +33,15 @@ window.API = { llamar: function (accion, payload) {
     hitos: window.__conHitos
       ? [{ id: 'HIT_1', orden: 1, nombre: 'FUMIGACION', peso: 1, fecha_plan: '2026-11-13', estado: 'PENDIENTE' }]
       : [],
-    reportes: [], evidencias: [], respuestas: [],
+    reportes: window.__conHitos
+      ? [{ id: 'REP_1', hito_id: 'HIT_1', fecha: '2026-11-14T09:00:00-05:00',
+           descripcion: 'Se fumigó toda la torre', estado: 'REPORTADO' }]
+      : [],
+    evidencias: window.__conHitos
+      ? [{ id: 'EVI_1', momento: 'DURANTE', reporte_id: 'REP_1', mime: 'image/jpeg',
+           fecha_subida: '2026-11-14T09:05:00-05:00', publicable: false }]
+      : [],
+    respuestas: [],
     ultimo_final: estado === 'RECHAZADA'
       ? { comentario_admin: 'Falta la foto', revisado_en: '2026-11-12T09:00:00-05:00' } : null,
     propuesta: null,
@@ -125,6 +133,13 @@ window.App = { pestana: function () {}, refrescar: function () {} };
         r.push((!subida ? 'OK   ' : 'FALLA') + ' · sin foto no se sube nada');
       }
     }
+    // La etapa reportada muestra su nota y su foto
+    document.getElementById('contenidoActividad').textContent = '';
+    await Actividad.abrir('ACT_1', 'ADMIN');
+    await esperar(250);
+    const cont3 = document.getElementById('contenidoActividad');
+    r.push((cont3.querySelector('.etapa-nota') ? 'OK   ' : 'FALLA') + ' · la etapa reportada muestra su nota');
+    r.push((cont3.querySelector('.etapa-foto') ? 'OK   ' : 'FALLA') + ' · y su foto, dentro de la etapa');
     window.__conHitos = false;
     await probar('EN_EJECUCION', true);
     await probar('RECHAZADA', true);

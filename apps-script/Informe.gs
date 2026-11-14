@@ -248,9 +248,22 @@ function generarActaActividad(actividadId, usuario) {
     ]);
   }).join('');
 
+  // Las fotos de etapa se agrupan por su etapa: si no, el acta se vuelve un álbum.
+  const nombreDeHito = {};
+  hitos.forEach(function (h) { nombreDeHito[String(h.id)] = h.orden + '. ' + h.nombre; });
+  const nombreDeReporte = {};
+  reportes.forEach(function (r) {
+    if (r.hito_id) nombreDeReporte[String(r.id)] = nombreDeHito[String(r.hito_id)] || '';
+  });
+  const etapaDeEvidencia = function (e) {
+    return e.reporte_id ? (nombreDeReporte[String(e.reporte_id)] || '') : '';
+  };
+
   const filasEvidencias = evidencias.map(function (e) {
     return filaTabla_([
-      esc_(e.momento === 'ANTES' ? 'Antes' : e.momento === 'DESPUES' ? 'Después' : e.momento),
+      esc_(e.momento === 'ANTES' ? 'Antes' : e.momento === 'DESPUES' ? 'Después' :
+        (etapaDeEvidencia(e) ? 'Etapa' : e.momento)),
+      esc_(etapaDeEvidencia(e) || '—'),
       esc_(String(e.fecha_subida || '').replace('T', ' ').slice(0, 16)),
       esc_(e.contiene_personas ? 'Sí (no publicable)' : 'No'),
     ]);
@@ -313,8 +326,8 @@ function generarActaActividad(actividadId, usuario) {
         'Esta actividad se registró por etapas, sin checklist.' + '</p>') +
 
     '<h2>Evidencias</h2>' +
-    '<table><thead>' + filaTabla_(['Momento', 'Subida', 'Personas'], true) +
-    '</thead><tbody>' + (filasEvidencias || filaTabla_(['Sin evidencias', '', ''])) + '</tbody></table>' +
+    '<table><thead>' + filaTabla_(['Momento', 'Etapa', 'Subida', 'Personas'], true) +
+    '</thead><tbody>' + (filasEvidencias || filaTabla_(['Sin evidencias', '', '', ''])) + '</tbody></table>' +
 
     '<h2>Revisión de la administración</h2>' +
     '<dl>' +

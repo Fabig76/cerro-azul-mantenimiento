@@ -849,6 +849,30 @@
         const meta = el('span', 'item-criterio', 'Peso ' + h.peso + (h.fecha_plan ? ' · ' + h.fecha_plan : ''));
         fila.appendChild(meta);
 
+        // Lo que se reportó de esta etapa: su nota y su foto (v1.5).
+        const delHito = (datos.reportes || []).filter(function (r) {
+          return String(r.hito_id) === String(h.id);
+        }).sort(function (x, y) { return String(y.fecha) < String(x.fecha) ? -1 : 1; });
+        const reporteEtapa = delHito[0];
+        if (reporteEtapa && reporteEtapa.descripcion) {
+          fila.appendChild(el('p', 'etapa-nota', reporteEtapa.descripcion));
+        }
+        if (reporteEtapa) {
+          const fotoEtapa = (datos.evidencias || []).filter(function (e) {
+            return String(e.reporte_id) === String(reporteEtapa.id);
+          })[0];
+          if (fotoEtapa) {
+            const figura = el('figure', 'etapa-foto');
+            const img = el('img', 'foto-mini');
+            img.alt = 'Foto de la etapa ' + h.nombre;
+            img.loading = 'lazy';
+            figura.appendChild(img);
+            figura.appendChild(el('figcaption', 'foto-pie', 'Foto de esta etapa'));
+            fila.appendChild(figura);
+            miniaturizar(img, { clave: 'evidencia:' + fotoEtapa.id, tipo: 'evidencia', id: fotoEtapa.id });
+          }
+        }
+
         if (rol !== 'ADMIN' && (h.estado === 'PENDIENTE' || h.estado === 'RECHAZADO') && a.estado === 'EN_EJECUCION') {
           const btn = el('button', 'btn sm', 'Reportar esta etapa');
           btn.type = 'button';

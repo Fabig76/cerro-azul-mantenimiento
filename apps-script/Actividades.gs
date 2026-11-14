@@ -376,6 +376,8 @@ function detalleActividad_(ctx, id) {
       id: e.id, momento: e.momento, mime: e.mime, bytes: Number(e.bytes || 0),
       fecha_captura: e.fecha_captura, fecha_subida: e.fecha_subida,
       contiene_personas: bool(e.contiene_personas), publicable: bool(e.publicable),
+      // Cuando la foto es de una etapa, viene con su reporte: el panel la pinta ahí.
+      reporte_id: e.reporte_id || '',
     };
   });
 
