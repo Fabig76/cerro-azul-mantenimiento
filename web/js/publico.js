@@ -661,12 +661,6 @@
     reportar.textContent = 'Reportar un daño en este equipo';
     caja.appendChild(reportar);
 
-    const interno = document.createElement('a');
-    interno.className = 'btn sm';
-    interno.href = './app.html#/equipo/' + id;
-    interno.textContent = 'Soy contratista o de la administración';
-    caja.appendChild(interno);
-
     cont.appendChild(caja);
   }
 
