@@ -15,7 +15,7 @@ function hitosGuardar(ctx, payload) {
   if (!lista.length) fallar_('VALIDACION', 'Agrega al menos un hito.');
 
   // Un trabajo con veinte etapas no se puede seguir ni en pantalla ni en el acta.
-  const maximo = configNumero('max_etapas', 10);
+  const maximo = configNumero('max_etapas', 15);
   if (lista.length > maximo) {
     fallar_('VALIDACION', 'Un trabajo admite hasta ' + maximo + ' etapas. Divide el resto en otro trabajo.');
   }

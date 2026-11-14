@@ -770,7 +770,8 @@ Se reutiliza `evidencias.reporte_id`, que existe desde la v1.0 y hoy nadie llena
 **Límites para que no pese** (decisión del administrador, 14/11/2026)
 
 - Máximo **1 foto por etapa**.
-- Máximo **10 etapas** por trabajo (`config.max_etapas`, por defecto 10).
+- Máximo **15 etapas** por trabajo (`config.max_etapas`, por defecto 15). Se subió de 10 a 15 el
+  14/11/2026: la fumigación de áreas comunes de Cerro Azul tiene 12 zonas reales.
 - Las listas y el acta usan **la miniatura**; la foto grande se pide solo al tocarla.
 - Las fotos de etapa nacen `publicable: false`: **no aparecen en el portal público**.
 
