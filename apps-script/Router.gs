@@ -53,6 +53,7 @@ const ACCIONES = {
   'actividades.get': { fn: actividadesGet, sesion: true },
   'actividades.iniciar': { fn: actividadesIniciar, sesion: true },
   'actividades.editar': { fn: actividadesEditar, sesion: true, roles: ['ADMIN'] },
+  'actividades.retirar': { fn: actividadesRetirar, sesion: true, roles: ['ADMIN'] },
   'actividades.cancelar': { fn: actividadesCancelar, sesion: true, roles: ['ADMIN'] },
 
   'usuarios.listar': { fn: usuariosListar, sesion: true, roles: ['ADMIN'] },

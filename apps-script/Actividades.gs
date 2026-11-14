@@ -563,3 +563,20 @@ function puedeVerValorActividad_(ctx, act) {
   if (['ADMIN', 'SUPERVISOR', 'CONSEJO'].indexOf(String(ctx.rol)) >= 0) return true;
   return String(act.responsable_id) === String(ctx.usuario.id);
 }
+
+/**
+ * Acción: retirar una actividad con su rastro. Solo ADMIN.
+ * Se usa para limpiar datos de prueba sin tocar el resto.
+ */
+function actividadesRetirar(ctx, payload) {
+  const id = exigirTexto(payload.id, 'id');
+  return conBloqueo(function () {
+    limpiarCache('actividades');
+    const r = retirarActividad_(id, ctx.usuario.email);
+    auditar(ctx.usuario.email, 'ACTIVIDAD_RETIRADA', 'actividad', id, null,
+      { titulo: r.titulo || '', motivo: payload.motivo || '' });
+    recalcularTodo(ctx.usuario.email);
+    regenerarSnapshot();
+    return r;
+  });
+}

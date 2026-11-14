@@ -79,6 +79,36 @@ function limpiarDemostracion(usuario) {
   });
 }
 
+/**
+ * Retira una actividad con todo su rastro (reportes, respuestas, evidencias y etapas).
+ * No borra las filas: las marca inactivas, así el registro queda para auditoría.
+ */
+function retirarActividad_(id, quien) {
+  const a = buscarPorId('actividades', id);
+  if (!a) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
+  if (!bool(a.activo)) return { ya: true, id: id };
+
+  filtrar('reportes', function (r) {
+    return String(r.actividad_id) === String(id) && bool(r.activo);
+  }).forEach(function (r) {
+    filtrar('respuestas', function (x) {
+      return String(x.reporte_id) === String(r.id) && bool(x.activo);
+    }).forEach(function (x) { actualizar('respuestas', x.id, { activo: false }, quien); });
+    actualizar('reportes', r.id, { activo: false }, quien);
+  });
+
+  filtrar('evidencias', function (e) {
+    return String(e.actividad_id) === String(id) && bool(e.activo);
+  }).forEach(function (e) { actualizar('evidencias', e.id, { activo: false, publicable: false }, quien); });
+
+  filtrar('hitos', function (h) {
+    return String(h.actividad_id) === String(id) && bool(h.activo);
+  }).forEach(function (h) { actualizar('hitos', h.id, { activo: false }, quien); });
+
+  actualizar('actividades', id, { activo: false, publicable: false }, quien);
+  return { id: id, titulo: a.titulo };
+}
+
 /** Retira todas las actividades activas con su rastro, para empezar de cero. */
 function borrarTodasActividades(usuario) {
   const quien = usuario || 'sistema';
