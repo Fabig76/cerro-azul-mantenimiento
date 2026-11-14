@@ -17,6 +17,7 @@ window.addEventListener('unhandledrejection', function (e) {
 window.__llamadas = [];
 window.API = { llamar: function (accion, payload) {
   window.__llamadas.push({ accion: accion, payload: payload || {} });
+  if (accion === 'actividades.retirar') return Promise.resolve({ ok: true, data: {} });
   if (accion === 'reportes.crear') return Promise.resolve({ ok: true, data: { reporte_id: 'REP_1' } });
   if (accion !== 'actividades.get') return Promise.resolve({ ok: true, data: {} });
   var estado = window.__estado;
@@ -140,6 +141,35 @@ window.App = { pestana: function () {}, refrescar: function () {} };
     const cont3 = document.getElementById('contenidoActividad');
     r.push((cont3.querySelector('.etapa-nota') ? 'OK   ' : 'FALLA') + ' · la etapa reportada muestra su nota');
     r.push((cont3.querySelector('.etapa-foto') ? 'OK   ' : 'FALLA') + ' · y su foto, dentro de la etapa');
+    // Retirar: solo el administrador y solo con confirmación
+    window.__estado = 'EN_EJECUCION';
+    document.getElementById('contenidoActividad').textContent = '';
+    await Actividad.abrir('ACT_1', 'ADMIN');
+    await esperar(250);
+    const cont4 = document.getElementById('contenidoActividad');
+    const retirar = cont4.querySelector('.bloque-retirar button');
+    r.push((retirar && retirar.textContent === 'Retirar actividad' ? 'OK   ' : 'FALLA') +
+      ' · el administrador ve «Retirar actividad»');
+
+    document.getElementById('contenidoActividad').textContent = '';
+    await Actividad.abrir('ACT_1', 'CONTRATISTA');
+    await esperar(250);
+    r.push((!document.getElementById('contenidoActividad').querySelector('.bloque-retirar') ? 'OK   ' : 'FALLA') +
+      ' · el contratista no lo ve');
+
+    // Al confirmar, se llama al servidor con el motivo
+    document.getElementById('contenidoActividad').textContent = '';
+    await Actividad.abrir('ACT_1', 'ADMIN');
+    await esperar(250);
+    const botonRetirar = document.querySelector('#contenidoActividad .bloque-retirar button');
+    window.confirm = function () { return true; };
+    window.prompt = function () { return 'Se creó por error'; };
+    window.__llamadas = [];
+    botonRetirar.click();
+    await esperar(300);
+    const llamada = window.__llamadas.filter(function (x) { return x.accion === 'actividades.retirar'; })[0];
+    r.push((llamada && llamada.payload.motivo === 'Se creó por error' ? 'OK   ' : 'FALLA') +
+      ' · retira con su motivo');
     window.__conHitos = false;
     await probar('EN_EJECUCION', true);
     await probar('RECHAZADA', true);

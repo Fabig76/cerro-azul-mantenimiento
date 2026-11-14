@@ -1016,6 +1016,42 @@
     nota.focus();
   }
 
+  /**
+   * Retirar una actividad con su rastro. Solo administrador y con confirmación:
+   * deja de verse en el panel, el portal y los informes, y queda en auditoría.
+   */
+  function bloqueRetirar() {
+    if (rol !== 'ADMIN' || !datos || !datos.actividad) return null;
+
+    const caja = el('div', 'bloque-retirar');
+    caja.appendChild(el('p', 'bajada-tarjeta',
+      'Si este trabajo se creó por error, se puede retirar. Deja de verse en el panel y en el portal, ' +
+      'y queda el registro en la auditoría.'));
+
+    const boton = el('button', 'btn sm peligro', 'Retirar actividad');
+    boton.type = 'button';
+    boton.addEventListener('click', async function () {
+      const titulo = datos.actividad.titulo || 'esta actividad';
+      if (!window.confirm('¿Retirar «' + titulo + '»?\n\nDejará de verse en el panel y en el portal público.')) return;
+      const motivo = window.prompt('¿Por qué se retira? (queda en la auditoría)', 'Se creó por error');
+      if (motivo === null) return;
+
+      boton.disabled = true;
+      const r = await API.llamar('actividades.retirar',
+        { id: datos.actividad.id, motivo: motivo || '' },
+        { token: Sesion.token(), idempotente: true });
+      boton.disabled = false;
+
+      if (!r.ok) { aviso(r.message || 'No se pudo retirar.', 'error'); return; }
+      cerrar();
+      if (window.App && App.refrescar) App.refrescar();
+      aviso('Actividad retirada.', 'ok');
+    });
+
+    caja.appendChild(boton);
+    return caja;
+  }
+
   function formularioHitos(boton) {
     if (!window.Etapas) {
       aviso('No se pudo abrir el editor de etapas. Recargue la página e intente de nuevo.', 'error');
@@ -1468,6 +1504,10 @@
 
     // Las acciones primero y el acta al cierre de la página: es el último documento.
     cont.appendChild(acciones());
+
+    // Retirar un trabajo creado por error: solo el administrador.
+    const retirar = bloqueRetirar();
+    if (retirar) cont.appendChild(retirar);
     const acta = bloqueActa();
     if (acta) cont.appendChild(acta);
   }

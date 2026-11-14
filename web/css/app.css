@@ -772,3 +772,10 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 
 /* Selector de etiquetas QR */
 .campo-inline { font-size: 13px; font-weight: 700; color: var(--muted); align-self: center; }
+
+/* Retirar una actividad (solo administrador) */
+.bloque-retirar {
+  margin-top: 18px; padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  display: grid; gap: 8px; justify-items: start;
+}
