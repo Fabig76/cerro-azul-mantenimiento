@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body data-rol="CONSEJO">
+<div class="card" id="tarjetaConsejoInicio" data-panel="inicio">
+  <div id="contenidoConsejo"></div>
+</div>
+<script>
+window.__llamadas = [];
+window.API = { llamar: function (accion) {
+  window.__llamadas.push(accion);
+  if (accion === 'consejo.resumen') return Promise.resolve({ ok: true, data: {
+    mes: '2026-11', cumplimiento_pct: 78, vencidos: 2, por_revisar: 3, dias_el_mas_viejo: 5,
+    revision_promedio_dias: 1.5,
+    empresas: [
+      { id: 'E1', razon_social: 'MAXCONTROL S.A.S.', semaforo: 'VERDE', etiqueta: 'Buen desempeño',
+        terminados: 10, valor_aprobado: 4850000 },
+      { id: 'E2', razon_social: 'Conexiones y servicios', semaforo: 'POCOS_DATOS', etiqueta: 'Pocos datos',
+        terminados: 2, valor_aprobado: 0 },
+    ],
+  } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; } };
+</script>
+<script src="../../web/js/consejo.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  try {
+    await Consejo.cargar();
+    await esperar(200);
+    const cont = document.getElementById('contenidoConsejo');
+    const texto = cont.textContent;
+
+    r.push((texto.indexOf('78 %') >= 0 ? 'OK   ' : 'FALLA') + ' · muestra el cumplimiento del mes');
+    r.push((texto.indexOf('Trabajos vencidos') >= 0 ? 'OK   ' : 'FALLA') + ' · los vencidos');
+    r.push((texto.indexOf('Reportes por revisar') >= 0 ? 'OK   ' : 'FALLA') + ' · los reportes por revisar');
+    r.push((texto.indexOf('5 días') >= 0 ? 'OK   ' : 'FALLA') + ' · cuánto lleva el más viejo');
+    r.push((texto.indexOf('1.5 días') >= 0 ? 'OK   ' : 'FALLA') + ' · el tiempo de revisión');
+    r.push((texto.indexOf('Buen desempeño') >= 0 ? 'OK   ' : 'FALLA') + ' · el semáforo de una empresa');
+    r.push((texto.indexOf('Pocos datos') >= 0 ? 'OK   ' : 'FALLA') + ' · y el de la que no tiene datos');
+    r.push((texto.indexOf('4.850.000') >= 0 ? 'OK   ' : 'FALLA') + ' · el valor aprobado');
+    r.push((window.__llamadas.length === 1 ? 'OK   ' : 'FALLA') + ' · todo en una sola llamada');
+  } catch (e) { r.push('FALLA · ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

@@ -1088,6 +1088,7 @@
       Usuarios.prepararEmpresa();
     }
     if (id === 'novedades' && window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
+    if (id === 'inicio' && window.Consejo) { Consejo.cargar(); }
   }
 
   /**

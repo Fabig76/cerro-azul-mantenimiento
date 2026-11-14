@@ -25,7 +25,8 @@ $(correr tarjetas-vacias.html)
 $(correr fichas-empresa.html)
 $(correr usuarios-empresa.html)
 $(correr cotizacion.html)
-$(correr consejo.html)"
+$(correr consejo.html)
+$(correr consejo-inicio.html)"
 
 echo "$SALIDA"
 echo "$SALIDA" | grep -q FALLA && exit 1
