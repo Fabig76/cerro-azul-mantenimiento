@@ -48,6 +48,21 @@ function evidenciasUpload(ctx, payload) {
   if (momento === 'ANTES' && String(act.estado) !== 'PROGRAMADA') {
     fallar_('ESTADO_INVALIDO', 'La actividad ya fue iniciada: no se aceptan fotos de ANTES.');
   }
+  // RN-33: si la foto viene de una etapa, el reporte tiene que ser de esta actividad
+  // y de quien la está subiendo.
+  let reporteId = '';
+  if (payload.reporte_id) {
+    const rep = buscarPorId('reportes', payload.reporte_id);
+    if (!rep || !bool(rep.activo)) fallar_('VALIDACION', 'Ese reporte no existe.');
+    if (String(rep.actividad_id) !== String(actividadId)) {
+      fallar_('VALIDACION', 'Ese reporte es de otra actividad.');
+    }
+    if (String(rep.usuario_id) !== String(ctx.usuario.id)) {
+      fallar_('VALIDACION', 'Solo quien reportó la etapa puede subir su foto.');
+    }
+    reporteId = String(rep.id);
+  }
+
   const mime = exigirEnEnum(payload.mime || 'image/jpeg', 'mime', ['image/jpeg', 'image/png', 'application/pdf']);
   const bytes = decodificarBase64_(payload.base64);
   if (bytes.length > 2 * 1024 * 1024) fallar_('ARCHIVO_GRANDE', 'La imagen supera 2 MB.');
@@ -81,6 +96,16 @@ function evidenciasUpload(ctx, payload) {
     fallar_('FOTO_DUPLICADA', 'Esa foto es de la visita. La foto de antes se toma al iniciar el trabajo.');
   }
 
+  // RN-34: una foto por etapa. Si ya hay una, se reemplaza (la anterior queda inactiva).
+  if (reporteId) {
+    const anterior = filtrar('evidencias', function (e) {
+      return String(e.reporte_id) === reporteId && bool(e.activo);
+    })[0];
+    if (anterior) {
+      actualizar('evidencias', anterior.id, { activo: false, publicable: false }, ctx.usuario.email);
+    }
+  }
+
   const nodo = buscarPorId('nodos', act.nodo_id);
   const codigo = nodo ? nodo.codigo : 'NODO';
   const hoy = hoyIso();
@@ -112,7 +137,7 @@ function evidenciasUpload(ctx, payload) {
   const fila = conBloqueo(function () {
     return insertar('evidencias', {
       id: newId('EVI'),
-      reporte_id: payload.reporte_id || '',
+      reporte_id: reporteId,
       actividad_id: actividadId,
       nodo_id: act.nodo_id,
       momento: momento,

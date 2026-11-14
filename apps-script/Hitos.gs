@@ -14,6 +14,12 @@ function hitosGuardar(ctx, payload) {
   const lista = Array.isArray(payload.hitos) ? payload.hitos : [];
   if (!lista.length) fallar_('VALIDACION', 'Agrega al menos un hito.');
 
+  // Un trabajo con veinte etapas no se puede seguir ni en pantalla ni en el acta.
+  const maximo = configNumero('max_etapas', 10);
+  if (lista.length > maximo) {
+    fallar_('VALIDACION', 'Un trabajo admite hasta ' + maximo + ' etapas. Divide el resto en otro trabajo.');
+  }
+
   const total = lista.reduce(function (s, h) { return s + (Number(h.peso) || 1); }, 0);
   if (total <= 0) fallar_('VALIDACION', 'Los pesos deben sumar más que cero.');
 

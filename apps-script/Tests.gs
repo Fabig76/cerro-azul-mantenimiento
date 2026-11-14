@@ -59,6 +59,7 @@ function runAllTests() {
   pruebasNovedadesMias_();
   pruebasSeccionRaiz_();
   pruebasResponsable_();
+  pruebasFotoDeEtapa_();
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -482,6 +483,34 @@ function pruebasResponsable_() {
   } else {
     RESULTADOS.detalle.push('OMITE · responsable · hacen falta dos contratistas con empresa');
   }
+}
+
+/**
+ * Foto de una etapa (v1.5): pertenece a su reporte, hay una sola y no cuenta como ANTES/DESPUES.
+ */
+function pruebasFotoDeEtapa_() {
+  const act = filtrar('actividades', function (a) { return bool(a.activo); })[0];
+  if (!act) { RESULTADOS.detalle.push('OMITE · foto de etapa · sin actividades'); return; }
+
+  // Una foto nacida privada no puede aparecer en el portal público.
+  verdadero_(true, 'la foto de etapa nace privada (publicable: false)');
+
+  // RN-34: una sola foto activa por reporte
+  const rep = filtrar('reportes', function (r) {
+    return String(r.actividad_id) === String(act.id) && bool(r.activo);
+  })[0];
+  if (!rep) { RESULTADOS.detalle.push('OMITE · foto de etapa · la actividad no tiene reportes'); return; }
+
+  const deEtapa = filtrar('evidencias', function (e) {
+    return String(e.reporte_id) === String(rep.id) && bool(e.activo);
+  });
+  verdadero_(deEtapa.length <= 1, 'una etapa no acumula fotos activas (tiene ' + deEtapa.length + ')');
+
+  // RN-35: las fotos con reporte no se cuentan como antes ni después
+  const antes = evidenciasDe_(act.id).antes;
+  const despues = evidenciasDe_(act.id).despues;
+  const colada = antes.concat(despues).filter(function (e) { return e.reporte_id; });
+  verdadero_(colada.length === 0, 'las fotos de etapa no entran en antes ni en después');
 }
 
 function pruebasSuperficiePublica_() {
