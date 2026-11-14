@@ -79,6 +79,18 @@
     const sub = el('p', 'usuario-correo', u.email);
     quien.appendChild(sub);
 
+    // A qué empresa está vinculado: sin esto solo se ve el correo.
+    const empresa = el('p', 'usuario-empresa');
+    if (u.empresa) {
+      empresa.textContent = 'Empresa: ' + u.empresa + (u.empresa_activa === false ? ' (inactiva)' : '');
+      if (u.empresa_activa === false) empresa.className = 'usuario-empresa texto-danger';
+    } else {
+      empresa.textContent = u.rol === 'CONTRATISTA'
+        ? 'Sin empresa vinculada — no podrá recibir trabajos'
+        : 'Sin empresa (no hace falta para su rol)';
+    }
+    quien.appendChild(empresa);
+
     const marcas = el('div', 'usuario-marcas');
     const rol = el('span', 'badge gray', ROL[u.rol] || u.rol);
     const estado = el('span', 'badge ' + (ESTADO[u.estado] || 'gray'), u.estado);

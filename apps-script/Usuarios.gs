@@ -4,6 +4,7 @@
  */
 
 function usuarioResumen_(u) {
+  const empresa = u.empresa_id ? buscarPorId('empresas', u.empresa_id) : null;
   return {
     id: u.id,
     email: u.email,
@@ -12,6 +13,9 @@ function usuarioResumen_(u) {
     rol: u.rol,
     estado: u.estado,
     empresa_id: u.empresa_id || '',
+    // Sin el nombre de la empresa, la lista de usuarios no dice a quién pertenece cada uno.
+    empresa: empresa ? empresa.razon_social : '',
+    empresa_activa: empresa ? bool(empresa.activo) : false,
     ultimo_acceso: u.ultimo_acceso || '',
     acepto_datos_version: u.acepto_datos_version || '',
   };

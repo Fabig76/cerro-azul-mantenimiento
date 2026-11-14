@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div class="card" id="tarjetaUsuarios" data-panel="usuarios">
+  <div class="cabecera-seccion"><h2>Usuarios</h2><span class="codigo" id="conteoUsuarios"></span></div>
+  <div id="listaUsuarios"></div>
+  <div id="panelUsuario" class="oculto"></div>
+</div>
+<script>
+window.API = { llamar: function (accion) {
+  if (accion === 'usuarios.listar') return Promise.resolve({ ok: true, data: { usuarios: [
+    { id: 'U1', email: 'info@maxcontrol.com.co', nombre: 'Luis Pérez', rol: 'CONTRATISTA',
+      estado: 'ACTIVO', empresa_id: 'E1', empresa: 'MAXCONTROL S.A.S.', empresa_activa: true,
+      asignaciones: [{ nodo_id: 'N1' }] },
+    { id: 'U2', email: 'otro@sinempresa.com', nombre: 'Sin empresa', rol: 'CONTRATISTA',
+      estado: 'PENDIENTE', empresa_id: '', empresa: '', empresa_activa: false, asignaciones: [] },
+  ] } });
+  if (accion === 'empresas.listar') return Promise.resolve({ ok: true, data: { empresas: [
+    { id: 'E1', razon_social: 'MAXCONTROL S.A.S.' } ] } });
+  if (accion === 'nodos.arbol') return Promise.resolve({ ok: true, data: { nodos: [] } });
+  if (accion === 'usuarios.listar_todo') return Promise.resolve({ ok: true, data: {} });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; } };
+window.Datos = { obtener: function (accion) { return window.API.llamar(accion); }, invalidar: function () {} };
+</script>
+<script src="../../web/js/usuarios.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  try {
+    Usuarios.cargar();
+    await esperar(400);
+    const texto = document.getElementById('listaUsuarios').textContent;
+
+    r.push((texto.indexOf('MAXCONTROL S.A.S.') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · el usuario con empresa la muestra');
+    r.push((texto.indexOf('Empresa: MAXCONTROL') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · con la etiqueta «Empresa:»');
+    r.push((texto.indexOf('Sin empresa vinculada') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · el contratista sin empresa lo dice y avisa que no recibirá trabajos');
+  } catch (e) { r.push('FALLA · ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>
