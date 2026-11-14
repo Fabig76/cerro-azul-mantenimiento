@@ -431,14 +431,18 @@
         const antes = r.fotos.filter(function (f) { return f.momento === 'ANTES'; })[0];
         const despues = r.fotos.filter(function (f) { return f.momento === 'DESPUES'; })[0];
         if (antes && despues) {
+          // Antes y después, lado a lado y con su etiqueta: es lo que da confianza.
           const par = el('div', 'mini-comparador');
-          for (const f of [antes, despues]) {
+          [['ANTES', antes, 'Antes'], ['DESPUES', despues, 'Después']].forEach(function (par_) {
+            const figura = el('figure', 'comparador-par');
             const img = el('img');
             img.loading = 'lazy';
-            img.alt = 'Evidencia del trabajo';
-            par.appendChild(img);
-            cargarFoto(f.id, img);
-          }
+            img.alt = 'Foto de ' + par_[2].toLowerCase() + ' del trabajo';
+            figura.appendChild(img);
+            figura.appendChild(el('figcaption', 'comparador-pie', par_[2]));
+            par.appendChild(figura);
+            cargarFoto(par_[1].id, img);
+          });
           li.appendChild(par);
         }
       }

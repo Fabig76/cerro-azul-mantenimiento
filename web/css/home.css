@@ -113,8 +113,18 @@
 .fila-texto { font-size: 14.5px; font-weight: 600; color: var(--ink); }
 .fila-meta { font-size: 12.5px; color: var(--muted); margin-left: auto; }
 .reciente { align-items: flex-start; }
-.mini-comparador { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
-.mini-comparador img { width: 50%; border-radius: 8px; border: 1px solid var(--line); object-fit: cover; aspect-ratio: 4/3; }
+.mini-comparador { display: flex; gap: 8px; width: 100%; margin-top: 10px; }
+.comparador-par { flex: 1 1 50%; margin: 0; min-width: 0; position: relative; }
+.comparador-par img {
+  width: 100%; display: block; border-radius: 10px;
+  border: 1px solid var(--line); object-fit: cover; aspect-ratio: 4/3; background: var(--card-2);
+}
+.comparador-pie {
+  position: absolute; top: 6px; left: 6px;
+  font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  background: rgba(15, 23, 42, .72); color: #fff;
+  padding: 3px 8px; border-radius: 999px;
+}
 
 @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) {

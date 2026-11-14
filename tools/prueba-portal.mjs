@@ -81,6 +81,21 @@ comprobar(movil.indexOf('Cada trabajo queda con su foto') < iEstado,
   comprobar(js.indexOf("'Aprobadas de programadas'") < 0, 'ya no queda el texto técnico anterior');
 }
 
+// 4.5 · Antes y después lado a lado
+{
+  const js = fs.readFileSync(path.join(raiz, 'web', 'js', 'publico.js'), 'utf8');
+  comprobar(js.indexOf("'mini-comparador'") > 0, 'la pareja antes/después se dibuja junta');
+  comprobar(js.indexOf("'comparador-pie'") > 0 && js.indexOf("'Antes'") > 0 && js.indexOf("'Después'") > 0,
+    'cada foto lleva su etiqueta');
+  comprobar(/momento === 'ANTES'/.test(js) && /momento === 'DESPUES'/.test(js),
+    'se elige una foto de antes y una de después');
+  comprobar(js.indexOf('cargarFoto(par_[1].id, img)') > 0, 'las fotos pasan por la caché del dispositivo');
+
+  const css = fs.readFileSync(path.join(raiz, 'web', 'css', 'home.css'), 'utf8');
+  comprobar(/\.comparador-par \{ flex: 1 1 50%/.test(css), 'las dos fotos ocupan la mitad cada una');
+  comprobar(/\.comparador-pie \{/.test(css), 'la etiqueta se ve sobre la foto');
+}
+
 const css = fs.readFileSync(path.join(raiz, 'web', 'css', 'home.css'), 'utf8');
 comprobar(/@media \(max-width: 767px\)[\s\S]*?\.hero \.lead, \.hero \.chips \{ display: none; \}/.test(css),
   'en el celular se ocultan la presentación larga y los chips');
