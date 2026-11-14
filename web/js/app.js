@@ -229,6 +229,7 @@
     // Cada pestaña carga la primera vez que se abre; antes se cargaban todas al entrar.
     cargarPestana(pestanaActual());
     if (rolActual === 'CONTRATISTA') cargarNovedadesMias();
+    if (window.Residentes && (rolActual === 'ADMIN' || rolActual === 'SUPERVISOR')) Residentes.cargar();
   }
 
   const nodosAbiertos = {};
@@ -1088,6 +1089,7 @@
       Usuarios.prepararEmpresa();
     }
     if (id === 'novedades' && window.Novedades) { Novedades.cargar(); Novedades.preparar(); }
+    if (id === 'novedades' && window.Residentes) { Residentes.cargar(); }
     if (id === 'inicio' && window.Consejo) { Consejo.cargar(); }
   }
 

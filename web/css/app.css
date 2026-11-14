@@ -759,3 +759,13 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 .ficha-barra { width: 100%; background: var(--brand); border-radius: 4px 4px 0 0; min-height: 2px; }
 .ficha-barra.con-devueltos { background: var(--warn); }
 .ficha-mes-etiqueta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* Reportes de residentes */
+.lista-residentes { display: grid; gap: 10px; }
+.residente-reporte { border: 1px solid var(--line); border-left: 5px solid var(--warn); border-radius: var(--radius-m); padding: 12px 14px; }
+.residente-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.residente-cab h3 { margin: 0; font-size: 15px; }
+.residente-texto { margin: 6px 0; font-size: 14px; }
+.residente-foto img { max-width: 200px; border-radius: 8px; border: 1px solid var(--line); }
+.residente-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.residente-form { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); display: grid; gap: 8px; }

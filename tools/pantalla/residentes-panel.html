@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body data-rol="ADMIN">
+<div class="card" id="tarjetaResidentes" hidden>
+  <span class="badge warn" id="insigniaResidentes" hidden></span>
+  <div id="listaResidentes"></div>
+  <div class="msg" id="avisoResidentes"></div>
+</div>
+<script>
+window.__llamadas = [];
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload });
+  if (accion === 'residentes.listar') return Promise.resolve({ ok: true, data: { reportes: [
+    { id: 'R1', nodo_id: 'N1', nodo_nombre: 'Torre 1', descripcion: 'Baldosa rota en el pasillo del segundo piso',
+      estado: 'POR_REVISAR', creado_en: new Date(Date.now() - 3 * 3600000).toISOString(), tiene_foto: true },
+  ] } });
+  if (accion === 'residentes.foto.get') return Promise.resolve({ ok: true, data: { base64: 'QUJD', mime: 'image/jpeg' } });
+  if (accion === 'residentes.convertir') return Promise.resolve({ ok: true, data: { novedad: { id: 'NOV1' } } });
+  if (accion === 'residentes.descartar') return Promise.resolve({ ok: true, data: {} });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; } };
+window.FotoCache = { configurar: function () {}, mostrar: function (img) { img.src = 'data:image/jpeg;base64,QUJD'; } };
+</script>
+<script src="../../web/js/residentes.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  try {
+    await Residentes.cargar();
+    await esperar(200);
+
+    const cont = document.getElementById('listaResidentes');
+    r.push((cont.textContent.indexOf('Baldosa rota') >= 0 ? 'OK   ' : 'FALLA') + ' · muestra el reporte');
+    r.push((cont.textContent.indexOf('hace 3 horas') >= 0 ? 'OK   ' : 'FALLA') + ' · dice hace cuánto llegó');
+    r.push((!document.getElementById('tarjetaResidentes').hidden ? 'OK   ' : 'FALLA') + ' · aparece la tarjeta');
+    r.push((document.getElementById('insigniaResidentes').textContent === '1' ? 'OK   ' : 'FALLA') + ' · con la insignia en 1');
+    r.push((cont.querySelector('img') ? 'OK   ' : 'FALLA') + ' · pinta la foto');
+
+    // Convertir abre el formulario
+    const convertir = Array.prototype.slice.call(cont.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent === 'Convertir en novedad'; })[0];
+    convertir.click();
+    await esperar(150);
+    const form = cont.querySelector('.residente-form');
+    r.push((form ? 'OK   ' : 'FALLA') + ' · «Convertir» abre el formulario');
+    r.push((form && form.textContent.indexOf('no muestra personas') >= 0 ? 'OK   ' : 'FALLA') +
+      ' · pide confirmar que la foto no muestra personas');
+
+    const crear = Array.prototype.slice.call(form.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent === 'Crear la novedad'; })[0];
+    crear.click();
+    await esperar(300);
+    const llamada = window.__llamadas.filter(function (x) { return x.accion === 'residentes.convertir'; })[0];
+    r.push((llamada ? 'OK   ' : 'FALLA') + ' · crea la novedad en el servidor');
+    r.push((llamada && llamada.payload.foto_sin_personas === false ? 'OK   ' : 'FALLA') +
+      ' · sin marcar la casilla, la foto NO se publica');
+
+    // Descartar pide motivo
+    window.prompt = function () { return 'no es un daño real'; };
+    const descartar = Array.prototype.slice.call(cont.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent === 'Descartar'; })[0];
+    descartar.click();
+    await esperar(300);
+    const des = window.__llamadas.filter(function (x) { return x.accion === 'residentes.descartar'; })[0];
+    r.push((des && des.payload.motivo ? 'OK   ' : 'FALLA') + ' · descartar manda el motivo');
+  } catch (e) { r.push('FALLA · ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>
