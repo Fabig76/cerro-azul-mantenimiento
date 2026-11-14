@@ -875,16 +875,25 @@
     if (rol === 'ADMIN' && a.estado !== 'CERRADA' && a.estado !== 'CANCELADA') {
       const btn = el('button', 'btn sm', hitos.length ? 'Reemplazar etapas' : 'Definir etapas');
       btn.type = 'button';
-      btn.addEventListener('click', function () { formularioHitos(); });
+      btn.addEventListener('click', function () { formularioHitos(btn); });
       caja.appendChild(btn);
     }
     return caja;
   }
 
-  function formularioHitos() {
+  function formularioHitos(boton) {
+    if (!window.Etapas) {
+      aviso('No se pudo abrir el editor de etapas. Recargue la página e intente de nuevo.', 'error');
+      return;
+    }
     // Si ya hay un editor abierto, se reemplaza: pulsar dos veces no debe apilar dos.
     const previo = document.getElementById('formEtapas');
-    if (previo) previo.remove();
+    if (previo) {
+      // Volver a pulsar cierra el editor: el botón dice qué hace en cada momento.
+      previo.remove();
+      if (boton) boton.textContent = boton.dataset.etiqueta || 'Reemplazar etapas';
+      return;
+    }
 
     const caja = bloqueFormulario('Etapas del trabajo');
     caja.id = 'formEtapas';
@@ -919,6 +928,16 @@
     acciones.appendChild(volver);
     caja.appendChild(acciones);
     document.getElementById('contenidoActividad').appendChild(caja);
+
+    // El editor va al final del detalle: hay que llevarlo a la vista y avisar donde se pulsó,
+    // o parece que el botón no hizo nada.
+    if (boton) {
+      boton.dataset.etiqueta = boton.textContent;
+      boton.textContent = 'Cerrar el editor';
+    }
+    caja.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    const primero = caja.querySelector('input');
+    if (primero) setTimeout(function () { primero.focus(); }, 250);
   }
 
   function acciones() {

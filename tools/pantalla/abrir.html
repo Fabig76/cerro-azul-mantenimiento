@@ -27,7 +27,10 @@ window.API = { llamar: function (accion) {
     plantilla: { id: 'P', nombre: 'X', metodo_avance: 'CHECKLIST', items: [
       { id: 'I1', orden: 1, grupo: 'G', pregunta: '¿Quedó limpio?', tipo_respuesta: 'SI_NO',
         obligatorio: true, peso: 1, requiere_foto: false, criterio: '' } ] },
-    hitos: [], reportes: [], evidencias: [], respuestas: [],
+    hitos: window.__conHitos
+      ? [{ id: 'HIT_1', orden: 1, nombre: 'FUMIGACION', peso: 1, fecha_plan: '2026-11-13', estado: 'PENDIENTE' }]
+      : [],
+    reportes: [], evidencias: [], respuestas: [],
     ultimo_final: estado === 'RECHAZADA'
       ? { comentario_admin: 'Falta la foto', revisado_en: '2026-11-12T09:00:00-05:00' } : null,
     propuesta: null,
@@ -60,6 +63,35 @@ window.App = { pestana: function () {}, refrescar: function () {} };
 
   try {
     await probar('PROGRAMADA', false);
+
+    // El botón de etapas: con hitos dice «Reemplazar etapas» y debe abrir el editor
+    window.__conHitos = true;
+    document.getElementById('contenidoActividad').textContent = '';
+    await Actividad.abrir('ACT_1', 'ADMIN');
+    await esperar(250);
+    const cont = document.getElementById('contenidoActividad');
+    const botonEtapas = Array.prototype.slice.call(cont.querySelectorAll('button'))
+      .filter(function (b) { return (b.textContent || '').indexOf('etapas') >= 0; })[0];
+    r.push((botonEtapas ? 'OK   ' : 'FALLA') + ' · aparece el botón de etapas («' +
+      (botonEtapas ? botonEtapas.textContent : 'ninguno') + '»)');
+    if (botonEtapas) {
+      botonEtapas.click();
+      await esperar(200);
+      const editor = document.querySelectorAll('.etapas').length;
+      const guardar = Array.prototype.slice.call(cont.querySelectorAll('button'))
+        .filter(function (b) { return (b.textContent || '') === 'Guardar etapas'; })[0];
+      r.push((editor >= 1 ? 'OK   ' : 'FALLA') + ' · abre el editor (' + editor + ')');
+      r.push((guardar ? 'OK   ' : 'FALLA') + ' · ofrece «Guardar etapas»');
+      r.push((botonEtapas.textContent === 'Cerrar el editor' ? 'OK   ' : 'FALLA') +
+        ' · el botón avisa que el editor está abierto («' + botonEtapas.textContent + '»)');
+      botonEtapas.click();
+      await esperar(120);
+      r.push((document.querySelectorAll('.etapas').length === 0 ? 'OK   ' : 'FALLA') +
+        ' · volver a pulsar lo cierra');
+      r.push((botonEtapas.textContent === 'Reemplazar etapas' ? 'OK   ' : 'FALLA') +
+        ' · y el botón vuelve a su texto');
+    }
+    window.__conHitos = false;
     await probar('EN_EJECUCION', true);
     await probar('RECHAZADA', true);
   } catch (e) {
