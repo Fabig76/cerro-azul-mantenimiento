@@ -119,12 +119,23 @@
     const tipo = img.dataset.tipo;
     if (!clave || !tipo) return;
     img.dataset.cargando = '1';
+    try {
+      await cargarDeVerdad(img, clave, tipo);
+    } finally {
+      delete img.dataset.cargando;
+    }
+  }
 
-    const guardada = await leer(clave);
+  async function cargarDeVerdad(img, clave, tipo) {
+    // La caché no puede frenar la primera imagen: si IndexedDB no contesta en
+    // 400 ms, se pide a la red y se sigue.
+    const guardada = await Promise.race([
+      leer(clave),
+      new Promise(function (resolver) { setTimeout(function () { resolver(null); }, 400); }),
+    ]);
     if (guardada) {
       img.src = 'data:' + guardada.mime + ';base64,' + guardada.base64;
       img.dataset.cargada = '1';
-      delete img.dataset.cargando;
       return;
     }
 
@@ -136,7 +147,6 @@
         guardar(clave, r.base64, r.mime);
       }
     } catch (e) { /* queda el hueco */ }
-    delete img.dataset.cargando;
   }
 
   /** Prepara una imagen: guarda cómo pedirla y la carga al entrar en pantalla. */
