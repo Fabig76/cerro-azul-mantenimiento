@@ -19,9 +19,11 @@ const audit = (schema.match(/CAMPOS_AUDITORIA\s*=\s*\[([^\]]*)\]/) || [, ''])[1]
 const tablas = {};
 // Cada tabla termina en su primer corchete. Las columnas de auditoría solo existen
 // en las que usan .concat(CAMPOS_AUDITORIA): darlas por hechas ocultaba errores reales.
+// Los comentarios dentro del arreglo no son columnas: se quitan antes de partir.
+const schemaLimpio = schema.replace(/\/\/[^\n]*/g, '');
 const reTabla = /^\s{2}([a-z_]+):\s*\[([^\]]*)\]\s*(\.[a-z]+)?/gm;
 let m;
-while ((m = reTabla.exec(schema)) !== null) {
+while ((m = reTabla.exec(schemaLimpio)) !== null) {
   const cols = m[2].split(',').map((c) => c.trim().replace(/['"]/g, '')).filter(Boolean);
   const conAuditoria = String(m[3] || '').indexOf('concat') >= 0;
   tablas[m[1]] = new Set(conAuditoria ? [...cols, ...audit] : cols);

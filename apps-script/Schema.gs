@@ -7,7 +7,7 @@ const CAMPOS_AUDITORIA = ['creado_en', 'creado_por', 'actualizado_en', 'actualiz
 
 // Sube este número cada vez que cambie el esquema: la app lo compara con la
 // propiedad de script y crea las pestañas o columnas nuevas sin exigir setup().
-const ESQUEMA_VERSION = 3;
+const ESQUEMA_VERSION = 4;
 
 const SCHEMA = {
   nodos: [
@@ -61,6 +61,8 @@ const SCHEMA = {
     'avance_aprobado_pct', 'fecha_inicio_real', 'fecha_reporte_final', 'fecha_aprobacion',
     'obligatoria_legal', 'afecta_uso', 'publicable', 'acta_file_id', 'inicio_sin_foto_motivo',
     'propuesta_id',
+    // v1.6: el valor aprobado y su cotización viven también en la actividad.
+    'valor_aprobado', 'cotizacion_file_id',
   ].concat(CAMPOS_AUDITORIA),
 
   hitos: ['id', 'actividad_id', 'orden', 'nombre', 'peso', 'fecha_plan', 'estado', 'fecha_aprobacion']
@@ -106,6 +108,9 @@ const SCHEMA = {
     'prioridad_sugerida', 'afecta_uso', 'propuesta_por', 'empresa_id', 'estado', 'fotos_json',
     'revisado_por', 'revisado_en', 'motivo_rechazo', 'ajustes_json', 'actividad_id',
     'fotos_purgadas_en',
+    // v1.6: la cotización del contratista y el valor que aprueba la administración.
+    'valor_cotizado', 'cotizacion_file_id', 'cotizacion_nombre', 'cotizacion_bytes',
+    'cotizacion_sha256', 'cotizacion_subida_en', 'cotizacion_vigente_hasta', 'valor_aprobado',
   ].concat(CAMPOS_AUDITORIA),
 
   notificaciones: ['id', 'fecha', 'usuario_id', 'tipo', 'entidad_id', 'estado', 'intentos', 'enviado_en', 'error'],

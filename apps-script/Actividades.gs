@@ -389,8 +389,16 @@ function detalleActividad_(ctx, id) {
   const porHitos = avancePorHitos_(act.id);
   if (porHitos) resumen.avance_por_hitos = porHitos;
 
+  // v1.6: el valor aprobado y su cotización, solo para quien puede verlos (RN-39).
+  const valorAprobado = Number(act.valor_aprobado || 0);
+  const conValor = puedeVerValorActividad_(ctx, act);
+
   return {
     actividad: resumen,
+    valor_aprobado: conValor ? valorAprobado : undefined,
+    cotizacion: conValor && act.cotizacion_file_id
+      ? { hay: true, propuesta_id: act.propuesta_id || '' }
+      : undefined,
     descripcion: act.descripcion || '',
     nodo: nodo ? { id: nodo.id, codigo: nodo.codigo, nombre: nodo.nombre, sensible: bool(nodo.sensible) } : null,
     plantilla: plantilla ? {
@@ -548,4 +556,10 @@ function cancelarActividad_(ctx, payload, id, motivo) {
     { estado: act.estado }, { estado: 'CANCELADA', motivo: motivo });
 
   return { actividad: actividadResumen_(despues), motivo: motivo };
+}
+
+/** RN-39: el valor de un trabajo lo ven el administrador, el consejo y su responsable. */
+function puedeVerValorActividad_(ctx, act) {
+  if (['ADMIN', 'SUPERVISOR', 'CONSEJO'].indexOf(String(ctx.rol)) >= 0) return true;
+  return String(act.responsable_id) === String(ctx.usuario.id);
 }

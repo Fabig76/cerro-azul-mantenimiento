@@ -6,12 +6,12 @@
 
 const PROPUESTAS_FOTOS_MAX = 3;
 
-function propuestaResumen_(p) {
+function propuestaResumen_(p, ctx) {
   const nodo = p.nodo_id ? buscarPorId('nodos', p.nodo_id) : null;
   const autor = p.propuesta_por ? buscarPorId('usuarios', p.propuesta_por) : null;
   const empresa = p.empresa_id ? buscarPorId('empresas', p.empresa_id) : null;
   const fotos = fromJson(p.fotos_json, []);
-  return {
+  const resumen = {
     id: p.id,
     titulo: p.titulo,
     nodo_id: p.nodo_id,
@@ -38,6 +38,20 @@ function propuestaResumen_(p) {
     creado_en: p.creado_en,
     actualizado_en: p.actualizado_en,
   };
+  // RN-39: la cifra solo la ven el administrador, el consejo, quien propuso y el
+  // responsable de la actividad. A los demás no les llega ni el valor ni el archivo.
+  if (!ctx || puedeVerCotizacion_(ctx, p)) {
+    resumen.valor_cotizado = Number(p.valor_cotizado || 0);
+    resumen.valor_aprobado = Number(p.valor_aprobado || 0);
+    resumen.cotizacion_vigente_hasta = p.cotizacion_vigente_hasta || '';
+    if (p.cotizacion_file_id) {
+      resumen.cotizacion = {
+        nombre: p.cotizacion_nombre || 'cotizacion.pdf',
+        bytes: Number(p.cotizacion_bytes || 0),
+      };
+    }
+  }
+  return resumen;
 }
 
 /** Actividades abiertas en una sección (para avisar, no para bloquear). */
@@ -118,6 +132,10 @@ function propuestasCrear(ctx, payload) {
     ajustes_json: '{}',
     actividad_id: '',
     fotos_purgadas_en: '',
+    // v1.6: valor cotizado en pesos y, si aplica, hasta cuándo vale.
+    valor_cotizado: enterarValor_(payload.valor_cotizado, 0),
+    cotizacion_vigente_hasta: fechaIso_(payload.cotizacion_vigente_hasta || ''),
+    valor_aprobado: 0,
     activo: true,
   }, ctx.usuario.email);
 
@@ -132,7 +150,7 @@ function propuestasCrear(ctx, payload) {
 
   const abiertas = actividadesAbiertasEn_(nodoId);
   return {
-    propuesta: propuestaResumen_(propuesta),
+    propuesta: propuestaResumen_(propuesta, ctx),
     aviso: abiertas ? 'Ya hay ' + abiertas + ' actividad(es) abierta(s) en esta sección.' : '',
   };
 }
@@ -190,7 +208,7 @@ function propuestasGet(ctx, payload) {
   const esAdmin = ['ADMIN', 'SUPERVISOR'].indexOf(ctx.rol) >= 0;
   if (!autor && !esAdmin) fallar_('PROHIBIDO', 'No puedes ver esta propuesta.');
 
-  const salida = { propuesta: propuestaResumen_(p) };
+  const salida = { propuesta: propuestaResumen_(p, ctx) };
 
   if (ctx.rol === 'ADMIN' || ctx.rol === 'SUPERVISOR') {
     const usuario = buscarPorId('usuarios', p.propuesta_por);
@@ -294,9 +312,22 @@ function propuestasAprobar(ctx, payload) {
       ajustes.prioridad = { antes: p.prioridad_sugerida, despues: prioridad };
     }
 
+    // RN-38: el administrador puede aprobar por otro valor; si no escribe, va el cotizado.
+    const valorAprobado = enterarValor_(payload.valor_aprobado, p.valor_cotizado);
+    if (valorAprobado !== Number(p.valor_cotizado || 0)) {
+      ajustes.valor = { antes: Number(p.valor_cotizado || 0), despues: valorAprobado };
+    }
+    if (valorAprobado > 0) {
+      actualizar('actividades', creada.actividad.id, {
+        valor_aprobado: valorAprobado,
+        cotizacion_file_id: p.cotizacion_file_id || '',
+      }, ctx.usuario.email);
+    }
+
     const actualizada = actualizar('propuestas', p.id, {
       estado: 'APROBADA',
       actividad_id: creada.actividad.id,
+      valor_aprobado: valorAprobado,
       revisado_por: ctx.usuario.email,
       revisado_en: ahoraIso(),
       ajustes_json: toJson(ajustes),
@@ -306,7 +337,7 @@ function propuestasAprobar(ctx, payload) {
     auditar(ctx.usuario.email, 'PROPUESTA_APROBADA', 'propuesta', p.id, null,
       { actividad: creada.actividad.id, ajustes: ajustes });
 
-    return { propuesta: propuestaResumen_(actualizada), actividad: creada.actividad };
+    return { propuesta: propuestaResumen_(actualizada, ctx), actividad: creada.actividad };
   });
 }
 
@@ -332,7 +363,7 @@ function propuestasRechazar(ctx, payload) {
 
     encolar_(p.propuesta_por, 'PROPUESTA_RECHAZADA', p.id);
     auditar(ctx.usuario.email, 'PROPUESTA_RECHAZADA', 'propuesta', p.id, null, { motivo: motivo });
-    return { propuesta: propuestaResumen_(actualizada) };
+    return { propuesta: propuestaResumen_(actualizada, ctx) };
   });
 }
 
@@ -350,7 +381,7 @@ function propuestasRetirar(ctx, payload) {
 
     const actualizada = actualizar('propuestas', p.id, { estado: 'RETIRADA' }, ctx.usuario.email);
     auditar(ctx.usuario.email, 'PROPUESTA_RETIRADA', 'propuesta', p.id, null, null);
-    return { propuesta: propuestaResumen_(actualizada) };
+    return { propuesta: propuestaResumen_(actualizada, ctx) };
   });
 }
 
@@ -486,6 +517,10 @@ function purgarPropuestas_() {
         try { DriveApp.getFileById(id).setTrashed(true); archivos++; } catch (e) { /* ya no existe */ }
       });
     });
+    // RN-40: el PDF de la cotización corre la misma suerte que las fotos.
+    if (p.cotizacion_file_id) {
+      try { DriveApp.getFileById(p.cotizacion_file_id).setTrashed(true); archivos++; } catch (e) { /* ya no está */ }
+    }
   });
 
   return conBloqueo(function () {
@@ -502,7 +537,134 @@ function purgarPropuestas_() {
 }
 
 function actualizarFotosPurgadas_(p, hoy) {
-  actualizar('propuestas', p.id, { fotos_json: '[]', fotos_purgadas_en: hoy }, 'sistema');
+  actualizar('propuestas', p.id, {
+    fotos_json: '[]',
+    fotos_purgadas_en: hoy,
+    cotizacion_file_id: '',
+    cotizacion_nombre: '',
+    cotizacion_bytes: 0,
+    cotizacion_sha256: '',
+  }, 'sistema');
   auditar('sistema', 'PROPUESTA_FOTOS_PURGADAS', 'propuesta', p.id, null,
     { titulo: p.titulo, estado: p.estado, motivo: p.motivo_rechazo || '' });
+}
+
+// ---------------------------------------------------------------------------
+// Cotización en PDF (SPEC v1.6, RN-36 a RN-40)
+// ---------------------------------------------------------------------------
+
+/**
+ * Sube la cotización de una propuesta. Opcional, pero si hay PDF tiene que haber
+ * valor. El PDF se valida por sus primeros bytes, no por el tipo que diga el cliente.
+ */
+function propuestasCotizacionSubir(ctx, payload) {
+  desdePortal_(payload);
+  asegurarEsquema_();
+  const propuestaId = exigirTexto(payload.propuesta_id, 'propuesta_id');
+  const p = buscarPorId('propuestas', propuestaId);
+  if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
+  if (String(p.propuesta_por) !== String(ctx.usuario.id)) fallar_('PROHIBIDO', 'Esa propuesta no es tuya.');
+  if (String(p.estado) !== 'PENDIENTE') fallar_('ESTADO_INVALIDO', 'La propuesta ya fue revisada.');
+
+  const valor = enterarValor_(payload.valor_cotizado, p.valor_cotizado);
+  if (!valor && !Number(p.valor_cotizado)) {
+    fallar_('VALIDACION', 'Para adjuntar la cotización escribe primero el valor.');
+  }
+
+  const bytes = decodificarBase64_(payload.base64);
+  if (!bytes.length) fallar_('VALIDACION', 'El archivo llegó vacío.');
+  if (bytes.length > 5 * 1024 * 1024) {
+    fallar_('ARCHIVO_GRANDE', 'La cotización pesa más de 5 MB. Guárdela de nuevo en menor calidad o pida una versión liviana.');
+  }
+  const cabecera = String.fromCharCode.apply(null, bytes.slice(0, 5));
+  if (cabecera !== '%PDF-') fallar_('VALIDACION', 'El archivo no es un PDF.');
+
+  const sha = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes).map(function (b) {
+    return ((b + 256) % 256).toString(16).padStart(2, '0');
+  }).join('');
+
+  const nombre = String(payload.nombre || 'cotizacion.pdf').replace(/[^\w.\- ]+/g, '').slice(0, 80) || 'cotizacion.pdf';
+
+  // Drive fuera del bloqueo (RN-16).
+  const carpeta = subcarpeta_(subcarpeta_(carpetaEvidencias_(hoyIso()).mes, 'propuestas'), p.id);
+  const archivo = carpeta.createFile(Utilities.newBlob(bytes, 'application/pdf', nombre));
+  archivo.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+
+  return conBloqueo(function () {
+    limpiarCache('propuestas');
+    const fresca = buscarPorId('propuestas', p.id);
+    if (!fresca || String(fresca.estado) !== 'PENDIENTE') {
+      archivo.setTrashed(true);
+      fallar_('ESTADO_INVALIDO', 'La propuesta ya fue revisada; la cotización no se guardó.');
+    }
+
+    // RN-37: una sola cotización por propuesta; la anterior se va a la papelera.
+    if (fresca.cotizacion_file_id) {
+      try { DriveApp.getFileById(fresca.cotizacion_file_id).setTrashed(true); } catch (e) { /* ya no está */ }
+    }
+
+    const cambios = {
+      cotizacion_file_id: archivo.getId(),
+      cotizacion_nombre: nombre,
+      cotizacion_bytes: bytes.length,
+      cotizacion_sha256: sha,
+      cotizacion_subida_en: ahoraIso(),
+      valor_cotizado: valor || Number(fresca.valor_cotizado) || 0,
+    };
+    if (payload.cotizacion_vigente_hasta !== undefined) {
+      cambios.cotizacion_vigente_hasta = fechaIso_(payload.cotizacion_vigente_hasta);
+    }
+    actualizar('propuestas', p.id, cambios, ctx.usuario.email);
+    auditar(ctx.usuario.email, 'PROPUESTA_COTIZACION', 'propuesta', p.id, null,
+      { nombre: nombre, bytes: bytes.length });
+    return { cotizacion: { nombre: nombre, bytes: bytes.length, subida_en: cambios.cotizacion_subida_en } };
+  });
+}
+
+/** Devuelve el PDF de la cotización a quien puede verlo (RN-39). */
+function propuestasCotizacionGet(ctx, payload) {
+  asegurarEsquema_();
+  let p = null;
+  if (payload.propuesta_id) {
+    p = buscarPorId('propuestas', payload.propuesta_id);
+  } else if (payload.actividad_id) {
+    const act = buscarPorId('actividades', payload.actividad_id);
+    if (act && act.propuesta_id) p = buscarPorId('propuestas', act.propuesta_id);
+  }
+  if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'No hay cotización para mostrar.');
+  if (!p.cotizacion_file_id) fallar_('NO_ENCONTRADO', 'Esta propuesta no tiene cotización.');
+
+  if (!puedeVerCotizacion_(ctx, p)) {
+    auditar(ctx.usuario.email, 'DENEGADO', 'propuesta', p.id, null, { que: 'cotizacion' });
+    fallar_('PROHIBIDO', 'No puedes ver esta cotización.');
+  }
+
+  let base64 = '';
+  try {
+    const archivo = DriveApp.getFileById(p.cotizacion_file_id);
+    base64 = Utilities.base64Encode(archivo.getBlob().getBytes());
+  } catch (e) {
+    fallar_('NO_ENCONTRADO', 'El archivo de la cotización ya no está disponible.');
+  }
+  return { base64: base64, mime: 'application/pdf', nombre: p.cotizacion_nombre || 'cotizacion.pdf' };
+}
+
+/** RN-39: quién puede ver el valor y el PDF. */
+function puedeVerCotizacion_(ctx, p) {
+  if (['ADMIN', 'SUPERVISOR', 'CONSEJO'].indexOf(String(ctx.rol)) >= 0) return true;
+  if (String(p.propuesta_por) === String(ctx.usuario.id)) return true;
+  if (p.actividad_id) {
+    const act = buscarPorId('actividades', p.actividad_id);
+    if (act && String(act.responsable_id) === String(ctx.usuario.id)) return true;
+  }
+  return false;
+}
+
+/** Convierte un valor escrito a entero de pesos. Devuelve 0 si no se puede. */
+function enterarValor_(nuevo, anterior) {
+  const crudo = nuevo !== undefined && nuevo !== null ? nuevo : anterior;
+  if (crudo === '' || crudo === null || crudo === undefined) return 0;
+  const n = Number(String(crudo).replace(/[^\d-]/g, ''));
+  if (!isFinite(n) || n < 0) return 0;
+  return Math.round(n);
 }

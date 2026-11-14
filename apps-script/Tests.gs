@@ -62,6 +62,7 @@ function runAllTests() {
   pruebasFotoDeEtapa_();
   pruebasEmpresaEstado_();
   pruebasArchivoCerrado_();
+  pruebasCotizacion_();
   pruebasFilasPorHoja_();
 
   // Las fallas van primero: son lo único que hay que leer.
@@ -568,6 +569,47 @@ function pruebasFilasPorHoja_() {
   const tablas = Object.keys(conteo);
   verdadero_(tablas.length >= 20, 'el monitor mide las tablas (' + tablas.length + ')');
   verdadero_(conteo.actividades !== null && conteo.actividades >= 0, 'y la de actividades da un número');
+}
+
+/**
+ * Cotización (v1.6): PDF de verdad, valor obligatorio, cifra nunca pública.
+ */
+function pruebasCotizacion_() {
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+
+  // Un JPG renombrado no pasa: se revisan los bytes, no el nombre.
+  let codigo = '';
+  try {
+    propuestasCotizacionSubir(ctx, {
+      propuesta_id: 'NO_EXISTE', valor_cotizado: 1000,
+      base64: Utilities.base64Encode('esto no es un pdf'),
+    });
+  } catch (e) { codigo = String(e.message); }
+  verdadero_(codigo.indexOf('NO_ENCONTRADO') === 0 || codigo.indexOf('VALIDACION') === 0,
+    'un archivo que no es PDF se rechaza');
+
+  // El valor se normaliza a entero de pesos
+  verdadero_(enterarValor_('$ 1.250.000', 0) === 1250000, 'el valor escrito se vuelve 1250000');
+  verdadero_(enterarValor_('', 900) === 900, 'si no se escribe valor, se conserva el anterior');
+  verdadero_(enterarValor_('abc', 0) === 0, 'un valor inválido no rompe');
+
+  // La cifra no sale en el portal público
+  const snap = JSON.parse(JSON.stringify(snapshotPublico_()));
+  const texto = JSON.stringify(snap);
+  verdadero_(texto.indexOf('valor_cotizado') < 0 && texto.indexOf('valor_aprobado') < 0 &&
+    texto.indexOf('cotizacion') < 0, 'el snapshot público no lleva la cifra de la cotización');
+
+  // Un contratista ajeno no puede ver la cotización de otro
+  const p = filtrar('propuestas', function (x) { return bool(x.activo); })[0];
+  if (p) {
+    const ajeno = { usuario: { id: 'OTRO' }, rol: 'CONTRATISTA' };
+    const resumen = propuestaResumen_(p, ajeno);
+    verdadero_(resumen.valor_cotizado === undefined, 'un contratista ajeno no ve el valor');
+    const propio = propuestaResumen_(p, { usuario: { id: p.propuesta_por }, rol: 'CONTRATISTA' });
+    verdadero_(propio.valor_cotizado !== undefined, 'quien propuso sí lo ve');
+  } else {
+    RESULTADOS.detalle.push('OMITE · cotización · sin propuestas');
+  }
 }
 
 function pruebasSuperficiePublica_() {

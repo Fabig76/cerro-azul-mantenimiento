@@ -62,6 +62,8 @@ const ACCIONES = {
   'informes.mensual': { fn: accionInforme, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'actividades.acta': { fn: accionActa, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'propuestas.crear': { fn: propuestasCrear, sesion: true, roles: ['CONTRATISTA'] },
+  'propuestas.cotizacion.subir': { fn: propuestasCotizacionSubir, sesion: true, roles: ['CONTRATISTA', 'ADMIN', 'SUPERVISOR'] },
+  'propuestas.cotizacion.get': { fn: propuestasCotizacionGet, sesion: true },
   'propuestas.foto.subir': { fn: propuestasFotoSubir, sesion: true, roles: ['CONTRATISTA'] },
   'propuestas.foto.get': { fn: propuestasFotoGet, sesion: true },
   'propuestas.listar': { fn: propuestasListar, sesion: true },
