@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/home.css">
+</head>
+<body>
+<section id="pantallaReporte" class="oculto"><div class="wrap"><div class="card" id="contenidoReporte"></div></div></section>
+<div id="secciones" data-gpanel="secciones"></div>
+<script>
+window.CFG = { API_URL: 'https://ejemplo.invalido/exec' };
+window.__seccionesPublicas = [
+  { id: 'N1', nombre: 'Torre 1' },
+  { id: 'N2', nombre: 'Áreas comunes' },
+];
+window.__enviados = [];
+window.fetch = async function (url, opciones) {
+  if (String(url).indexOf('public.reporte') >= 0) {
+    return { json: async function () { return { ok: true, data: { estado: 'EN_ATENCION', fecha: '2026-11-14' } }; } };
+  }
+  window.__enviados.push(JSON.parse(opciones.body));
+  return { json: async function () { return { ok: true, data: { codigo_consulta: 'R7K2QM' } }; } };
+};
+window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'QUJD', base64_mini: 'QUJD', kb: 120 }); } };
+</script>
+<script src="../../web/js/reporte.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  const cont = document.getElementById('contenidoReporte');
+
+  try {
+    // --- Formulario de reporte
+    Reporte.montarReporte(cont, 'N2');
+    await esperar(100);
+
+    const sel = document.getElementById('repNodo');
+    r.push((sel && sel.options.length === 2 ? 'OK   ' : 'FALLA') + ' · el selector trae las secciones');
+    r.push((sel && sel.value === 'N2' ? 'OK   ' : 'FALLA') + ' · y viene elegida la del QR');
+
+    const enviar = Array.prototype.slice.call(cont.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent === 'Enviar reporte'; })[0];
+    r.push((enviar && enviar.disabled ? 'OK   ' : 'FALLA') + ' · sin foto el botón está apagado');
+
+    // La foto llega y se activa
+    const foto = document.getElementById('repFoto');
+    Object.defineProperty(foto, 'files', { value: [new File(['x'], 'f.jpg', { type: 'image/jpeg' })] });
+    foto.dispatchEvent(new Event('change'));
+    await esperar(200);
+    r.push((!enviar.disabled ? 'OK   ' : 'FALLA') + ' · con foto se activa');
+    r.push((cont.textContent.indexOf('Foto lista') >= 0 ? 'OK   ' : 'FALLA') + ' · y se ve la vista previa');
+
+    // Texto corto: no envía
+    document.getElementById('repTexto').value = 'corto';
+    enviar.click();
+    await esperar(100);
+    r.push((window.__enviados.length === 0 ? 'OK   ' : 'FALLA') + ' · con texto corto no se envía');
+
+    // Texto suficiente: envía y muestra el código
+    document.getElementById('repTexto').value = 'Se rompió una baldosa en el pasillo del segundo piso';
+    enviar.click();
+    await esperar(400);
+    const cuerpo = window.__enviados[0];
+    r.push((cuerpo && cuerpo.payload.nodo_id === 'N2' ? 'OK   ' : 'FALLA') + ' · envía la sección elegida');
+    r.push((cuerpo && cuerpo.payload.dispositivo ? 'OK   ' : 'FALLA') + ' · manda el identificador del dispositivo');
+    r.push((cuerpo && cuerpo.payload.abierto_en > 0 ? 'OK   ' : 'FALLA') + ' · y la hora de apertura');
+    r.push((cont.textContent.indexOf('R7K2QM') >= 0 ? 'OK   ' : 'FALLA') + ' · muestra el código al terminar');
+
+    // --- Consulta
+    const cont2 = document.createElement('div');
+    Reporte.montarConsulta(cont2);
+    const campo = cont2.querySelector('#consultaCodigo');
+    campo.value = 'R7K2QM';
+    const boton = Array.prototype.slice.call(cont2.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent === 'Consultar'; })[0];
+    boton.click();
+    await esperar(400);
+    r.push((cont2.textContent.indexOf('En atención') >= 0 ? 'OK   ' : 'FALLA') + ' · la consulta dice el estado');
+  } catch (e) { r.push('FALLA · ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

@@ -345,3 +345,18 @@
 .kpi-explica { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
 .kpi-explica p { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
 .kpi-explica p:last-child { margin-bottom: 0; }
+
+/* Reportar un daño (portal público) */
+#pantallaReporte { padding: 22px 0; }
+.reporte-form { display: grid; gap: 12px; max-width: 560px; }
+.reporte-form label.campo { display: grid; gap: 6px; font-weight: 700; font-size: 13.5px; }
+.reporte-form textarea { resize: vertical; }
+.reporte-foto img { max-width: 220px; border-radius: 10px; border: 1px solid var(--line); }
+.reporte-codigo {
+  font-size: 34px; font-weight: 800; letter-spacing: .18em; color: var(--brand-ink);
+  background: var(--brand-soft); border-radius: var(--radius-m);
+  padding: 10px 16px; display: inline-block; margin: 6px 0 10px;
+}
+.campo-trampa {
+  position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0;
+}

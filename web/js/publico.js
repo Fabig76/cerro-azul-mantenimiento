@@ -817,8 +817,37 @@
     });
   }
 
+  /** Abre el reporte o la consulta del residente (módulo aparte, carga al usarse). */
+  function abrirReporte(tipo, nodoId) {
+    const pantalla = document.getElementById('pantallaReporte');
+    const cont = document.getElementById('contenidoReporte');
+    if (!pantalla || !cont) return;
+
+    const cargar = function () {
+      pantalla.classList.remove('oculto');
+      document.querySelectorAll('[data-gpanel]').forEach(function (p) { p.classList.add('oculto'); });
+      window.__seccionesPublicas = (ultimoSnap && ultimoSnap.arbol || []).map(function (x) {
+        return { id: x.id, nombre: x.nombre };
+      });
+      if (tipo === 'consulta') Reporte.montarConsulta(cont);
+      else Reporte.montarReporte(cont, nodoId);
+      pantalla.scrollIntoView({ block: 'start' });
+    };
+
+    if (!window.Reporte) {
+      cont.textContent = 'No se pudo abrir el formulario. Recargue la página.';
+      pantalla.classList.remove('oculto');
+      return;
+    }
+    cargar();
+  }
+
   function ruta(snap) {
     const h = window.location.hash || '';
+    if (h.indexOf('#/reportar') === 0) return abrirReporte('reportar', '');
+    if (h.indexOf('#/consulta') === 0) return abrirReporte('consulta');
+    const pantallaReporte = document.getElementById('pantallaReporte');
+    if (pantallaReporte) pantallaReporte.classList.add('oculto');
     const m = h.match(/^#\/nodo\/([A-Z0-9_]+)/i);
     if (m) return verNodo(m[1]);
     if (h.indexOf('#/alertas') === 0) return verAlertas(snap);

@@ -14,10 +14,10 @@
 <link rel="manifest" href="./site.webmanifest">
 <meta name="theme-color" content="#4f46e5">
 <title>Mantenimiento · Cerro Azul</title>
-<link rel="stylesheet" href="./css/tokens.css?v=146">
-<link rel="stylesheet" href="./css/base.css?v=146">
-<link rel="stylesheet" href="./css/home.css?v=146">
-<script src="./js/tema.js?v=146"></script>
+<link rel="stylesheet" href="./css/tokens.css?v=147">
+<link rel="stylesheet" href="./css/base.css?v=147">
+<link rel="stylesheet" href="./css/home.css?v=147">
+<script src="./js/tema.js?v=147"></script>
 </head>
 <body>
 
@@ -43,6 +43,12 @@
   </div>
 </header>
 
+<section class="oculto" id="pantallaReporte">
+  <div class="wrap">
+    <div class="card" id="contenidoReporte"></div>
+  </div>
+</section>
+
 <div class="franja-alertas oculto" id="franjaAlertas" role="alert" aria-live="assertive"></div>
 
 <div class="navwrap">
@@ -58,6 +64,7 @@
       <a href="#/resumen" data-ir="resumen">Estado del portal</a>
       <span class="sp"></span>
       <button id="btnTema" type="button">Claro / Oscuro</button>
+      <a class="btn" href="#/reportar" id="btnReportarDano">Reportar un daño</a>
       <a class="btn primary" href="./app.html">Ingresar</a>
     </nav>
   </div>
@@ -302,9 +309,11 @@
   </div>
 </footer>
 
-<script src="./config.js?v=146"></script>
-<script src="./js/fotocache.js?v=146"></script>
-<script src="./js/publico.js?v=146"></script>
-<script src="./js/index.js?v=146"></script>
+<script src="./config.js?v=147"></script>
+<script src="./js/fotocache.js?v=147"></script>
+<script src="./js/fotos.js?v=147"></script>
+<script src="./js/reporte.js?v=147"></script>
+<script src="./js/publico.js?v=147"></script>
+<script src="./js/index.js?v=147"></script>
 </body>
 </html>
