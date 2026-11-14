@@ -742,6 +742,24 @@ El snapshot **nunca** contiene correos, teléfonos, nombres de personas, `ficha_
 
 ## 10. Reglas de negocio y máquina de estados
 
+### 7.5 · Códigos QR — descartado
+
+La sección 5 del documento del analista (un QR por equipo, con hoja de etiquetas imprimible)
+**se descartó el 14/11/2026 por decisión del administrador**: en un conjunto con 48 equipos,
+pegar y mantener etiquetas es trabajo que nadie pidió y no aporta a la operación. El QR servía
+para que un residente reportara un daño desde el equipo; ese reporte ya está a un botón en el
+portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
+`#/equipo/<id>`.
+
+### 7.5 · Códigos QR — descartado
+
+La sección 5 del documento del analista (un QR por equipo, con hoja de etiquetas imprimible)
+**se descartó el 14/11/2026 por decisión del administrador**: en un conjunto con 48 equipos,
+pegar y mantener etiquetas es trabajo que nadie pidió y no aporta a la operación. El QR servía
+para que un residente reportara un daño desde el equipo; ese reporte ya está a un botón en el
+portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
+`#/equipo/<id>`.
+
 ### 10.2 quater. Evidencia por etapa (v1.5)
 
 Hoy la evidencia es del **trabajo completo**: 1–2 fotos ANTES, 0–2 DURANTE por avance y 1–2 DESPUÉS al

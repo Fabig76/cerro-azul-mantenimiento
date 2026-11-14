@@ -641,29 +641,6 @@
     mostrarTab('resumen');
   }
 
-  /**
-   * Página del equipo a la que lleva el QR: su estado y un botón grande para
-   * reportar un daño con esa sección ya elegida (v1.6, 7.5).
-   */
-  async function verEquipo(id) {
-    const pantalla = document.getElementById('pantallaReporte');
-    if (pantalla) pantalla.classList.add('oculto');
-    await verNodo(id);
-
-    const cont = document.getElementById('detalle');
-    if (!cont) return;
-    const caja = document.createElement('div');
-    caja.className = 'equipo-acciones';
-
-    const reportar = document.createElement('a');
-    reportar.className = 'btn primary bloque';
-    reportar.href = '#/reportar/' + id;
-    reportar.textContent = 'Reportar un daño en este equipo';
-    caja.appendChild(reportar);
-
-    cont.appendChild(caja);
-  }
-
   async function verNodo(id) {
     ocultarTodo();
     const detalle = document.getElementById('detalle');
@@ -877,8 +854,6 @@
     const m = h.match(/^#\/nodo\/([A-Z0-9_]+)/i);
     if (m) return verNodo(m[1]);
     if (h.indexOf('#/alertas') === 0) return verAlertas(snap);
-    const equipo = h.match(/^#\/equipo\/([A-Z0-9_]+)/i);
-    if (equipo) return verEquipo(equipo[1]);
     const t = h.replace('#/', '');
     mostrarTab(TABS.indexOf(t) >= 0 ? t : 'resumen');
   }

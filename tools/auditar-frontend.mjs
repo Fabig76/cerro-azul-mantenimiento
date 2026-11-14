@@ -21,7 +21,7 @@ for (const a of llamadas) {
 }
 
 // 2. Archivos referenciados que no existen
-for (const html of ['index.html', 'app.html', 'etiquetas.html', 'estilo.html', 'guia-contratistas.html',
+for (const html of ['index.html', 'app.html', 'estilo.html', 'guia-contratistas.html',
                     'legal/politica.html', 'legal/aviso.html']) {
   const ruta = path.join(web, html);
   if (!fs.existsSync(ruta)) { problemas.push('falta la página ' + html); continue; }
@@ -35,8 +35,7 @@ for (const html of ['index.html', 'app.html', 'etiquetas.html', 'estilo.html', '
 
 // 3. Campos que el JS busca por id y no están en el HTML
 // Todas las páginas que usan módulos compartidos: un id puede estar en cualquiera.
-const html = ['app.html', 'index.html', 'etiquetas.html']
-  .map((h) => leer(path.join(web, h))).join('\n');
+const html = ['app.html', 'index.html'].map((h) => leer(path.join(web, h))).join('\n');
 const ids = new Set([...html.matchAll(/id="([A-Za-z0-9_-]+)"/g)].map((m) => m[1]));
 const buscados = new Set();
 for (const f of fs.readdirSync(path.join(web, 'js'))) {
