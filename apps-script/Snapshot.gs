@@ -84,9 +84,14 @@ function construirSnapshot() {
   });
 
   const en7 = sumarDias(hoyIso(), 7);
+  // El número del resumen debe contar lo mismo que la agenda muestra.
   const proximos7 = actividades.filter(function (a) {
     const f = fechaIso_(a.fecha_inicio_plan);
-    return f >= hoyIso() && f <= en7 && ['PROGRAMADA', 'EN_EJECUCION'].indexOf(String(a.estado)) >= 0 && bool(a.publicable);
+    if (!(f >= hoyIso() && f <= en7)) return false;
+    if (['PROGRAMADA', 'EN_EJECUCION'].indexOf(String(a.estado)) < 0) return false;
+    if (!bool(a.publicable)) return false;
+    const n = porId[a.nodo_id];
+    return !(n && esSensible(n));
   }).length;
 
   // --- Árbol (solo nivel 1 y 2, y solo agregados) ---
@@ -183,7 +188,13 @@ function construirSnapshot() {
   const proximos = actividades
     .filter(function (a) {
       const f = fechaIso_(a.fecha_inicio_plan);
-      return f >= hoyIso() && f <= en30 && ['PROGRAMADA', 'EN_EJECUCION'].indexOf(String(a.estado)) >= 0 && bool(a.publicable);
+      if (!(f >= hoyIso() && f <= en30)) return false;
+      if (['PROGRAMADA', 'EN_EJECUCION'].indexOf(String(a.estado)) < 0) return false;
+      if (!bool(a.publicable)) return false;
+      // Un trabajo de un sistema sensible no se anuncia: el residente no puede hacer
+      // nada con «mantenimiento programado en sistema sensible» y llena la agenda.
+      const n = porId[a.nodo_id];
+      return !(n && esSensible(n));
     })
     .sort(function (a, b) { return String(a.fecha_inicio_plan) < String(b.fecha_inicio_plan) ? -1 : 1; })
     .slice(0, 20)
@@ -208,7 +219,10 @@ function construirSnapshot() {
 
   const recientes = actividades
     .filter(function (a) {
-      return ['APROBADA', 'CERRADA'].indexOf(String(a.estado)) >= 0 && bool(a.publicable);
+      if (['APROBADA', 'CERRADA'].indexOf(String(a.estado)) < 0) return false;
+      if (!bool(a.publicable)) return false;
+      const n = porId[a.nodo_id];
+      return !(n && esSensible(n));
     })
     .sort(function (a, b) {
       return String(b.fecha_aprobacion || b.fecha_reporte_final) > String(a.fecha_aprobacion || a.fecha_reporte_final) ? 1 : -1;

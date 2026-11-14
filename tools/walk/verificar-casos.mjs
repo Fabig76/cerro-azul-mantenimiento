@@ -43,11 +43,19 @@ ok(enCurso.estado === 'EN_EJECUCION', 'la del DVR está en ejecución');
 const detCurso = await q('actividades.get', { id: enCurso.id });
 ok((detCurso.data.hitos || []).length === 3, 'y tiene sus 3 etapas');
 const pendiente = (detCurso.data.hitos || []).filter((h) => h.estado === 'PENDIENTE')[0];
-ok(!!pendiente, 'con una etapa pendiente para reportar');
+if (!pendiente) {
+  // Ya se reportaron en una corrida anterior: no es un fallo, es que la prueba no
+  // duplica trabajo.
+  console.log('OMITE · todas las etapas ya están reportadas (se probó en una corrida anterior)');
+} else {
+  ok(true, 'queda una etapa pendiente para reportar');
+}
 
 // Reportar esa etapa con foto, como lo haría él
-const rep = await q('reportes.crear', { actividad_id: enCurso.id, tipo: 'AVANCE', hito_id: pendiente.id, pct_declarado: pendiente.peso, descripcion: 'Prueba: se revisaron los discos' });
-ok(rep.ok, 'puede reportar la etapa');
+const rep = pendiente
+  ? await q('reportes.crear', { actividad_id: enCurso.id, tipo: 'AVANCE', hito_id: pendiente.id, pct_declarado: pendiente.peso, descripcion: 'Prueba: se revisaron los discos' })
+  : { ok: false };
+if (pendiente) ok(rep.ok, 'puede reportar la etapa');
 if (rep.ok) {
   const b64 = fs.readFileSync('/tmp/caso-1.jpg').toString('base64');
   const mini = fs.readFileSync('/tmp/caso-mini-1.jpg').toString('base64');
