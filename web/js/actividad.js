@@ -852,20 +852,7 @@
         if (rol !== 'ADMIN' && (h.estado === 'PENDIENTE' || h.estado === 'RECHAZADO') && a.estado === 'EN_EJECUCION') {
           const btn = el('button', 'btn sm', 'Reportar esta etapa');
           btn.type = 'button';
-          btn.addEventListener('click', async function () {
-            btn.disabled = true;
-            const r = await API.llamar('reportes.crear', {
-              actividad_id: a.id,
-              tipo: 'AVANCE',
-              hito_id: h.id,
-              pct_declarado: h.peso,
-              descripcion: 'Etapa reportada: ' + h.nombre,
-            }, { token: Sesion.token(), idempotente: true });
-            btn.disabled = false;
-            if (!r.ok) return aviso(r.message || 'No se pudo reportar.', 'error');
-            aviso('Etapa reportada. La administración debe aprobarla.', 'ok');
-            refrescarDesde(r, a.id);
-          });
+          btn.addEventListener('click', function () { formularioEtapa(a, h, fila, btn); });
           fila.appendChild(btn);
         }
         caja.appendChild(fila);
@@ -879,6 +866,130 @@
       caja.appendChild(btn);
     }
     return caja;
+  }
+
+  /**
+   * Reportar una etapa con una foto opcional (v1.5). La foto queda ligada al
+   * reporte de esa etapa, así la administración ve qué se hizo en cada una.
+   */
+  function formularioEtapa(a, h, fila, boton) {
+    const previo = document.getElementById('etapaForm');
+    if (previo) previo.remove();
+    if (boton.disabled) return;
+    boton.disabled = true;
+
+    const caja = el('div', 'etapa-form');
+    caja.id = 'etapaForm';
+
+    caja.appendChild(el('p', 'etapa-form-titulo', 'Reportar «' + h.nombre + '»'));
+
+    const nota = el('textarea', 'item-input');
+    nota.rows = 2;
+    nota.maxLength = 500;
+    nota.placeholder = 'Qué se hizo en esta etapa (opcional)';
+    caja.appendChild(nota);
+
+    const foto = el('input');
+    foto.type = 'file';
+    foto.accept = 'image/*';
+    foto.capture = 'environment';
+    foto.className = 'oculto';
+    caja.appendChild(foto);
+
+    let archivo = null;
+    const elegir = el('button', 'btn sm', 'Adjuntar una foto (opcional)');
+    elegir.type = 'button';
+    const quitar = el('button', 'btn sm oculto', 'Quitar la foto');
+    quitar.type = 'button';
+    const verFoto = el('p', 'etapa-form-foto');
+
+    elegir.addEventListener('click', function () { foto.click(); });
+    foto.addEventListener('change', function () {
+      archivo = (foto.files && foto.files[0]) || null;
+      if (!archivo) return;
+      verFoto.textContent = 'Foto lista: ' + archivo.name;
+      elegir.classList.add('oculto');
+      quitar.classList.remove('oculto');
+    });
+    quitar.addEventListener('click', function () {
+      archivo = null;
+      foto.value = '';
+      verFoto.textContent = '';
+      quitar.classList.add('oculto');
+      elegir.classList.remove('oculto');
+    });
+
+    const botonesFoto = el('div', 'etapa-form-botones');
+    botonesFoto.appendChild(elegir);
+    botonesFoto.appendChild(quitar);
+    caja.appendChild(botonesFoto);
+    caja.appendChild(verFoto);
+
+    const enviar = el('button', 'btn primary sm', 'Enviar reporte de la etapa');
+    enviar.type = 'button';
+    const cancelar = el('button', 'btn sm', 'Cancelar');
+    cancelar.type = 'button';
+
+    cancelar.addEventListener('click', function () {
+      caja.remove();
+      boton.disabled = false;
+    });
+
+    enviar.addEventListener('click', async function () {
+      enviar.disabled = true;
+      cancelar.disabled = true;
+      elegir.disabled = true;
+
+      const texto = (nota.value || '').trim();
+      const r = await API.llamar('reportes.crear', {
+        actividad_id: a.id,
+        tipo: 'AVANCE',
+        hito_id: h.id,
+        pct_declarado: h.peso,
+        descripcion: texto || ('Etapa reportada: ' + h.nombre),
+      }, { token: Sesion.token(), idempotente: true });
+
+      if (!r.ok) {
+        aviso(r.message || 'No se pudo reportar la etapa.', 'error');
+        enviar.disabled = false; cancelar.disabled = false; elegir.disabled = false;
+        return;
+      }
+
+      // La foto va después: si falla, la etapa ya quedó reportada y se avisa.
+      if (archivo) {
+        enviar.textContent = 'Subiendo la foto…';
+        try {
+          const prep = await Fotos.preparar(archivo);
+          const rf = await API.llamar('evidencias.upload', {
+            actividad_id: a.id,
+            reporte_id: r.data.reporte_id,
+            momento: 'DURANTE',
+            base64: prep.base64,
+            base64_mini: prep.base64_mini,
+            mime: 'image/jpeg',
+          }, { token: Sesion.token(), idempotente: true });
+          if (!rf.ok) throw new Error(rf.message || 'No se pudo subir la foto.');
+          aviso('Etapa reportada con su foto (' + prep.kb + ' KB).', 'ok');
+        } catch (err) {
+          aviso('La etapa quedó reportada, pero la foto no subió: ' +
+            (err.message || '') + '. Puede intentarlo otra vez.', 'error');
+        }
+      } else {
+        aviso('Etapa reportada. La administración debe aprobarla.', 'ok');
+      }
+
+      caja.remove();
+      boton.disabled = false;
+      refrescarDesde(r, a.id);
+    });
+
+    const acciones = el('div', 'etapa-form-acciones');
+    acciones.appendChild(enviar);
+    acciones.appendChild(cancelar);
+    caja.appendChild(acciones);
+
+    fila.parentNode.insertBefore(caja, fila.nextSibling);
+    nota.focus();
   }
 
   function formularioHitos(boton) {

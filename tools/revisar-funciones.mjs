@@ -40,12 +40,51 @@ for (const f of archivos) {
   }
 }
 
+/**
+ * Devuelve el código con comentarios y textos reemplazados por espacios.
+ * Conserva la longitud para que los números de línea sigan siendo exactos.
+ */
+function taparTextos(codigo) {
+  const salida = codigo.split('');
+  let i = 0;
+  const tapar = function (desde, hasta) {
+    for (let k = desde; k < hasta; k++) if (salida[k] !== '\n') salida[k] = ' ';
+  };
+  while (i < codigo.length) {
+    const c = codigo[i];
+    const siguiente = codigo[i + 1];
+    if (c === '/' && siguiente === '/') {
+      const fin = codigo.indexOf('\n', i);
+      const hasta = fin === -1 ? codigo.length : fin;
+      tapar(i, hasta); i = hasta; continue;
+    }
+    if (c === '/' && siguiente === '*') {
+      const fin = codigo.indexOf('*/', i + 2);
+      const hasta = fin === -1 ? codigo.length : fin + 2;
+      tapar(i, hasta); i = hasta; continue;
+    }
+    if (c === "'" || c === '"' || c === '`') {
+      let k = i + 1;
+      while (k < codigo.length) {
+        if (codigo[k] === '\\') { k += 2; continue; }
+        if (codigo[k] === c) break;
+        k++;
+      }
+      tapar(i + 1, Math.min(k, codigo.length));
+      i = k + 1; continue;
+    }
+    i++;
+  }
+  return salida.join('');
+}
+
 const problemas = [];
 for (const f of archivos) {
   const s = fs.readFileSync(path.join(dir, f), 'utf8');
-  // Se quitan comentarios y textos para no confundir nombres
-  const limpio = s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
-                  .replace(/'(?:[^'\\]|\\.)*'/g, "''").replace(/"(?:[^"\\]|\\.)*"/g, '""');
+  // Se tapan comentarios y textos con espacios (misma longitud, para que las líneas
+  // del aviso sigan siendo las del archivo). Sin esto, un texto como
+  // 'Qué se hizo (opcional)' parece una llamada a la función «hizo».
+  const limpio = taparTextos(s);
 
   for (const m of limpio.matchAll(/(^|[^\w$.])([a-z][\w$]*)\s*\(/g)) {
     const nombre = m[2];

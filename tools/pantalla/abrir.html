@@ -14,7 +14,10 @@ window.addEventListener('error', function (e) { window.__err.push('error: ' + e.
 window.addEventListener('unhandledrejection', function (e) {
   window.__err.push('promesa: ' + ((e.reason && e.reason.message) || e.reason));
 });
-window.API = { llamar: function (accion) {
+window.__llamadas = [];
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload || {} });
+  if (accion === 'reportes.crear') return Promise.resolve({ ok: true, data: { reporte_id: 'REP_1' } });
   if (accion !== 'actividades.get') return Promise.resolve({ ok: true, data: {} });
   var estado = window.__estado;
   return Promise.resolve({ ok: true, data: {
@@ -90,6 +93,37 @@ window.App = { pestana: function () {}, refrescar: function () {} };
         ' · volver a pulsar lo cierra');
       r.push((botonEtapas.textContent === 'Reemplazar etapas' ? 'OK   ' : 'FALLA') +
         ' · y el botón vuelve a su texto');
+    }
+    // Reportar una etapa con foto opcional (v1.5)
+    window.__conHitos = true;
+    window.__estado = 'EN_EJECUCION';
+    document.getElementById('contenidoActividad').textContent = '';
+    await Actividad.abrir('ACT_1', 'CONTRATISTA');
+    await esperar(250);
+    const cont2 = document.getElementById('contenidoActividad');
+    const btnEtapa = Array.prototype.slice.call(cont2.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent === 'Reportar esta etapa'; })[0];
+    r.push((btnEtapa ? 'OK   ' : 'FALLA') + ' · cada etapa ofrece «Reportar esta etapa»');
+    if (btnEtapa) {
+      btnEtapa.click();
+      await esperar(150);
+      const form = document.getElementById('etapaForm');
+      r.push((form ? 'OK   ' : 'FALLA') + ' · abre el formulario de la etapa');
+      r.push((form && form.textContent.indexOf('Adjuntar una foto (opcional)') >= 0 ? 'OK   ' : 'FALLA') +
+        ' · la foto es opcional y se puede adjuntar');
+      const enviar = form && Array.prototype.slice.call(form.querySelectorAll('button'))
+        .filter(function (b) { return b.textContent.indexOf('Enviar reporte de la etapa') >= 0; })[0];
+      r.push((enviar ? 'OK   ' : 'FALLA') + ' · se puede enviar sin foto');
+      if (enviar) {
+        window.__llamadas = [];
+        enviar.click();
+        await esperar(400);
+        const creado = window.__llamadas.filter(function (x) { return x.accion === 'reportes.crear'; })[0];
+        r.push((creado && creado.payload.hito_id === 'HIT_1' ? 'OK   ' : 'FALLA') +
+          ' · el reporte va con la etapa');
+        const subida = window.__llamadas.filter(function (x) { return x.accion === 'evidencias.upload'; })[0];
+        r.push((!subida ? 'OK   ' : 'FALLA') + ' · sin foto no se sube nada');
+      }
     }
     window.__conHitos = false;
     await probar('EN_EJECUCION', true);
