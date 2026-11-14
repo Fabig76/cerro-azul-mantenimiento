@@ -1,0 +1,13 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>cargando</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data:">
+</head><body>
+<script src="./config.js"></script>
+<script>
+const log = [];
+const id = 'EVI_01M7DVN3DY4834C4CEE75646CD';
+fetch(window.CFG.API_URL + '?action=public.foto&id=' + id, { redirect: 'follow' })
+  .then(function (r) { log.push('HTTP ' + r.status + ' tipo ' + (r.headers.get('content-type') || '?')); return r.text(); })
+  .then(function (t) { log.push('bytes ' + t.length); log.push(t.slice(0, 40)); })
+  .catch(function (e) { log.push('FALLÓ: ' + e.message); })
+  .then(function () { document.title = log.join(' | '); });
+</script></body></html>
