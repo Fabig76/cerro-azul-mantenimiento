@@ -149,8 +149,19 @@
     // Si la imagen no está en la página (o no hay observador), se carga enseguida:
     // observarla sin estar en el documento la dejaría sin cargar para siempre.
     const obs = observadorDe();
-    if (obs && img.isConnected) obs.observe(img);
-    else cargar(img);
+    if (obs && img.isConnected) {
+      obs.observe(img);
+      // Red de seguridad: si el observador no dispara (pestaña que se acaba de
+      // mostrar, navegador antiguo), la imagen que ya está a la vista se carga igual.
+      setTimeout(function () {
+        if (img.dataset.cargada === '1' || img.dataset.cargando === '1') return;
+        const caja = img.getBoundingClientRect();
+        const alto = window.innerHeight || 800;
+        if (caja.top < alto * 1.5 && caja.bottom > -alto * 0.5) cargar(img);
+      }, 900);
+    } else {
+      cargar(img);
+    }
   }
 
   // Quien usa el módulo dice cómo se pide cada tipo de foto.

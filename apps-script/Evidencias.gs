@@ -132,6 +132,8 @@ function evidenciasUpload(ctx, payload) {
       miniId = mini.getId();
     }
   }
+  // Sin miniatura, el portal no podría servir esta foto: se usa la principal.
+  if (!miniId) miniId = principal.getId();
 
   // 2) Solo ahora, el bloqueo para escribir la fila.
   const fila = conBloqueo(function () {

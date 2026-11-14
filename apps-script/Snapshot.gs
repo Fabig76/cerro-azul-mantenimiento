@@ -22,13 +22,19 @@ function ultimosMeses_(n) {
 }
 
 
-/** Sección de primer nivel de un nodo: sirve para filtrar el portal por torre. */
+/**
+ * Sección con la que se filtra el portal: la que aparece en el árbol público.
+ * Ese árbol son los hijos del nodo raíz, así que un equipo de «Torre 1» pertenece a
+ * «Torre 1», no a «Cerro Azul». Si el nodo cuelga directo de la raíz, es él mismo.
+ */
 function seccionRaizDe_(nodo, porId) {
   if (!nodo) return null;
   const partes = String(nodo.ruta_ids || '').split('/').filter(Boolean);
-  const raizId = partes.length ? partes[0] : nodo.id;
-  const raiz = porId[raizId] || nodo;
-  return { id: raiz.id, nombre: raiz.nombre, codigo: raiz.codigo };
+  // Si el equipo cuelga directo de la raíz, la sección es él mismo; si está más
+  // adentro, la sección es el hijo de la raíz por el que pasa su camino.
+  const elegido = partes.length >= 2 ? partes[1] : nodo.id;
+  const seccion = porId[elegido] || nodo;
+  return { id: seccion.id, nombre: seccion.nombre, codigo: seccion.codigo };
 }
 
 /** Construye el snapshot completo. Solo datos agregados y publicables. */

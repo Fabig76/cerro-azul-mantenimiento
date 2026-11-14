@@ -70,6 +70,9 @@ function novedadesCrear(ctx, payload) {
     nodo_id: nodoId, titulo: titulo, descripcion: payload.descripcion,
     tipo: tipo, gravedad: gravedad, actividad_id: payload.actividad_id,
     fecha_compromiso: payload.fecha_compromiso,
+    // Sin esto, marcar «publicable» en el formulario no servía de nada.
+    publicable: payload.publicable,
+    texto_publico: payload.texto_publico,
     origen: ctx.rol === 'ADMIN' ? 'ADMIN' : 'CONTRATISTA',
     reportada_por: ctx.usuario.email,
   });
@@ -104,7 +107,7 @@ function crearNovedad_(ctx, datos) {
     fecha_compromiso: datos.fecha_compromiso || '',
     fecha_resolucion: '',
     publicable: !!datos.publicable,
-    texto_publico: '',
+    texto_publico: datos.texto_publico ? String(datos.texto_publico).slice(0, 300) : '',
     activo: true,
   }, ctx.usuario.email);
 

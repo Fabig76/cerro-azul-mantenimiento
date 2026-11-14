@@ -299,6 +299,17 @@ function reportesRevisar(ctx, payload) {
       revisado_en: ahoraIso(),
     }, ctx.usuario.email);
 
+    // Al aprobar, las fotos del trabajo pasan a ser publicables en el portal, salvo
+    // las que muestran personas o placas: esas se quedan privadas para siempre.
+    if (decision === 'APROBAR') {
+      filtrar('evidencias', function (e) {
+        return String(e.actividad_id) === String(reporte.actividad_id) && bool(e.activo);
+      }).forEach(function (e) {
+        if (bool(e.contiene_personas)) return;
+        actualizar('evidencias', e.id, { publicable: true }, ctx.usuario.email);
+      });
+    }
+
     const cambios = {};
     if (decision === 'RECHAZAR') encolar_(reporte.usuario_id, 'REPORTE_RECHAZADO', reporteId);
     if (decision === 'APROBAR' && reporte.hito_id) {
