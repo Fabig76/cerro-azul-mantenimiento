@@ -450,21 +450,25 @@
     }
   }
 
+  // En el portal público la foto se pide directo y se recuerda en memoria mientras
+  // la página está abierta. Sin caché del dispositivo: es el camino más simple y el
+  // que no depende de nada más para pintar.
+  const fotosPedidas = {};
+
   async function cargarFoto(id, img) {
-    const pedir = async function () {
+    if (fotosPedidas[id]) {
+      img.src = fotosPedidas[id];
+      return;
+    }
+    try {
       const url = window.CFG.API_URL + '?action=public.foto&id=' + encodeURIComponent(id);
       const r = await fetch(url, { redirect: 'follow' });
       const d = await r.json();
-      return d.base64 ? { base64: d.base64, mime: d.mime } : null;
-    };
-
-    if (window.FotoCache) {
-      FotoCache.configurar(function (tipo, datos) { return datos.tipo === 'publica' ? pedir() : null; });
-      FotoCache.mostrar(img, { clave: 'publica:' + id, tipo: 'publica', id: id });
-      return;
-    }
-    const d = await pedir();
-    if (d) img.src = 'data:' + d.mime + ';base64,' + d.base64;
+      if (!d.base64) return;
+      const src = 'data:' + (d.mime || 'image/jpeg') + ';base64,' + d.base64;
+      fotosPedidas[id] = src;
+      img.src = src;
+    } catch (e) { /* queda el hueco */ }
   }
 
   /**
