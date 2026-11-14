@@ -179,7 +179,11 @@ function propuestasListar(ctx, payload) {
     return String(a.creado_en) < String(b.creado_en) ? 1 : -1;
   });
 
-  return { propuestas: lista.map(propuestaResumen_), total: lista.length };
+  // Ojo: map pasa el índice como segundo argumento, y el resumen espera el contexto.
+  return {
+    propuestas: lista.map(function (p) { return propuestaResumen_(p, ctx); }),
+    total: lista.length,
+  };
 }
 
 /** Secciones activas dentro de las asignaciones vigentes de una persona. */
@@ -651,6 +655,7 @@ function propuestasCotizacionGet(ctx, payload) {
 
 /** RN-39: quién puede ver el valor y el PDF. */
 function puedeVerCotizacion_(ctx, p) {
+  if (!ctx || !ctx.usuario) return false;
   if (['ADMIN', 'SUPERVISOR', 'CONSEJO'].indexOf(String(ctx.rol)) >= 0) return true;
   if (String(p.propuesta_por) === String(ctx.usuario.id)) return true;
   if (p.actividad_id) {
