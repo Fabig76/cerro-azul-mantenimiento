@@ -86,6 +86,28 @@ window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'x', b
       r.push('FALLA · no hay botón para revisar');
     }
   } catch (e) { r.push('FALLA · revisión: ' + e.message); }
+  // P1 · supervisor y consejo no ven botones de decidir
+  try {
+    await Propuestas.cargar('SUPERVISOR', [{ id: 'N1', codigo: 'CA-AC', nombre: 'Áreas comunes', nivel: 2 }]);
+    await esperar(300);
+    const filaSup = document.querySelector('#tarjetaPropuestas .fila-propuesta');
+    r.push((filaSup ? 'OK   ' : 'FALLA') + ' · el supervisor ve la propuesta');
+    if (filaSup) {
+      filaSup.click();
+      await esperar(350);
+      const texto = document.body.textContent;
+      const botones = Array.prototype.slice.call(document.querySelectorAll('button'))
+        .map(function (b) { return b.textContent; });
+      r.push((texto.indexOf('Propuesta (solo lectura)') >= 0 ? 'OK   ' : 'FALLA') +
+        ' · y la abre en solo lectura');
+      r.push((botones.indexOf('Aprobar y crear la actividad') < 0 ? 'OK   ' : 'FALLA') +
+        ' · sin «Aprobar»');
+      r.push((botones.indexOf('No aprobar') < 0 ? 'OK   ' : 'FALLA') + ' · sin «No aprobar»');
+      r.push((document.querySelector('#rvTitulo') && document.querySelector('#rvTitulo').disabled ? 'OK   ' : 'FALLA') +
+        ' · con los campos apagados');
+    }
+  } catch (e) { r.push('FALLA · supervisor: ' + e.message); }
+
   document.title = r.join(' | ');
 })();
 </script>

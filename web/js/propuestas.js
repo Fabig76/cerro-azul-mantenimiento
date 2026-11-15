@@ -17,6 +17,7 @@
   let nodos = [];
   let fotosNuevas = [];
   let abierta = null;
+  let soloLectura = false;
 
   function el(tag, clase, texto) {
     const n = document.createElement(tag);
@@ -122,6 +123,9 @@
 
   async function cargar(rol, nodosDelArbol) {
     rolActual = rol || 'CONTRATISTA';
+    // Solo el administrador decide. Supervisor y consejo ven la propuesta completa,
+    // pero sin campos editables ni botones de aprobar (RN-41 del SPEC v1.7).
+    soloLectura = rolActual !== 'ADMIN' && rolActual !== 'CONTRATISTA';
     if (nodosDelArbol) nodos = nodosDelArbol;
 
     // Cada rol ve su bloque y nada más.
@@ -169,7 +173,7 @@
     cont.appendChild(caja);
   }
 
-  function tarjetas(soloLectura) {
+  function tarjetas(sinAcciones) {
     const lista = el('div', 'lista-propuestas');
     propuestas.forEach(function (p) {
       const et = ETIQUETAS[p.estado] || ['', 'gray'];
@@ -203,7 +207,7 @@
         });
         card.appendChild(ver);
       }
-      if (p.estado === 'PENDIENTE' && !soloLectura && p.fotos.length < 3) {
+      if (p.estado === 'PENDIENTE' && !sinAcciones && p.fotos.length < 3) {
         const agregar = boton('Agregar foto', 'btn-mini');
         const inp = el('input');
         inp.type = 'file';
@@ -236,7 +240,7 @@
         card.appendChild(agregar);
         card.appendChild(inp);
       }
-      if (p.estado === 'PENDIENTE' && !soloLectura) {
+      if (p.estado === 'PENDIENTE' && !sinAcciones) {
         const retirar = boton('Retirar', 'btn-mini');
         let confirmado = false;
         retirar.addEventListener('click', async function () {
@@ -531,7 +535,7 @@
     const pendientes = propuestas.filter(function (p) { return p.estado === 'PENDIENTE'; });
 
     const cab = el('div', 'cabecera-seccion');
-    cab.appendChild(el('h2', null, 'Propuestas por aprobar'));
+    cab.appendChild(el('h2', null, soloLectura ? 'Propuestas (solo lectura)' : 'Propuestas por aprobar'));
     cab.appendChild(el('span', 'codigo', String(pendientes.length)));
     cont.appendChild(cab);
     cont.appendChild(el('p', 'bajada-tarjeta',
@@ -568,7 +572,7 @@
 
     cont.textContent = '';
     const cab = el('div', 'cabecera-seccion');
-    cab.appendChild(el('h2', null, 'Revisar propuesta'));
+    cab.appendChild(el('h2', null, soloLectura ? 'Propuesta (solo lectura)' : 'Revisar propuesta'));
     cont.appendChild(cab);
     cont.appendChild(el('p', 'bajada-tarjeta',
       'A cargo de: ' + abierta.propuesta.propuesta_por_nombre +
@@ -769,6 +773,18 @@
     const rechazar = boton('No aprobar', 'btn peligro');
     const volver = boton('Volver');
     volver.addEventListener('click', function () { cargar(rolActual); });
+
+    // Quien no decide ve los campos apagados y ningún botón de decisión.
+    if (soloLectura) {
+      Array.prototype.slice.call(form.querySelectorAll('input, select, textarea'))
+        .forEach(function (c) { c.disabled = true; });
+      form.appendChild(el('p', 'bajada-tarjeta',
+        'Su rol puede ver la propuesta, pero la decisión es de la administración.'));
+      acciones.appendChild(volver);
+      form.appendChild(acciones);
+      cont.appendChild(form);
+      return;
+    }
 
     const motivo = textarea('rvMotivo', 'Explica al contratista por qué no se aprueba.');
     motivo.classList.add('oculto');

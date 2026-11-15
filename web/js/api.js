@@ -63,7 +63,16 @@
     const conReintento = esLectura(accion) || !!opt.idempotente;
     if (opt.idempotente) cuerpo.requestId = uuid();
 
-    const espera = /foto|upload|evidencias\.subir/.test(accion) ? ESPERA_FOTO : ESPERA_LECTURA;
+    // Acciones pesadas: llevan archivos o devuelven un archivo. Con una lista explícita,
+    // una acción nueva no se queda con la espera corta por no llevar «foto» en el nombre.
+    const PESADAS = [
+      'evidencias.upload', 'evidencias.get',
+      'propuestas.foto.subir', 'propuestas.foto.get',
+      'propuestas.cotizacion.subir', 'propuestas.cotizacion.get',
+      'residentes.reportar', 'residentes.foto.get',
+      'public.foto',
+    ];
+    const espera = PESADAS.indexOf(accion) >= 0 ? ESPERA_FOTO : ESPERA_LECTURA;
     let resultado = await intento(cuerpo, espera);
 
     for (let i = 0; conReintento && i < REINTENTOS.length; i++) {
