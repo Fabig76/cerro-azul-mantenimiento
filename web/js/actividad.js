@@ -8,6 +8,8 @@
   let datos = null;
   const borrador = {};      // respuesta de actividades.get
   let rol = 'CONTRATISTA';
+  /** Marca que el trabajo cambió, para recargar la lista solo cuando haga falta. */
+  let cambiosPendientes = false;
   let fotosAntes = [];   // evidencias subidas en esta sesión
   let fotosDespues = [];
 
@@ -53,7 +55,26 @@
     aviso('', 'info');
     const caja = document.getElementById('avisoActividad');
     if (caja) caja.className = 'msg';
+
+    // L2 · Se muestra de una vez lo que la tarjeta ya sabe, y se avisa que está cargando.
+    const cont = document.getElementById('contenidoActividad');
+    if (cont && window.Cargando) {
+      const tarjeta = (window.App && App.datosDeTarjeta) ? App.datosDeTarjeta(id) : null;
+      cont.textContent = '';
+      if (tarjeta) {
+        const previo = el('div', 'bloque');
+        previo.appendChild(el('div', 'kicker', 'Abriendo el trabajo…'));
+        previo.appendChild(el('h2', null, tarjeta.titulo || ''));
+        if (tarjeta.meta) previo.appendChild(el('p', 'bajada-tarjeta', tarjeta.meta));
+        cont.appendChild(previo);
+      } else {
+        Cargando.esqueleto(cont, 2);
+      }
+      cont.setAttribute('aria-busy', 'true');
+    }
+
     const r = await API.llamar('actividades.get', { id: id }, { token: Sesion.token() });
+    if (cont) cont.removeAttribute('aria-busy');
     if (!r.ok) return aviso(r.message || 'No se pudo abrir la actividad.', 'error');
     mostrarDetalle(r.data);
   }
@@ -86,6 +107,8 @@
 
   /** Tras una acción: usa el detalle que vino en la respuesta o lo pide. */
   function refrescarDesde(respuesta, id) {
+    // Lo que se escribe cambia la lista: al volver hay que refrescarla una vez.
+    cambiosPendientes = true;
     const detalle = respuesta && respuesta.data && respuesta.data.detalle;
     if (detalle && detalle.actividad) { mostrarDetalle(detalle); return; }
     abrir(id, rol);
@@ -130,7 +153,11 @@
   function cerrar() {
     recordarAbierta(null);
     mostrar(false);
-    if (window.App) App.refrescar();
+    // Sin cambios no hay nada que recargar: volver no debe costar una petición.
+    if (cambiosPendientes && window.App && App.refrescar) {
+      cambiosPendientes = false;
+      App.refrescar();
+    }
   }
 
   function cabecera() {
@@ -1500,6 +1527,7 @@
   function pintar() {
     const cont = document.getElementById('contenidoActividad');
     if (!cont) return;
+
     cont.textContent = '';
     try {
       pintarDetalle(cont);

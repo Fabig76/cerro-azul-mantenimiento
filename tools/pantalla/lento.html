@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<input id="buscarActividades" type="search" class="input">
+<div id="avisoActividades" class="msg"></div>
+<div id="conteoActividades"></div>
+<div class="grupos-lista" id="gruposActividades"></div>
+<div id="listaActividades"></div>
+<div id="sinActividades" class="vacio oculto"></div>
+<button id="verMasActividades" hidden></button>
+<div id="contenidoActividad"></div>
+<div id="avisoActividad"></div>
+<div id="vistaActividad" hidden></div>
+<script>
+window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.__pedidos = [];
+window.__errores = [];
+window.addEventListener('error', function (e) { window.__errores.push('error: ' + e.message); });
+window.addEventListener('unhandledrejection', function (e) {
+  window.__errores.push('rechazo: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+window.__demora = 400;
+</script>
+<script src="../../web/js/cargando.js"></script>
+<script src="../../web/js/api.js"></script>
+<script src="../../web/js/datos.js"></script>
+<script src="../../web/js/asignacion.js"></script>
+<script src="../../web/js/sesion.js"></script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script src="../../web/js/propuestas.js"></script>
+<script src="../../web/js/novedades.js"></script>
+<script src="../../web/js/app.js"></script>
+<script>
+window.API = { llamar: function (accion, payload) {
+  window.__pedidos.push({ accion: accion, payload: payload });
+  const demora = window.__demora;
+  return new Promise(function (res) {
+    setTimeout(function () {
+      if (accion === 'auth.me') return res({ ok: true, data: { usuario: {
+        id: 'U1', email: 'a@b.com', nombre: 'Ana', rol: 'ADMIN' }, permisos: [] } });
+      if (accion === 'actividades.listar') {
+        window.__respuestas = (window.__respuestas || 0) + 1;
+        const g = payload.grupo;
+        if (payload.texto) return res({ ok: true, data: { actividades: [], total: 0, conteos: { PENDIENTES: 1, POR_REVISAR: 1 } } });
+        const lista = g === 'PENDIENTES'
+          ? [{ id: 'A1', titulo: 'Cambio de luminarias', nodo_codigo: 'CA-T1', estado: 'PROGRAMADA', fecha_fin_plan: '2026-11-20' }]
+          : (g === 'POR_REVISAR' ? [{ id: 'A2', titulo: 'Revisión de bombas', nodo_codigo: 'CA-T2', estado: 'REPORTADA', fecha_fin_plan: '2026-11-18' }] : []);
+        return res({ ok: true, data: { actividades: lista, total: lista.length, conteos: { PENDIENTES: 1, POR_REVISAR: 1 } } });
+      }
+      if (accion === 'actividades.get') return res({ ok: true, data: { actividad: {
+        id: payload.id, titulo: 'Cambio de luminarias', estado: 'PROGRAMADA', nodo_codigo: 'CA-T1',
+        fecha_inicio_plan: '2026-11-18', fecha_fin_plan: '2026-11-20' }, hitos: [], fotos: [], publicable: false } });
+      if (accion === 'nodos.arbol') return res({ ok: true, data: { nodos: [] } });
+      if (accion === 'notificaciones.mias') return res({ ok: true, data: { novedades: [] } });
+      if (accion === 'propuestas.listar') return res({ ok: true, data: { propuestas: [] } });
+      return res({ ok: true, data: {} });
+    }, demora);
+  });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; }, limpiar: function () {} };
+</script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  try {
+    await new Promise(function (x) { setTimeout(x, 900); });
+    // Al entrar, la lista muestra esqueleto mientras llega
+    App.refrescar();
+    await esperar(120);
+    const cont = document.getElementById('listaActividades');
+    ok(cont.querySelectorAll('.esqueleto-fila').length > 0, 'mientras carga se ve el esqueleto');
+    ok(cont.getAttribute('aria-busy') === 'true', 'y el área queda marcada como ocupada');
+
+    await esperar(2200);
+    ok(cont.querySelectorAll('.esqueleto-fila').length === 0, 'al llegar, el esqueleto desaparece');
+    ok(cont.getAttribute('aria-busy') === null, 'y se quita la marca de ocupado');
+    ok(cont.textContent.indexOf('Revisión de bombas') >= 0,
+      'con el trabajo a la vista · errores=' + window.__errores.join(' ; ').slice(0, 160) +
+      ' · html=' + cont.innerHTML.slice(0, 120) +
+      ' · respuestas=' + (window.__respuestas || 0) + ' · pedidos=' + window.__pedidos.filter(function (p) { return p.accion === 'actividades.listar'; })
+        .map(function (p) { return p.payload.grupo; }).join(','));
+
+    // Un segundo toque mientras viaja ya no se ignora: se pide otra vez.
+    window.__pedidos = [];
+window.__errores = [];
+window.addEventListener('error', function (e) { window.__errores.push('error: ' + e.message); });
+window.addEventListener('unhandledrejection', function (e) {
+  window.__errores.push('rechazo: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+    App.refrescar();
+    App.refrescar();
+    await esperar(60);
+    ok(window.__pedidos.filter(function (p) { return p.accion === 'actividades.listar'; }).length === 2,
+      'un segundo toque no se descarta');
+    await esperar(700);
+
+    // A2 · La búsqueda avisa dónde están los resultados
+    document.getElementById('buscarActividades').value = 'bombas';
+    document.getElementById('buscarActividades').dispatchEvent(new Event('input'));
+    await esperar(2500);
+    const vacio = document.getElementById('sinActividades');
+    const vis = vacio && !vacio.classList.contains('oculto');
+    ok(vis && /en Pendientes|en Por revisar/.test(vacio.textContent),
+      'si no está en este grupo, dice en cuál está (' + (vacio ? vacio.textContent.slice(0, 60) : '') + ')');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

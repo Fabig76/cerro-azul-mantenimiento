@@ -30,6 +30,7 @@ $(correr consejo-inicio.html)
 $(correr reporte-publico.html)
 $(correr residentes-panel.html)
 $(correr propuestas-v17.html)
+$(correr lento.html)
 $(correr contratista-completo.html)"
 
 echo "$SALIDA"

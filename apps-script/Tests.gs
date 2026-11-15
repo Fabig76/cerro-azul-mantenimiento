@@ -223,7 +223,7 @@ function pruebasPropuestas_() {
   // Aprobar dos veces: la segunda no debe crear otra actividad.
   let creadas = 0;
   try {
-    propuestasAprobar(ctxAdmin, { id: propuesta.id, titulo: 'PRUEBA propuesta editada' });
+    propuestasAprobar(ctxAdmin, { id: propuesta.id, version: String(propuesta.actualizado_en || ''), titulo: 'PRUEBA propuesta editada' });
   } catch (e) {
     // Quien propuso no existe como usuario: es un CONFLICTO esperado.
     verdadero_(String(e.message).indexOf('CONFLICTO') === 0, 'aprobar sin usuario activo da CONFLICTO');
@@ -233,11 +233,11 @@ function pruebasPropuestas_() {
 
   // Rechazar con motivo corto
   let corto = '';
-  try { propuestasRechazar(ctxAdmin, { id: propuesta.id, motivo: 'no' }); } catch (e) { corto = String(e.message); }
+  try { propuestasRechazar(ctxAdmin, { id: propuesta.id, version: String(buscarPorId('propuestas', propuesta.id).actualizado_en || ''), motivo: 'no' }); } catch (e) { corto = String(e.message); }
   verdadero_(corto.indexOf('VALIDACION') === 0, 'rechazo con motivo corto se rechaza');
 
   // Rechazar bien
-  try { propuestasRechazar(ctxAdmin, { id: propuesta.id, motivo: 'Falta el detalle del material' }); } catch (e) {
+  try { propuestasRechazar(ctxAdmin, { id: propuesta.id, version: String(buscarPorId('propuestas', propuesta.id).actualizado_en || ''), motivo: 'Falta el detalle del material' }); } catch (e) {
     RESULTADOS.detalle.push('FALLA · rechazo válido · ' + e.message);
     RESULTADOS.fallidas++;
   }
@@ -452,9 +452,21 @@ function pruebasSeccionRaiz_() {
     return String(n.ruta_ids || '').split('/').filter(Boolean)[0] === String(raiz.id);
   })[0];
   if (hijo) {
+    // Desde la v1.7 la sección publicada es el hijo de la raíz (Torre 1, Áreas comunes…),
+    // no la raíz «Cerro Azul», que el selector del portal no ofrece.
     const deHijo = seccionRaizDe_(hijo, porId);
-    verdadero_(!!deHijo && String(deHijo.id) === String(raiz.id),
-      'un hijo apunta a la sección de primer nivel');
+    verdadero_(!!deHijo && String(deHijo.id) === String(hijo.id),
+      'un hijo de la raíz es su propia sección');
+
+    const nieto = nodos.filter(function (n) {
+      const partes = String(n.ruta_ids || '').split('/').filter(Boolean);
+      return partes.length >= 2 && String(partes[1]) === String(hijo.id);
+    })[0];
+    if (nieto) {
+      const deNieto = seccionRaizDe_(nieto, porId);
+      verdadero_(!!deNieto && String(deNieto.id) === String(hijo.id),
+        'un nieto apunta a la sección que se publica');
+    }
   } else {
     RESULTADOS.detalle.push('OMITE · sección raíz · la primera sección no tiene hijos');
   }
@@ -544,11 +556,12 @@ function pruebasEmpresaEstado_() {
   const inactiva = filtrar('empresas', function (e) { return !bool(e.activo); })
     .filter(function (e) { return String(e.razon_social || '').toUpperCase().indexOf('PRUEBA') < 0; })[0];
   if (inactiva) {
+    const nodoReal = filtrar('nodos', function (n) { return bool(n.activo); })[0];
     let codigo2 = '';
     try {
       crearActividad_({ usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' }, {
-        titulo: 'Prueba empresa inactiva', nodo_id: 'X', fecha_inicio_plan: hoyIso(),
-        empresa_id: inactiva.id,
+        titulo: 'Prueba empresa inactiva', nodo_id: nodoReal ? nodoReal.id : 'X',
+        fecha_inicio_plan: hoyIso(), empresa_id: inactiva.id,
       });
     } catch (e) { codigo2 = String(e.message); }
     verdadero_(codigo2.indexOf('CONFLICTO') === 0 || codigo2.indexOf('VALIDACION') === 0,

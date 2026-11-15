@@ -353,9 +353,15 @@ function sistemaEstado(ctx) {
   const esperados = ['regenerarSnapshot', 'recalcularTodoDiario', 'despacharCorreos', 'avisosDiariosDisparador'];
   const aviso = configNumero('archivo_aviso_filas', 15000);
   const limite = configNumero('archivo_limite_filas', 20000);
+  // A quién le llegan los avisos de administración, y cómo le fue al último recálculo.
+  const admins = adminsEmails_();
+  let ultimoRecalculo = '';
+  try { ultimoRecalculo = String(cacheGet('recalculo:ultimo') || ''); } catch (e) { ultimoRecalculo = ''; }
   return {
     correos: correos,
+    admins: admins,
     disparadores: disparadores,
+    ultimo_recalculo: ultimoRecalculo,
     faltan: esperados.filter(function (f) { return disparadores.indexOf(f) < 0; }),
     filas: filasPorHoja_(),
     archivo: { aviso: aviso, limite: limite },

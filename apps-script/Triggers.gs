@@ -52,7 +52,16 @@ function avisosDiariosDisparador() {
 
 /** Envuelve el recálculo para el disparador diario. */
 function recalcularTodoDiario() {
-  recalcularTodo('disparador');
+  const t0 = Date.now();
+  cachePut('recalculo:ultimo', 'empezó ' + ahoraIso());
+  try {
+    recalcularTodo('disparador');
+    cachePut('recalculo:ultimo', 'terminó ' + ahoraIso() +
+      ' en ' + Math.round((Date.now() - t0) / 1000) + ' s');
+  } catch (e) {
+    cachePut('recalculo:ultimo', 'se cortó ' + ahoraIso() + ': ' + String(e && e.message));
+    throw e;
+  }
 
   // Purga de fotos de propuestas viejas: si falla, el resto del disparador sigue.
   try {

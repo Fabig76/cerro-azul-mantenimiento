@@ -670,7 +670,9 @@
   }
 
   // Estado de la lista: grupo, búsqueda y páginas ya cargadas.
-  const listaEstado = { grupo: null, texto: '', pagina: 1, cargadas: 0, total: 0, cargando: false };
+  const listaEstado = { grupo: null, texto: '', pagina: 1, cargadas: 0, total: 0, cargando: false, turno: 0 };
+  // Lo que ya se sabe de cada trabajo listado, para abrir el detalle sin esperar.
+  const vistas = {};
   const GRUPOS = [
     ['PENDIENTES', 'Pendientes'],
     ['POR_REVISAR', 'Por revisar'],
@@ -716,16 +718,18 @@
   async function cargarActividades(t, opciones) {
     const cont = document.getElementById('listaActividades');
     if (!cont) return;
-    if (listaEstado.cargando) return;
     const sumar = !!(opciones && opciones.sumar);
 
     if (!sumar) {
       if (!listaEstado.grupo) listaEstado.grupo = grupoInicial();
       listaEstado.pagina = 1;
       listaEstado.cargadas = 0;
-      cont.textContent = '';
+      // Cada carga lleva un turno: si llega otra, la anterior se descarta al volver.
+      listaEstado.turno = (listaEstado.turno || 0) + 1;
       listaEstado.cargando = true;
+      if (window.Cargando) Cargando.esqueleto(cont, 3); else cont.textContent = '';
     }
+    const turno = listaEstado.turno || 0;
 
     const pedir = {
       tam: 20,
@@ -735,7 +739,10 @@
     if (listaEstado.texto) pedir.texto = listaEstado.texto;
 
     const r = await API.llamar('actividades.listar', pedir, { token: t });
+    // Llegó una respuesta vieja: ya hay otra petición mandando.
+    if (turno && turno !== listaEstado.turno) return;
     listaEstado.cargando = false;
+
 
     if (!r.ok) {
       // Sin esto la lista quedaba en blanco y en silencio.
@@ -760,6 +767,12 @@
     const lista = r.data.actividades || [];
     listaEstado.total = Number(r.data.total) || 0;
     listaEstado.cargadas += lista.length;
+    lista.forEach(function (a) {
+      vistas[a.id] = {
+        titulo: a.titulo,
+        meta: [a.nodo_codigo, a.estado, a.fecha_fin_plan].filter(Boolean).join(' · '),
+      };
+    });
 
     // Si el grupo quedó vacío, se muestra el que tenga trabajo.
     if (!sumar && !lista.length && !listaEstado.texto) {
@@ -773,6 +786,7 @@
       }
     }
 
+    if (window.Cargando) Cargando.listo(cont);
     pintarGrupos(r.data.conteos, listaEstado.grupo);
 
     const buscador = document.getElementById('buscarActividades');
@@ -788,9 +802,29 @@
     if (!lista.length && !sumar) {
       const vacio = document.getElementById('sinActividades');
       if (vacio) {
-        vacio.textContent = listaEstado.texto
-          ? 'Ningún trabajo coincide con «' + listaEstado.texto + '».'
-          : 'No hay trabajos en «' + String(listaEstado.grupo).toLowerCase().replace('_', ' ') + '».';
+        if (listaEstado.texto) {
+          const conteos = r.data.conteos || {};
+          const otros = GRUPOS
+            .filter(function (g) { return g[0] !== listaEstado.grupo && Number(conteos[g[0]]) > 0; })
+            .map(function (g) { return Number(conteos[g[0]]) + ' en ' + g[1]; });
+          vacio.textContent = 'Ningún trabajo coincide con «' + listaEstado.texto + '» aquí.' +
+            (otros.length ? ' Hay ' + otros.join(', ') + '.' : '');
+          if (otros.length) {
+            // Un toque en el grupo que sí tiene resultados.
+            const ir = document.createElement('button');
+            ir.type = 'button';
+            ir.className = 'btn sm';
+            ir.textContent = 'Ver ' + otros[0];
+            ir.addEventListener('click', function () {
+              const destino = GRUPOS.filter(function (g) { return g[0] !== listaEstado.grupo && Number(conteos[g[0]]) > 0; })[0];
+              if (destino) { listaEstado.grupo = destino[0]; cargarActividades(Sesion.token()); }
+            });
+            vacio.appendChild(document.createElement('br'));
+            vacio.appendChild(ir);
+          }
+        } else {
+          vacio.textContent = 'No hay trabajos en «' + String(listaEstado.grupo).toLowerCase().replace('_', ' ') + '».';
+        }
       }
     }
 
@@ -1058,6 +1092,8 @@
   window.App = {
     refrescar: function () { cargarActividades(Sesion.token()); },
     pestana: mostrarPestana,
+    // Lo que la lista ya sabe de un trabajo, para pintar el detalle al instante.
+    datosDeTarjeta: function (id) { return vistas[id] || null; },
   };
 
   const PESTANAS_CARGADAS = {};

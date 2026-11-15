@@ -782,3 +782,10 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 
 /* Valor y cotización en el detalle del trabajo */
 .bloque-valor { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); display: grid; gap: 6px; justify-items: start; }
+
+/* Esqueletos de espera: la pantalla dice «estoy trabajando» en vez de quedarse muda */
+.esqueleto-fila { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; background: var(--surface); }
+.esqueleto-bloque { height: 12px; border-radius: 6px; background: linear-gradient(90deg, #e9ecf3 25%, #f4f6fa 37%, #e9ecf3 63%); background-size: 400% 100%; animation: esqueleto-latir 1.4s ease infinite; margin-bottom: 8px; }
+.esqueleto-bloque.bajo { height: 9px; opacity: .7; }
+@keyframes esqueleto-latir { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { .esqueleto-bloque { animation: none; } }
