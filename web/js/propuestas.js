@@ -160,7 +160,7 @@
       'Si en una visita encuentras algo que hay que hacer, propónlo aquí. La administración lo revisa y decide.'));
 
     const nuevo = boton('Proponer una actividad', 'btn primary');
-    nuevo.addEventListener('click', formulario);
+    nuevo.addEventListener('click', function () { formulario(); });
     caja.appendChild(nuevo);
 
     const pendientes = propuestas.filter(function (p) { return p.estado === 'PENDIENTE'; }).length;
@@ -195,6 +195,11 @@
           (p.cotizacion ? ' · ' + p.cotizacion.nombre +
             ' (' + Math.round((p.cotizacion.bytes || 0) / 1024) + ' KB)' : ' · falta el PDF');
         card.appendChild(linea);
+        if (p.cotizacion) {
+          const verPdf = boton('Ver PDF', 'btn-mini');
+          verPdf.addEventListener('click', function () { abrirPdf(p.id, verPdf); });
+          card.appendChild(verPdf);
+        }
       }
 
       if (p.estado === 'RECHAZADA' && p.motivo_rechazo) {
@@ -207,6 +212,19 @@
         });
         card.appendChild(ver);
       }
+      if (p.estado === 'PENDIENTE' && !sinAcciones) {
+        const corregir = boton('Corregir', 'btn-mini');
+        corregir.addEventListener('click', async function () {
+          corregir.disabled = true;
+          // Se pide la propuesta completa para tener la versión y los campos actuales.
+          const r = await API.llamar('propuestas.get', { id: p.id }, { token: Sesion.token() });
+          corregir.disabled = false;
+          if (!r.ok) return aviso(r.message || 'No se pudo abrir la propuesta.', 'error');
+          formularioPropuesta(r.data.propuesta, r.data.version);
+        });
+        card.appendChild(corregir);
+      }
+
       if (p.estado === 'PENDIENTE' && !sinAcciones && p.fotos.length < 3) {
         const agregar = boton('Agregar foto', 'btn-mini');
         const inp = el('input');
@@ -262,12 +280,25 @@
     return lista;
   }
 
-  function formulario() {
+  /**
+   * Formulario de propuesta. Sin argumento crea una nueva; con una propuesta
+   * pendiente, la corrige (P2 de la v1.7).
+   */
+  /** Abre el formulario con los datos de una propuesta pendiente. */
+  function formularioPropuesta(p, version) {
+    formulario({ id: p.id, version: version || '', datos: p });
+  }
+
+  function formulario(existente) {
     const cont = document.getElementById('bloquePropuestasContratista');
     if (!cont) return;
     cont.textContent = '';
     fotosNuevas = [];
+    // Solo cuenta como edición si trae un id: un evento de clic no es una propuesta.
+    const editando = (existente && existente.id) ? existente : null;
 
+    let valorNumInicial = 0;
+    const previos = (existente && existente.datos) ? existente.datos : null;
     const caja = el('div', 'bloque');
     caja.appendChild(el('div', 'kicker', 'Nueva propuesta'));
 
@@ -393,7 +424,7 @@
     });
 
     const acciones = el('div', 'acciones-form');
-    const enviar = boton('Enviar propuesta', 'btn primary');
+    const enviar = boton(editando ? 'Guardar cambios' : 'Enviar propuesta', 'btn primary');
     const volver = boton('Volver');
     volver.addEventListener('click', function () { cargar(rolActual); });
     acciones.appendChild(enviar);
@@ -414,8 +445,8 @@
       }
 
       enviar.disabled = true;
-      enviar.textContent = 'Enviando…';
-      const r = await API.llamar('propuestas.crear', {
+      enviar.textContent = editando ? 'Guardando…' : 'Enviando…';
+      const campos = {
         nodo_id: sel.value,
         titulo: titulo.value.trim(),
         hallazgo: hallazgo.value.trim(),
@@ -426,14 +457,22 @@
         afecta_uso: afecta.checked,
         valor_cotizado: valorNum,
         cotizacion_vigente_hasta: vigencia.value || '',
-      }, { token: Sesion.token(), idempotente: true });
+      };
+
+      const r = editando
+        ? await API.llamar('propuestas.editar',
+            Object.assign({ id: editando.id, version: existente.version }, campos),
+            { token: Sesion.token(), idempotente: true })
+        : await API.llamar('propuestas.crear', campos, { token: Sesion.token(), idempotente: true });
+
       if (!r.ok) {
         enviar.disabled = false;
-        enviar.textContent = 'Enviar propuesta';
-        return aviso(r.message || 'No se pudo enviar.', 'error');
+        enviar.textContent = editando ? 'Guardar cambios' : 'Enviar propuesta';
+        return aviso(r.message || 'No se pudo guardar.', 'error');
       }
 
       if (window.Borrador) Borrador.borrar('propuesta');
+      if (editando) existente.version = r.data.version || existente.version;
       const id = r.data.propuesta.id;
       let subidas = 0;
       for (let i = 0; i < fotosNuevas.length; i++) {
@@ -467,7 +506,7 @@
       }
 
       enviar.disabled = false;
-      enviar.textContent = 'Enviar propuesta';
+      enviar.textContent = editando ? 'Guardar cambios' : 'Enviar propuesta';
       if (pdfFallo) {
         aviso('La propuesta se envió, pero la cotización no subió. Toca «Falta la cotización» en la tarjeta para intentarlo otra vez.', 'info');
       } else if (fotosNuevas.length && subidas < fotosNuevas.length) {
@@ -475,15 +514,32 @@
         aviso('La propuesta se envió, pero falta ' + faltan + (faltan === 1 ? ' foto' : ' fotos') +
           '. Toca «Agregar foto» en la propuesta para subirla.', 'info');
       } else {
-        aviso('Propuesta enviada. La administración la revisará.', 'ok');
+        aviso(editando ? 'Cambios guardados. La administración la revisará.' : 'Propuesta enviada. La administración la revisará.', 'ok');
       }
       cargar(rolActual);
     });
 
+    // Al corregir, los campos arrancan con lo que ya tenía la propuesta.
+    if (previos) {
+      if (previos.titulo) titulo.value = previos.titulo;
+      if (previos.hallazgo) hallazgo.value = previos.hallazgo;
+      if (previos.alcance) alcance.value = previos.alcance;
+      if (previos.nodo_id) sel.value = previos.nodo_id;
+      if (previos.fecha_inicio_sugerida) inicio.value = previos.fecha_inicio_sugerida;
+      if (previos.fecha_fin_sugerida) fin.value = previos.fecha_fin_sugerida;
+      if (previos.prioridad_sugerida) prioridad.value = previos.prioridad_sugerida;
+      afecta.checked = !!previos.afecta_uso;
+      if (previos.valor_cotizado) {
+        valor.value = '$ ' + Number(previos.valor_cotizado).toLocaleString('es-CO');
+        valorNumInicial = Number(previos.valor_cotizado);
+      }
+      if (previos.cotizacion_vigente_hasta) vigencia.value = previos.cotizacion_vigente_hasta;
+    }
+
     // Lo escrito se guarda mientras se escribe; si el celular recarga, se recupera.
     const CLAVE_BORRADOR = 'propuesta';
     const previo = window.Borrador ? Borrador.leer(CLAVE_BORRADOR) : null;
-    if (previo) {
+    if (previo && !previos) {
       if (previo.hallazgo) hallazgo.value = previo.hallazgo;
       if (previo.alcance) alcance.value = previo.alcance;
       if (previo.titulo) titulo.value = previo.titulo;
@@ -768,6 +824,7 @@
     form.appendChild(el('p', 'bajada-tarjeta',
       'La plantilla, las etapas y la publicación se ajustan después en la actividad, como siempre.'));
 
+    const permisos = abierta.permisos || { decidir: rolActual === 'ADMIN', eliminar: rolActual === 'ADMIN' };
     const acciones = el('div', 'acciones-form');
     const aprobar = boton('Aprobar y crear la actividad', 'btn primary');
     const rechazar = boton('No aprobar', 'btn peligro');
@@ -775,7 +832,7 @@
     volver.addEventListener('click', function () { cargar(rolActual); });
 
     // Quien no decide ve los campos apagados y ningún botón de decisión.
-    if (soloLectura) {
+    if (soloLectura || !permisos.decidir) {
       Array.prototype.slice.call(form.querySelectorAll('input, select, textarea'))
         .forEach(function (c) { c.disabled = true; });
       form.appendChild(el('p', 'bajada-tarjeta',
@@ -834,6 +891,48 @@
 
     acciones.appendChild(aprobar);
     acciones.appendChild(rechazar);
+
+    if (permisos.eliminar) {
+      const eliminar = boton('Eliminar', 'btn peligro');
+      let armado = false;
+      eliminar.addEventListener('click', async function () {
+        // Doble confirmación con cuenta atrás: eliminar no se deshace.
+        if (!armado) {
+          armado = true;
+          eliminar.textContent = 'Confirmar eliminación (6 s)';
+          eliminar.disabled = true;
+          let quedan = 6;
+          const reloj = setInterval(function () {
+            quedan--;
+            eliminar.textContent = 'Confirmar eliminación (' + quedan + ' s)';
+            if (quedan <= 0) {
+              clearInterval(reloj);
+              armado = false;
+              eliminar.disabled = false;
+              eliminar.textContent = 'Eliminar';
+            }
+          }, 1000);
+          eliminar.disabled = false;
+          eliminar.dataset.reloj = String(reloj);
+          return;
+        }
+        const motivo = window.prompt('¿Por qué se elimina? (queda en la auditoría y le llega al contratista)', '');
+        if (!motivo || motivo.trim().length < 10) {
+          aviso('Escribe al menos 10 caracteres de motivo.', 'error');
+          return;
+        }
+        eliminar.disabled = true;
+        const r = await API.llamar('propuestas.eliminar',
+          { id: abierta.propuesta.id, motivo: motivo.trim(), version: abierta.version },
+          { token: Sesion.token(), idempotente: true });
+        eliminar.disabled = false;
+        if (!r.ok) { aviso(r.message || 'No se pudo eliminar.', 'error'); return; }
+        aviso('Propuesta eliminada.', 'ok');
+        cargar(rolActual);
+      });
+      acciones.appendChild(eliminar);
+    }
+
     acciones.appendChild(volver);
     form.appendChild(acciones);
     cont.appendChild(form);

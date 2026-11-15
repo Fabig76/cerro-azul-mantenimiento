@@ -779,3 +779,6 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
   border-top: 1px dashed var(--line);
   display: grid; gap: 8px; justify-items: start;
 }
+
+/* Valor y cotización en el detalle del trabajo */
+.bloque-valor { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); display: grid; gap: 6px; justify-items: start; }

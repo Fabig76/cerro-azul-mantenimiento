@@ -12,7 +12,7 @@ const archivos = fs.readdirSync(dir).filter((f) => f.endsWith('.js'));
 const conocidos = new Set([
   // navegador y lenguaje
   'document', 'window', 'console', 'fetch', 'JSON', 'Object', 'Array', 'String', 'Number',
-  'Math', 'Date', 'Promise', 'setTimeout', 'clearTimeout', 'setInterval', 'encodeURIComponent',
+  'Math', 'Date', 'Promise', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'encodeURIComponent',
   'decodeURIComponent', 'URL', 'Blob', 'File', 'FormData', 'atob', 'btoa', 'parseInt', 'parseFloat',
   'isNaN', 'RegExp', 'Error', 'Uint8Array', 'localStorage', 'sessionStorage', 'history', 'location',
   'alert', 'confirm', 'requestAnimationFrame', 'Intl', 'Map', 'Set', 'Boolean', 'Symbol',

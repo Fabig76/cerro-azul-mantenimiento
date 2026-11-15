@@ -102,8 +102,7 @@ window.Sesion = { token: function () { return 'token-de-prueba'; }, limpiar: fun
   function texto(sel) { const n = document.querySelector(sel); return n ? n.textContent : ''; }
 
   try {
-    document.dispatchEvent(new Event('DOMContentLoaded'));
-    await esperar(900);
+    await esperar(1100);
 
     // 1 · Lo que ve al entrar
     const lista = texto('#listaActividades');

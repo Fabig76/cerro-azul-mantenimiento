@@ -7,7 +7,7 @@ const CAMPOS_AUDITORIA = ['creado_en', 'creado_por', 'actualizado_en', 'actualiz
 
 // Sube este número cada vez que cambie el esquema: la app lo compara con la
 // propiedad de script y crea las pestañas o columnas nuevas sin exigir setup().
-const ESQUEMA_VERSION = 5;
+const ESQUEMA_VERSION = 6;
 
 const SCHEMA = {
   nodos: [
@@ -119,6 +119,8 @@ const SCHEMA = {
     // v1.6: la cotización del contratista y el valor que aprueba la administración.
     'valor_cotizado', 'cotizacion_file_id', 'cotizacion_nombre', 'cotizacion_bytes',
     'cotizacion_sha256', 'cotizacion_subida_en', 'cotizacion_vigente_hasta', 'valor_aprobado',
+    // v1.7: control de versión, edición del contratista y eliminación con motivo.
+    'editada_en', 'eliminada_por', 'eliminada_en', 'motivo_eliminacion',
   ].concat(CAMPOS_AUDITORIA),
 
   notificaciones: ['id', 'fecha', 'usuario_id', 'tipo', 'entidad_id', 'estado', 'intentos', 'enviado_en', 'error'],

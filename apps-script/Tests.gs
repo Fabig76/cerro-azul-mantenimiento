@@ -66,6 +66,7 @@ function runAllTests() {
   pruebasConsejoSoloLectura_();
   pruebasFicha_();
   pruebasResidentes_();
+  pruebasPropuestasV17_();
   pruebasFilasPorHoja_();
 
   // Las fallas van primero: son lo único que hay que leer.
@@ -725,6 +726,39 @@ function pruebasResidentes_() {
 
   // Crear una novedad desde un reporte no duplica la lógica
   verdadero_(typeof crearNovedad_ === 'function', 'la novedad se crea con la función compartida');
+}
+
+/**
+ * v1.7: versión, permisos, edición y eliminación de propuestas.
+ */
+function pruebasPropuestasV17_() {
+  const ctxAdmin = { usuario: { id: 'ADMIN1', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  const p = filtrar('propuestas', function (x) { return bool(x.activo) && String(x.estado) === 'PENDIENTE'; })[0];
+
+  if (p) {
+    const permisos = permisosPropuesta_(ctxAdmin, p);
+    verdadero_(permisos.decidir === true, 'el administrador puede decidir sobre una pendiente');
+    verdadero_(permisos.eliminar === true, 'y puede eliminarla');
+
+    const autor = { usuario: { id: p.propuesta_por }, rol: 'CONTRATISTA' };
+    verdadero_(permisosPropuesta_(autor, p).decidir === false, 'el contratista nunca decide');
+
+    // RN-44: una versión vieja se rechaza
+    let codigo = '';
+    try { exigirVersion_(p, 'version-vieja'); } catch (e) { codigo = String(e.message); }
+    verdadero_(codigo.indexOf('CONFLICTO') === 0, 'una versión vieja da CONFLICTO');
+    let okVersion = true;
+    try { exigirVersion_(p, String(p.actualizado_en || '')); } catch (e) { okVersion = false; }
+    verdadero_(okVersion, 'la versión correcta pasa');
+
+    // RN-51: la vigencia no puede estar en el pasado
+    let vencida = '';
+    try { validarVigencia_('2020-01-01'); } catch (e) { vencida = String(e.message); }
+    verdadero_(vencida.indexOf('VALIDACION') === 0, 'una vigencia pasada se rechaza');
+    verdadero_(validarVigencia_('') === '', 'sin vigencia no hay problema');
+  } else {
+    RESULTADOS.detalle.push('OMITE · propuestas v1.7 · no hay pendientes');
+  }
 }
 
 function pruebasSuperficiePublica_() {

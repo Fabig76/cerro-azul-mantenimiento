@@ -86,7 +86,12 @@ const ACCIONES = {
   'informes.mensual': { fn: accionInforme, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'actividades.acta': { fn: accionActa, sesion: true, roles: ['ADMIN', 'SUPERVISOR'] },
   'propuestas.crear': { fn: propuestasCrear, sesion: true, roles: ['CONTRATISTA'] },
-  'propuestas.cotizacion.subir': { fn: propuestasCotizacionSubir, sesion: true, roles: ['CONTRATISTA', 'ADMIN', 'SUPERVISOR'] },
+  'propuestas.editar': { fn: propuestasEditar, sesion: true, roles: ['CONTRATISTA', 'ADMIN'] },
+  'propuestas.eliminar': { fn: propuestasEliminar, sesion: true, roles: ['ADMIN'] },
+  'propuestas.foto.quitar': { fn: propuestasFotoQuitar, sesion: true, roles: ['CONTRATISTA', 'ADMIN'] },
+  'propuestas.lista': { fn: propuestasLista, sesion: true, roles: ['CONTRATISTA'] },
+  // P10: los roles declarados tienen que ser los que la función acepta.
+  'propuestas.cotizacion.subir': { fn: propuestasCotizacionSubir, sesion: true, roles: ['CONTRATISTA'] },
   'propuestas.cotizacion.get': { fn: propuestasCotizacionGet, sesion: true },
   'propuestas.foto.subir': { fn: propuestasFotoSubir, sesion: true, roles: ['CONTRATISTA'] },
   'propuestas.foto.get': { fn: propuestasFotoGet, sesion: true },
@@ -172,7 +177,8 @@ function doPost(e) {
       if (Number(cacheContar('rl:' + emailLimite, 60)) > 60) {
         fallar_('CONFLICTO', 'Demasiadas solicitudes en un minuto. Espera un momento.');
       }
-      const subeFotos = accion === 'evidencias.upload' || accion === 'propuestas.foto.subir';
+      const subeFotos = accion === 'evidencias.upload' || accion === 'propuestas.foto.subir' ||
+        accion === 'propuestas.cotizacion.subir';
       if (subeFotos && Number(cacheContar('rlup:' + emailLimite, 60)) > 20) {
         fallar_('CONFLICTO', 'Demasiadas fotos seguidas. Espera un minuto.');
       }

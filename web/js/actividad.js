@@ -1016,6 +1016,61 @@
     nota.focus();
   }
 
+  /** Valor aprobado y cotización de la propuesta que originó el trabajo. */
+  function bloqueValorCotizacion() {
+    if (!datos || datos.valor_aprobado === undefined) return null;
+    const valor = Number(datos.valor_aprobado || 0);
+    const cot = datos.cotizacion;
+    if (!valor && !cot) return null;
+
+    const caja = el('div', 'bloque-valor');
+    caja.appendChild(el('div', 'kicker', 'Valor y cotización'));
+    const linea = el('p', 'propuesta-valor');
+    linea.textContent = valor
+      ? 'Valor aprobado: $ ' + valor.toLocaleString('es-CO') + ' (IVA incluido)'
+      : 'Sin valor aprobado';
+    caja.appendChild(linea);
+
+    if (cot && cot.hay) {
+      const ver = el('button', 'btn sm', 'Ver cotización (PDF)');
+      ver.type = 'button';
+      ver.addEventListener('click', function () {
+        abrirCotizacionActividad(datos.actividad.id, ver);
+      });
+      caja.appendChild(ver);
+    }
+    return caja;
+  }
+
+  /** Abre el PDF de la cotización de una actividad. */
+  async function abrirCotizacionActividad(actividadId, boton) {
+    const antes = boton.textContent;
+    boton.disabled = true;
+    boton.textContent = 'Abriendo…';
+    try {
+      const r = await API.llamar('propuestas.cotizacion.get', { actividad_id: actividadId },
+        { token: Sesion.token() });
+      if (!r.ok) throw new Error(r.message || 'No se pudo abrir la cotización.');
+      const binario = atob(r.data.base64);
+      const bytes = new Uint8Array(binario.length);
+      for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      if (!window.open(url, '_blank')) {
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = r.data.nombre || 'cotizacion.pdf';
+        enlace.className = 'btn sm';
+        enlace.textContent = 'Descargar ' + (r.data.nombre || 'cotizacion.pdf');
+        boton.parentNode.appendChild(enlace);
+      }
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    } catch (e) {
+      aviso(e.message || 'No se pudo abrir la cotización.', 'error');
+    }
+    boton.disabled = false;
+    boton.textContent = antes;
+  }
+
   /**
    * Retirar una actividad con su rastro. Solo administrador y con confirmación:
    * deja de verse en el panel, el portal y los informes, y queda en auditoría.
@@ -1504,6 +1559,10 @@
 
     // Las acciones primero y el acta al cierre de la página: es el último documento.
     cont.appendChild(acciones());
+
+    // v1.7 · El valor aprobado y su cotización, para quien puede verlos.
+    const valorCot = bloqueValorCotizacion();
+    if (valorCot) cont.appendChild(valorCot);
 
     // Retirar un trabajo creado por error: solo el administrador.
     const retirar = bloqueRetirar();

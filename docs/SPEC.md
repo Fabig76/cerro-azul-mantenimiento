@@ -103,7 +103,7 @@ El portal registra, verifica con evidencia y publica el estado de mantenimiento 
 
 ### 1.2 Fuera de alcance
 
-- Pagos, facturación, cotizaciones e inventario de repuestos.
+- Pagos, facturación e inventario de repuestos. (Las **cotizaciones** sí están dentro: ver RN-36 a RN-54.)
 - Chat, app nativa y notificaciones push.
 - Credenciales de CCTV, IPs, topología de red (hoja 06 del Excel) y cualquier dato de residentes.
 - Registro de propietarios: el portal público es anónimo.
@@ -750,6 +750,42 @@ pegar y mantener etiquetas es trabajo que nadie pidió y no aporta a la operaci�
 para que un residente reportara un daño desde el equipo; ese reporte ya está a un botón en el
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
+
+### 10.2 septies. Propuestas: versión, corrección y eliminación (v1.7)
+
+- **RN-41.** Solo **ADMIN** ve los botones de decidir (aprobar, no aprobar, guardar cambios, eliminar).
+  Supervisor y consejo abren la propuesta en **solo lectura**; el contratista nunca ve esos botones,
+  ni en las suyas. Los permisos los calcula el servidor en `propuestas.get` (`permisos.editar`,
+  `.decidir`, `.eliminar`) y la pantalla dibuja según eso.
+- **RN-42.** El contratista puede **corregir** su propuesta mientras esté PENDIENTE: título, sección
+  (entre las suyas), hallazgo, alcance, fechas, prioridad, afecta el uso, valor, vigencia y fotos.
+  Si ya fue revisada, `ESTADO_INVALIDO`.
+- **RN-43.** Cada corrección deja `editada_en` y auditoría `PROPUESTA_EDITADA` con antes y después.
+- **RN-44.** **Control de versión.** `propuestas.get` devuelve `version` (`actualizado_en`); aprobar,
+  rechazar, editar y eliminar la envían. Si la fila cambió, `CONFLICTO`: «La propuesta cambió mientras
+  la revisaba. Ábrala de nuevo».
+- **RN-45.** El administrador puede **guardar ajustes sin aprobar**: se escriben en `ajustes_json` con
+  quién y cuándo, la propuesta sigue PENDIENTE y lo que propuso el contratista no se sobrescribe.
+- **RN-46.** Se **elimina** una propuesta PENDIENTE, RECHAZADA o RETIRADA, con motivo de al menos 10
+  caracteres y doble confirmación. Una que ya generó actividad no se elimina: se retira la actividad.
+- **RN-47.** Eliminar no es un estado nuevo: `activo = FALSE` más `eliminada_por`, `eliminada_en` y
+  `motivo_eliminacion`, auditoría y los archivos a la papelera **fuera del bloqueo**. Al autor le llega
+  el aviso `PROPUESTA_ELIMINADA` con el motivo.
+- **RN-48.** Diferencia para el administrador: **no aprobar** deja la propuesta visible con su motivo y
+  las fotos se borran a los 15 días; **eliminar** la saca de todas las listas y borra sus archivos ya.
+
+**Cotización**
+
+- **RN-49** (v1.6). Un archivo por propuesta, PDF de hasta 5 MB. Las fotos de una cotización en papel
+  quedan pendientes.
+- **RN-50.** Si hay valor debería haber cotización; aprobar con valor y sin PDF exige marcar
+  «Apruebo sin cotización», que queda en `ajustes_json`.
+- **RN-51.** La vigencia no puede estar en el pasado: `VALIDACION` al guardar.
+- **RN-52.** El valor es en **pesos, IVA incluido**, y la etiqueta lo dice.
+- **RN-53.** El PDF lo abren el autor, el administrador, el supervisor, el consejo y el responsable,
+  desde la propuesta en cualquier estado y desde la actividad que nació de ella.
+- **RN-54.** El aviso `PROPUESTA_NUEVA` sale cuando la propuesta queda completa (`propuestas.lista`),
+  no al crearla.
 
 ### 10.2 quater. Evidencia por etapa (v1.5)
 

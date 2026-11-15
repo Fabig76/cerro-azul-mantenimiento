@@ -208,6 +208,22 @@ function textoNotificacion_(tipo, entidadId) {
     };
   }
 
+  if (tipo === 'PROPUESTA_ELIMINADA') {
+    const p = buscarPorId('propuestas', entidadId);
+    return {
+      asunto: 'Cerro Azul · una propuesta fue eliminada',
+      cuerpo: [
+        'Hola.',
+        '',
+        'La administración eliminó la propuesta' + (p ? ' «' + p.titulo + '»' : '') + '.',
+        '',
+        'Motivo: ' + (p && p.motivo_eliminacion ? p.motivo_eliminacion : 'sin motivo escrito'),
+        '',
+        'Administración — Urbanización Cerro Azul',
+      ].join('\n'),
+    };
+  }
+
   if (tipo === 'HOJA_GRANDE') {
     const partes = String(entidadId || '').split(':');
     const tabla = partes[0];
@@ -534,6 +550,7 @@ function notificacionesMias(ctx, payload) {
     PROPUESTA_RECHAZADA: 'No aprobaron tu propuesta',
     USUARIO_NUEVO: 'Se creó tu usuario',
     HOJA_GRANDE: 'Una tabla del portal está creciendo',
+    PROPUESTA_ELIMINADA: 'La administración eliminó tu propuesta',
   };
 
   return {

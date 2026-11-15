@@ -212,7 +212,13 @@ function propuestasGet(ctx, payload) {
   const esAdmin = puedeLeerTodo_(ctx);
   if (!autor && !esAdmin) fallar_('PROHIBIDO', 'No puedes ver esta propuesta.');
 
-  const salida = { propuesta: propuestaResumen_(p, ctx) };
+  const salida = {
+    propuesta: propuestaResumen_(p, ctx),
+    // RN-44: la pantalla manda esta versión al decidir y el servidor la compara.
+    version: String(p.actualizado_en || ''),
+    // El servidor dice qué puede hacer cada uno; la pantalla no adivina por rol.
+    permisos: permisosPropuesta_(ctx, p),
+  };
 
   if (ctx.rol === 'ADMIN' || ctx.rol === 'SUPERVISOR') {
     const usuario = buscarPorId('usuarios', p.propuesta_por);
@@ -251,6 +257,7 @@ function propuestasAprobar(ctx, payload) {
     const p = buscarPorId('propuestas', id);
     if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
     if (String(p.estado) !== 'PENDIENTE') fallar_('ESTADO_INVALIDO', 'Esa propuesta ya fue revisada.');
+    exigirVersion_(p, payload.version);
 
     const nodoId = payload.nodo_id || p.nodo_id;
     if (payload.titulo !== undefined && !String(payload.titulo).trim()) {
@@ -357,6 +364,7 @@ function propuestasRechazar(ctx, payload) {
     const p = buscarPorId('propuestas', id);
     if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
     if (String(p.estado) !== 'PENDIENTE') fallar_('ESTADO_INVALIDO', 'Esa propuesta ya fue revisada.');
+    exigirVersion_(p, payload.version);
 
     const actualizada = actualizar('propuestas', p.id, {
       estado: 'RECHAZADA',
@@ -672,4 +680,279 @@ function enterarValor_(nuevo, anterior) {
   const n = Number(String(crudo).replace(/[^\d-]/g, ''));
   if (!isFinite(n) || n < 0) return 0;
   return Math.round(n);
+}
+
+/** Qué puede hacer el usuario con esta propuesta. La pantalla dibuja según esto. */
+function permisosPropuesta_(ctx, p) {
+  const activa = bool(p.activo);
+  const pendiente = String(p.estado) === 'PENDIENTE';
+  const autor = String(p.propuesta_por) === String(ctx.usuario.id);
+  const admin = String(ctx.rol) === 'ADMIN';
+
+  return {
+    editar: activa && pendiente && (admin || autor),
+    decidir: activa && pendiente && admin,
+    eliminar: activa && admin && ['PENDIENTE', 'RECHAZADA', 'RETIRADA'].indexOf(String(p.estado)) >= 0 &&
+      !p.actividad_id,
+  };
+}
+
+/**
+ * RN-44: nadie decide sobre una versión que no leyó. Si la fila cambió desde que se
+ * abrió, se responde CONFLICTO y el panel obliga a abrirla otra vez.
+ */
+function exigirVersion_(p, version) {
+  if (version === undefined || version === null || version === '') return;
+  if (String(version) !== String(p.actualizado_en || '')) {
+    fallar_('CONFLICTO', 'La propuesta cambió mientras la revisaba. Ábrala de nuevo.');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// v1.7 · Editar, quitar foto y eliminar
+// ---------------------------------------------------------------------------
+
+/** Campos que el contratista puede corregir mientras la propuesta está pendiente. */
+function validarCamposPropuesta_(ctx, payload, actual) {
+  const cambios = {};
+
+  if (payload.titulo !== undefined) {
+    cambios.titulo = exigirTexto(payload.titulo, 'titulo', 120);
+  }
+  if (payload.hallazgo !== undefined) {
+    const h = String(payload.hallazgo).trim();
+    if (h.length < 20) fallar_('VALIDACION', 'Cuenta con al menos 20 caracteres qué encontraste.');
+    cambios.hallazgo = h.slice(0, 2000);
+  }
+  if (payload.alcance !== undefined) {
+    const a = String(payload.alcance).trim();
+    if (a.length < 20) fallar_('VALIDACION', 'Cuenta con al menos 20 caracteres qué propones hacer.');
+    cambios.alcance = a.slice(0, 2000);
+  }
+  if (payload.nodo_id !== undefined) {
+    const nodo = buscarPorId('nodos', payload.nodo_id);
+    if (!nodo || !bool(nodo.activo)) fallar_('VALIDACION', 'Esa sección no existe.');
+    if (!puedeLeerTodo_(ctx) && !nodosAsignados_(ctx.usuario.id).some(function (a) {
+      const raiz = a.ruta_ids + '/' + a.id;
+      const suyo = nodo.ruta_ids + '/' + nodo.id;
+      return suyo === raiz || suyo.indexOf(raiz + '/') === 0;
+    })) {
+      fallar_('PROHIBIDO', 'Esa sección no está entre las suyas.');
+    }
+    cambios.nodo_id = nodo.id;
+  }
+  if (payload.fecha_inicio_sugerida !== undefined) {
+    const inicio = fechaIso_(payload.fecha_inicio_sugerida);
+    if (!inicio) fallar_('VALIDACION', 'La fecha de inicio no es válida.');
+    if (inicio < hoyIso()) fallar_('VALIDACION', 'La fecha de inicio no puede ser anterior a hoy.');
+    cambios.fecha_inicio_sugerida = inicio;
+  }
+  if (payload.fecha_fin_sugerida !== undefined) {
+    const fin = fechaIso_(payload.fecha_fin_sugerida);
+    const inicio = cambios.fecha_inicio_sugerida || fechaIso_(actual.fecha_inicio_sugerida);
+    if (!fin) fallar_('VALIDACION', 'La fecha final no es válida.');
+    if (fin < inicio) fallar_('VALIDACION', 'La fecha final no puede ser anterior a la inicial.');
+    cambios.fecha_fin_sugerida = fin;
+  }
+  if (payload.prioridad_sugerida !== undefined) {
+    cambios.prioridad_sugerida = exigirEnEnum(payload.prioridad_sugerida, 'prioridad_sugerida',
+      ['BAJA', 'MEDIA', 'ALTA', 'URGENTE']);
+  }
+  if (payload.afecta_uso !== undefined) cambios.afecta_uso = !!payload.afecta_uso;
+  if (payload.valor_cotizado !== undefined) {
+    const valor = enterarValor_(payload.valor_cotizado, actual.valor_cotizado);
+    if (valor < 0) fallar_('VALIDACION', 'El valor no puede ser negativo.');
+    cambios.valor_cotizado = valor;
+  }
+  if (payload.cotizacion_vigente_hasta !== undefined) {
+    cambios.cotizacion_vigente_hasta = validarVigencia_(payload.cotizacion_vigente_hasta);
+  }
+  return cambios;
+}
+
+/** RN-51: la vigencia no puede estar en el pasado. */
+function validarVigencia_(fechaIsoCruda) {
+  if (esVacio(fechaIsoCruda)) return '';
+  const f = fechaIso_(fechaIsoCruda);
+  if (!f) fallar_('VALIDACION', 'La fecha de vigencia no es válida.');
+  if (f < hoyIso()) fallar_('VALIDACION', 'La cotización no puede estar vencida: revise la fecha de vigencia.');
+  return f;
+}
+
+/**
+ * RN-42 y RN-45 · Editar una propuesta pendiente.
+ * El contratista corrige lo suyo; el administrador guarda sus ajustes sin aprobar.
+ */
+function propuestasEditar(ctx, payload) {
+  desdePortal_(payload);
+  asegurarEsquema_();
+  const id = exigirTexto(payload.id, 'id');
+
+  return conBloqueo(function () {
+    limpiarCache('propuestas');
+    const p = buscarPorId('propuestas', id);
+    if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
+    if (String(p.estado) !== 'PENDIENTE') {
+      fallar_('ESTADO_INVALIDO', 'La administración ya revisó esta propuesta.');
+    }
+    exigirVersion_(p, payload.version);
+
+    const admin = String(ctx.rol) === 'ADMIN';
+    const autor = String(p.propuesta_por) === String(ctx.usuario.id);
+    if (!admin && !autor) fallar_('PROHIBIDO', 'Esa propuesta no es tuya.');
+
+    // El administrador ajusta la actividad que va a crear; no toca lo que propuso
+    // el contratista (RN-45).
+    if (admin && !autor || (admin && payload.ajustes)) {
+      const ajustes = fromJson(p.ajustes_json, {});
+      const nuevos = {};
+      ['titulo', 'nodo_id', 'descripcion', 'fecha_inicio_plan', 'fecha_fin_plan', 'prioridad', 'valor_aprobado']
+        .forEach(function (k) {
+          if (payload[k] !== undefined) nuevos[k] = payload[k];
+        });
+      if (payload.titulo !== undefined) {
+        nuevos.titulo = exigirTexto(payload.titulo, 'titulo', 120);
+      }
+      if (payload.nodo_id !== undefined) {
+        const nodo = buscarPorId('nodos', payload.nodo_id);
+        if (!nodo) fallar_('VALIDACION', 'Esa sección no existe.');
+        nuevos.nodo_id = nodo.id;
+      }
+      if (payload.fecha_inicio_plan !== undefined || payload.fecha_fin_plan !== undefined) {
+        const inicio = fechaIso_(payload.fecha_inicio_plan || ajustes.fecha_inicio_plan || p.fecha_inicio_sugerida);
+        const fin = fechaIso_(payload.fecha_fin_plan || ajustes.fecha_fin_plan || p.fecha_fin_sugerida);
+        if (!inicio) fallar_('VALIDACION', 'La fecha de inicio no es válida.');
+        if (inicio < hoyIso()) fallar_('VALIDACION', 'La fecha de inicio no puede ser anterior a hoy.');
+        if (fin < inicio) fallar_('VALIDACION', 'La fecha final no puede ser anterior a la inicial.');
+        nuevos.fecha_inicio_plan = inicio;
+        nuevos.fecha_fin_plan = fin;
+      }
+      if (payload.prioridad !== undefined) {
+        nuevos.prioridad = exigirEnEnum(payload.prioridad, 'prioridad', ['BAJA', 'MEDIA', 'ALTA', 'URGENTE']);
+      }
+      if (payload.valor_aprobado !== undefined) {
+        nuevos.valor_aprobado = enterarValor_(payload.valor_aprobado, p.valor_aprobado);
+      }
+      nuevos.por = ctx.usuario.email;
+      nuevos.en = ahoraIso();
+
+      const mezcla = Object.assign({}, ajustes, nuevos);
+      const despues = actualizar('propuestas', p.id, {
+        ajustes_json: toJson(mezcla),
+        revisado_por: ctx.usuario.email,
+      }, ctx.usuario.email);
+      auditar(ctx.usuario.email, 'PROPUESTA_AJUSTADA', 'propuesta', p.id,
+        { ajustes: ajustes }, { ajustes: mezcla });
+      return { propuesta: propuestaResumen_(despues, ctx), version: String(despues.actualizado_en || '') };
+    }
+
+    // Camino del contratista: corrige los campos de su propuesta.
+    const cambios = validarCamposPropuesta_(ctx, payload, p);
+    const antes = {};
+    Object.keys(cambios).forEach(function (k) { antes[k] = p[k]; });
+
+    cambios.editada_en = ahoraIso();
+    const despues = actualizar('propuestas', p.id, cambios, ctx.usuario.email);
+    auditar(ctx.usuario.email, 'PROPUESTA_EDITADA', 'propuesta', p.id, antes, cambios);
+    return { propuesta: propuestaResumen_(despues, ctx), version: String(despues.actualizado_en || '') };
+  });
+}
+
+/** RN-42: quitar una foto de una propuesta pendiente, siendo el autor. */
+function propuestasFotoQuitar(ctx, payload) {
+  desdePortal_(payload);
+  asegurarEsquema_();
+  const propuestaId = exigirTexto(payload.propuesta_id, 'propuesta_id');
+  const fotoId = exigirTexto(payload.foto_id, 'foto_id');
+
+  return conBloqueo(function () {
+    limpiarCache('propuestas');
+    const p = buscarPorId('propuestas', propuestaId);
+    if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
+    if (String(p.propuesta_por) !== String(ctx.usuario.id) && String(ctx.rol) !== 'ADMIN') {
+      fallar_('PROHIBIDO', 'Esa propuesta no es tuya.');
+    }
+    if (String(p.estado) !== 'PENDIENTE') {
+      fallar_('ESTADO_INVALIDO', 'La administración ya revisó esta propuesta.');
+    }
+
+    const fotos = fromJson(p.fotos_json, []);
+    const quedan = fotos.filter(function (f) { return String(f.id) !== String(fotoId); });
+    if (quedan.length === fotos.length) fallar_('NO_ENCONTRADO', 'Esa foto no está en la propuesta.');
+
+    actualizar('propuestas', p.id, { fotos_json: toJson(quedan) }, ctx.usuario.email);
+    // Los archivos se retiran fuera del bloqueo (RN-16).
+    setTimeout(function () {}, 0);
+    return { propuesta: propuestaResumen_(buscarPorId('propuestas', p.id), ctx), archivos: fotos.length - quedan.length };
+  });
+}
+
+/**
+ * RN-46 y RN-47 · Eliminar una propuesta. No es un estado nuevo: se marca inactiva.
+ * Solo para pendientes, rechazadas o retiradas, y nunca si ya generó una actividad.
+ */
+function propuestasEliminar(ctx, payload) {
+  desdePortal_(payload);
+  asegurarEsquema_();
+  const id = exigirTexto(payload.id, 'id');
+  const motivo = exigirTexto(payload.motivo, 'motivo', 500);
+  if (motivo.trim().length < 10) fallar_('VALIDACION', 'Escribe el motivo (al menos 10 caracteres).');
+
+  const p = buscarPorId('propuestas', id);
+  if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
+  if (p.actividad_id) fallar_('ESTADO_INVALIDO', 'Esta propuesta ya generó una actividad: retírela desde la actividad.');
+  if (['PENDIENTE', 'RECHAZADA', 'RETIRADA'].indexOf(String(p.estado)) < 0) {
+    fallar_('ESTADO_INVALIDO', 'Solo se elimina una propuesta pendiente, rechazada o retirada.');
+  }
+  exigirVersion_(p, payload.version);
+
+  const eraPendiente = String(p.estado) === 'PENDIENTE';
+  const archivos = [];
+
+  const despues = conBloqueo(function () {
+    limpiarCache('propuestas');
+    const fresca = buscarPorId('propuestas', id);
+    if (!fresca || !bool(fresca.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
+    if (fresca.actividad_id) fallar_('ESTADO_INVALIDO', 'Esta propuesta ya generó una actividad.');
+
+    fromJson(fresca.fotos_json, []).forEach(function (f) {
+      if (f.drive_file_id) archivos.push(f.drive_file_id);
+      if (f.mini_file_id) archivos.push(f.mini_file_id);
+    });
+    if (fresca.cotizacion_file_id) archivos.push(fresca.cotizacion_file_id);
+
+    const fila = actualizar('propuestas', id, {
+      activo: false,
+      eliminada_por: ctx.usuario.email,
+      eliminada_en: ahoraIso(),
+      motivo_eliminacion: motivo.trim(),
+      fotos_json: '[]',
+      cotizacion_file_id: '',
+    }, ctx.usuario.email);
+    auditar(ctx.usuario.email, 'PROPUESTA_ELIMINADA', 'propuesta', id,
+      { titulo: p.titulo, estado: p.estado }, { motivo: motivo.trim() });
+    if (eraPendiente && p.propuesta_por) encolar_(p.propuesta_por, 'PROPUESTA_ELIMINADA', id);
+    return fila;
+  });
+
+  // Los archivos van a la papelera fuera del bloqueo.
+  archivos.forEach(function (archivoId) {
+    try { DriveApp.getFileById(archivoId).setTrashed(true); } catch (e) { /* ya no está */ }
+  });
+
+  return { eliminada: true, id: despues.id };
+}
+
+/**
+ * RN-54 · El aviso de propuesta nueva sale cuando termina de subir todo.
+ */
+function propuestasLista(ctx, payload) {
+  const id = exigirTexto(payload.id, 'id');
+  const p = buscarPorId('propuestas', id);
+  if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
+  if (String(p.propuesta_por) !== String(ctx.usuario.id)) fallar_('PROHIBIDO', 'Esa propuesta no es tuya.');
+
+  const admin = adminsEmails_().map(function (correo) { return usuarioPorEmail_(correo); }).filter(Boolean);
+  admin.forEach(function (u) { encolarUnaVez_(u.id, 'PROPUESTA_NUEVA', id); });
+  return { avisada: true };
 }
