@@ -623,7 +623,7 @@ function pruebasCotizacion_() {
 function pruebasConsejoSoloLectura_() {
   const escrituras = Object.keys(ACCIONES).filter(function (a) {
     // Lo que no termina en lectura es escritura, salvo los disparadores internos.
-    return !/(\.(listar|get|panel|me|arbol|ver|pdf|ficha)|^ping$)/.test(a);
+    return !/(\.(listar|get|panel|me|arbol|ver|pdf|ficha|salir)|^ping$|^consejo\.resumen$|^actividades\.acta$)/.test(a);
   });
 
   const coladas = escrituras.filter(function (a) {
@@ -719,7 +719,7 @@ function pruebasResidentes_() {
     'el robot recibe un código de 6 caracteres y no se le avisa');
 
   // La consulta pública no devuelve texto, foto ni motivo
-  const consulta = publicReporteEstado({ codigo: 'NOEXISTE' });
+  const consulta = publicReporteEstado({}, { codigo: 'NOEXISTE' });
   verdadero_(consulta.estado === 'NO_ENCONTRADO', 'un código inexistente no revela nada');
   const claves = Object.keys(consulta).sort().join(',');
   verdadero_(claves === 'estado' || claves === 'estado,fecha', 'la consulta solo devuelve estado y fecha');

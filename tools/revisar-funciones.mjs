@@ -9,6 +9,10 @@ const raiz = new URL('..', import.meta.url).pathname;
 const dir = path.join(raiz, 'web', 'js');
 const archivos = fs.readdirSync(dir).filter((f) => f.endsWith('.js'));
 
+// Apps Script no tiene DOM ni temporizadores: esto rompe en producción y no en las pruebas.
+const PROHIBIDOS_SERVIDOR = ['setTimeout', 'setInterval', 'requestAnimationFrame', 'window', 'document',
+  'localStorage', 'alert', 'confirm', 'prompt'];
+
 const conocidos = new Set([
   // navegador y lenguaje
   'document', 'window', 'console', 'fetch', 'JSON', 'Object', 'Array', 'String', 'Number',
@@ -108,3 +112,29 @@ if (problemas.length) {
   process.exit(1);
 }
 console.log('OK: ' + archivos.length + ' módulos, todas las funciones llamadas existen');
+
+// --- Segundo control: el servidor (apps-script) no tiene DOM ni temporizadores ---
+{
+  const dirServidor = path.join(raiz, 'apps-script');
+  const prohibidos = [];
+  if (fs.existsSync(dirServidor)) {
+    for (const f of fs.readdirSync(dirServidor).filter((x) => x.endsWith('.gs')).sort()) {
+      const s = fs.readFileSync(path.join(dirServidor, f), 'utf8');
+      const limpio = taparTextos(s);
+      for (const nombre of PROHIBIDOS_SERVIDOR) {
+        // `window` y `document` solo si se usan como objeto, no dentro de un texto.
+        const re = new RegExp('(^|[^\\w$.])' + nombre + '\\s*[.(]', 'g');
+        for (const m of limpio.matchAll(re)) {
+          const linea = limpio.slice(0, m.index).length - limpio.slice(0, m.index).split('\n').pop().length;
+          prohibidos.push(`${f}:${linea} · «${nombre}» no existe en Apps Script`);
+        }
+      }
+    }
+  }
+  if (prohibidos.length) {
+    console.log('CÓDIGO DE SERVIDOR INVÁLIDO (' + prohibidos.length + '):');
+    [...new Set(prohibidos)].forEach((p) => console.log('  ' + p));
+    process.exit(1);
+  }
+  console.log('OK: el servidor no usa DOM ni temporizadores');
+}

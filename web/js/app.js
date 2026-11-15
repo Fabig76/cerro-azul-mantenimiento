@@ -214,9 +214,10 @@
     arbol.then(function (nodos) {
       if (window.Propuestas) Propuestas.cargar(rolActual, nodos);
     });
+    // El buscador es para todos los roles: el campo se ve, así que tiene que funcionar.
+    prepararBuscador();
     if (rolActual === 'ADMIN') {
       prepararFormulario(t);
-      prepararBuscador();
       const formElemento = document.getElementById('formElemento');
       if (formElemento) formElemento.classList.remove('oculto');
     }

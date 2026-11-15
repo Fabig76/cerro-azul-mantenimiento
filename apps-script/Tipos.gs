@@ -196,10 +196,56 @@ function nodosDesactivar(ctx, payload) {
       const suyo = n.ruta_ids + '/' + n.id;
       return bool(n.activo) && (suyo === prefijo || suyo.indexOf(prefijo + '/') === 0);
     });
-    subarbol.forEach(function (n) {
-      actualizar('nodos', n.id, { activo: false }, ctx.usuario.email);
+    const ids = subarbol.map(function (n) { return String(n.id); });
+
+    // S1 · Antes de retirar, se mira qué cuelga: un equipo con trabajos abiertos o con
+    // planes activos no se puede retirar sin decidir qué pasa con eso.
+    const abiertos = filtrar('actividades', function (a) {
+      return bool(a.activo) && ids.indexOf(String(a.nodo_id)) >= 0 &&
+        ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA'].indexOf(String(a.estado)) >= 0;
     });
-    auditar(ctx.usuario.email, 'NODO_DESACTIVADO', 'nodo', id, null, { nodos: subarbol.length, codigo: nodo.codigo });
-    return { desactivados: subarbol.length, codigo: nodo.codigo };
+    const planes = filtrar('recurrencias', function (r) {
+      return bool(r.activo) && bool(r.activa) && ids.indexOf(String(r.nodo_id)) >= 0;
+    });
+    const novedades = filtrar('novedades', function (n) {
+      return bool(n.activo) && ids.indexOf(String(n.nodo_id)) >= 0 &&
+        ['ABIERTA', 'EN_ATENCION'].indexOf(String(n.estado)) >= 0;
+    });
+
+    const pausar = !!payload.pausar_planes;
+    if ((abiertos.length || novedades.length) && !payload.confirmar) {
+      fallar_('VALIDACION',
+        '«' + nodo.nombre + '» tiene ' + abiertos.length + ' trabajo(s) abierto(s) y ' +
+        novedades.length + ' novedad(es) sin resolver. Ciérrelos primero, o confirme que se retira igual.');
+    }
+    if (planes.length && !pausar && !payload.confirmar) {
+      fallar_('VALIDACION',
+        '«' + nodo.nombre + '» tiene ' + planes.length + ' plan(es) activo(s). Páuselos o confirme que se retiran con la sección.');
+    }
+
+    if (pausar) {
+      planes.forEach(function (r) {
+        actualizar('recurrencias', r.id, { activa: false }, ctx.usuario.email);
+      });
+    }
+
+    ids.forEach(function (nodoId) {
+      actualizar('nodos', nodoId, { activo: false }, ctx.usuario.email);
+    });
+
+    // S3 · Los ancestros tienen que recalcular su semáforo ahora, no en la noche.
+    if (typeof recalcularSalud_ === 'function') {
+      ids.forEach(function (nodoId) {
+        try { recalcularSalud_(nodoId, ctx.usuario.email); } catch (e) { /* la salud no frena el retiro */ }
+      });
+    }
+    regenerarSnapshot();
+
+    auditar(ctx.usuario.email, 'NODO_DESACTIVADO', 'nodo', id, null,
+      { nodos: subarbol.length, codigo: nodo.codigo, planes_pausados: pausar ? planes.length : 0 });
+    return {
+      desactivados: subarbol.length, codigo: nodo.codigo,
+      planes_pausados: pausar ? planes.length : 0,
+    };
   });
 }

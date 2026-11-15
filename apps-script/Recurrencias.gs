@@ -155,6 +155,23 @@ function generarActividadesPendientes(usuario) {
     const limite = sumarDias(hoy, anticipacion);
     if (proxima > limite) return;
 
+    // Una sección retirada no genera trabajo (S2).
+    const seccion = buscarPorId('nodos', r.nodo_id);
+    if (!seccion || !bool(seccion.activo)) {
+      omitidas.push({ recurrencia: r.id, motivo: 'la sección está retirada' });
+      return;
+    }
+
+    // Un responsable inactivo no puede recibir el trabajo (PL2).
+    let responsable = r.responsable_id || '';
+    if (responsable) {
+      const u = buscarPorId('usuarios', responsable);
+      if (!u || !bool(u.activo) || String(u.estado) !== 'ACTIVO') {
+        omitidas.push({ recurrencia: r.id, motivo: 'el responsable está inactivo: se genera sin responsable' });
+        responsable = '';
+      }
+    }
+
     // Una empresa desactivada no debe seguir generando trabajo solo.
     if (r.empresa_id) {
       const empresa = buscarPorId('empresas', r.empresa_id);
@@ -189,7 +206,7 @@ function generarActividadesPendientes(usuario) {
       plantilla_id: r.plantilla_id || '',
       plantilla_version: plantilla ? plantilla.version : '',
       empresa_id: r.empresa_id || '',
-      responsable_id: r.responsable_id || '',
+      responsable_id: responsable,
       tipo: duracion > 1 ? 'MULTIDIA' : 'RECURRENTE',
       origen: 'PLAN',
       novedad_id: '',

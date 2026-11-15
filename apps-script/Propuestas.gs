@@ -139,10 +139,13 @@ function propuestasCrear(ctx, payload) {
     activo: true,
   }, ctx.usuario.email);
 
-  adminsEmails_().forEach(function (adm) {
-    const admin = usuarioPorEmail_(adm);
-    if (admin) encolar_(admin.id, 'PROPUESTA_NUEVA', propuesta.id);
-  });
+  // Con archivos pendientes (fotos o PDF) el aviso espera a que terminen de subir.
+  if (!bool(payload.archivos_pendientes)) {
+    adminsEmails_().forEach(function (adm) {
+      const admin = usuarioPorEmail_(adm);
+      if (admin) encolarUnaVez_(admin.id, 'PROPUESTA_NUEVA', propuesta.id);
+    });
+  }
 
   // La auditoría no guarda hallazgo ni alcance: si la propuesta se purga, no deben quedar ahí.
   auditar(ctx.usuario.email, 'PROPUESTA_CREADA', 'propuesta', propuesta.id, null,
@@ -258,6 +261,23 @@ function propuestasAprobar(ctx, payload) {
     if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
     if (String(p.estado) !== 'PENDIENTE') fallar_('ESTADO_INVALIDO', 'Esa propuesta ya fue revisada.');
     exigirVersion_(p, payload.version);
+
+    // RN-50: con valor y sin cotización hace falta decirlo a las claras.
+    const valorPedido = enterarValor_(payload.valor_aprobado, p.valor_cotizado);
+    if (valorPedido > 0 && !p.cotizacion_file_id && !bool(payload.apruebo_sin_cotizacion)) {
+      fallar_('VALIDACION',
+        'Esta propuesta tiene valor pero no tiene la cotización. Marque «Apruebo sin cotización» si va a seguir.');
+    }
+
+    // RN-45: si el administrador guardó ajustes, mandan sobre lo propuesto.
+    const ajustesGuardados = fromJson(p.ajustes_json, {});
+    ['titulo', 'nodo_id', 'fecha_inicio_plan', 'fecha_fin_plan', 'prioridad', 'valor_aprobado']
+      .forEach(function (k) {
+        if ((payload[k] === undefined || payload[k] === '') &&
+            ajustesGuardados[k] !== undefined && ajustesGuardados[k] !== '') {
+          payload[k] = ajustesGuardados[k];
+        }
+      });
 
     const nodoId = payload.nodo_id || p.nodo_id;
     if (payload.titulo !== undefined && !String(payload.titulo).trim()) {
@@ -675,7 +695,9 @@ function puedeVerCotizacion_(ctx, p) {
 
 /** Convierte un valor escrito a entero de pesos. Devuelve 0 si no se puede. */
 function enterarValor_(nuevo, anterior) {
-  const crudo = nuevo !== undefined && nuevo !== null ? nuevo : anterior;
+  // Vacío significa «déjelo como estaba», no «cero». Para aprobar en cero se escribe 0.
+  const vacio = nuevo === undefined || nuevo === null || String(nuevo).trim() === '';
+  const crudo = vacio ? anterior : nuevo;
   if (crudo === '' || crudo === null || crudo === undefined) return 0;
   const n = Number(String(crudo).replace(/[^\d-]/g, ''));
   if (!isFinite(n) || n < 0) return 0;
@@ -702,7 +724,10 @@ function permisosPropuesta_(ctx, p) {
  * abrió, se responde CONFLICTO y el panel obliga a abrirla otra vez.
  */
 function exigirVersion_(p, version) {
-  if (version === undefined || version === null || version === '') return;
+  // RN-44: es obligatoria. Sin ella no se puede comprobar que se decidió sobre lo leído.
+  if (version === undefined || version === null || String(version).trim() === '') {
+    fallar_('VALIDACION', 'Falta la versión de la propuesta. Ábrala de nuevo.');
+  }
   if (String(version) !== String(p.actualizado_en || '')) {
     fallar_('CONFLICTO', 'La propuesta cambió mientras la revisaba. Ábrala de nuevo.');
   }
@@ -839,7 +864,6 @@ function propuestasEditar(ctx, payload) {
       const mezcla = Object.assign({}, ajustes, nuevos);
       const despues = actualizar('propuestas', p.id, {
         ajustes_json: toJson(mezcla),
-        revisado_por: ctx.usuario.email,
       }, ctx.usuario.email);
       auditar(ctx.usuario.email, 'PROPUESTA_AJUSTADA', 'propuesta', p.id,
         { ajustes: ajustes }, { ajustes: mezcla });
@@ -859,6 +883,16 @@ function propuestasEditar(ctx, payload) {
 }
 
 /** RN-42: quitar una foto de una propuesta pendiente, siendo el autor. */
+/** Acción del Router: quita la foto y manda sus archivos a la papelera fuera del bloqueo. */
+function propuestasFotoQuitarAccion(ctx, payload) {
+  const r = propuestasFotoQuitar(ctx, payload);
+  (r.archivos || []).forEach(function (archivoId) {
+    try { DriveApp.getFileById(archivoId).setTrashed(true); } catch (e) { /* ya no está */ }
+  });
+  delete r.archivos;
+  return r;
+}
+
 function propuestasFotoQuitar(ctx, payload) {
   desdePortal_(payload);
   asegurarEsquema_();
@@ -880,10 +914,13 @@ function propuestasFotoQuitar(ctx, payload) {
     const quedan = fotos.filter(function (f) { return String(f.id) !== String(fotoId); });
     if (quedan.length === fotos.length) fallar_('NO_ENCONTRADO', 'Esa foto no está en la propuesta.');
 
-    actualizar('propuestas', p.id, { fotos_json: toJson(quedan) }, ctx.usuario.email);
-    // Los archivos se retiran fuera del bloqueo (RN-16).
-    setTimeout(function () {}, 0);
-    return { propuesta: propuestaResumen_(buscarPorId('propuestas', p.id), ctx), archivos: fotos.length - quedan.length };
+    const quitada = fotos.filter(function (f) { return String(f.id) === String(fotoId); })[0];
+    const fila = actualizar('propuestas', p.id, { fotos_json: toJson(quedan) }, ctx.usuario.email);
+    auditar(ctx.usuario.email, 'PROPUESTA_FOTO_QUITADA', 'propuesta', p.id, null, { foto_id: fotoId });
+    return {
+      propuesta: propuestaResumen_(fila, ctx),
+      archivos: quitada ? [quitada.drive_file_id, quitada.mini_file_id].filter(Boolean) : [],
+    };
   });
 }
 

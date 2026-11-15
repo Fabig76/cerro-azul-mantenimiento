@@ -47,14 +47,7 @@ function construirSnapshot() {
     return String(n.clase) === 'ELEMENTO' && n.salud_estado && String(n.salud_estado) !== '';
   });
 
-  function esSensible(nodo) {
-    let actual = nodo;
-    while (actual) {
-      if (bool(actual.sensible)) return true;
-      actual = actual.parent_id ? porId[actual.parent_id] : null;
-    }
-    return false;
-  }
+
 
   // --- Resumen ---
   const distribucion = { AL_DIA: 0, ATENCION: 0, CRITICO: 0, SIN_DATOS: 0 };
@@ -487,14 +480,7 @@ function publicNodo(param) {
   const nodo = porId[id];
   if (!nodo) return json({ error: 'no encontrado' });
 
-  function esSensible(n) {
-    let actual = n;
-    while (actual) {
-      if (bool(actual.sensible)) return true;
-      actual = actual.parent_id ? porId[actual.parent_id] : null;
-    }
-    return false;
-  }
+
 
   const sensible = esSensible(nodo);
   const prefijo = nodo.ruta_ids + '/' + nodo.id;

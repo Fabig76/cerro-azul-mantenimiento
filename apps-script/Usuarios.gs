@@ -56,6 +56,7 @@ function usuariosListar(ctx, payload) {
 /** Activa a un usuario, le fija el rol y la empresa. */
 function usuariosActivar(ctx, payload) {
   desdePortal_(payload);
+  return conBloqueo(function () {
   const id = exigirTexto(payload.id, 'id');
   const u = buscarPorId('usuarios', id);
   if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');
@@ -79,10 +80,12 @@ function usuariosActivar(ctx, payload) {
   auditar(ctx.usuario.email, 'USUARIO_ACTIVADO', 'usuario', id,
     { estado: u.estado }, { estado: 'ACTIVO', rol: rol, empresa: empresaId });
   return { usuario: usuarioResumen_(despues) };
+  });
 }
 
 /** Cambia datos del usuario sin tocar el estado. */
 function usuariosEditar(ctx, payload) {
+  return conBloqueo(function () {
   const id = exigirTexto(payload.id, 'id');
   const u = buscarPorId('usuarios', id);
   if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');
@@ -103,11 +106,13 @@ function usuariosEditar(ctx, payload) {
   const despues = actualizar('usuarios', id, cambios, ctx.usuario.email);
   auditar(ctx.usuario.email, 'USUARIO_EDITADO', 'usuario', id, { rol: u.rol }, cambios);
   return { usuario: usuarioResumen_(despues) };
+  });
 }
 
 /** Reemplaza las secciones asignadas (el acceso incluye todo el subárbol). */
 function usuariosAsignar(ctx, payload) {
   desdePortal_(payload);
+  return conBloqueo(function () {
   const id = exigirTexto(payload.id, 'id');
   const u = buscarPorId('usuarios', id);
   if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');
@@ -140,11 +145,13 @@ function usuariosAsignar(ctx, payload) {
   auditar(ctx.usuario.email, 'USUARIO_ASIGNADO', 'usuario', id,
     { antes: anteriores.length }, { nodos: nodos });
   return { usuario: usuarioResumen_(u), asignaciones: asignacionesDe_(id) };
+  });
 }
 
 /** Desactiva al usuario y revoca sus sesiones. */
 function usuariosDesactivar(ctx, payload) {
   desdePortal_(payload);
+  return conBloqueo(function () {
   const id = exigirTexto(payload.id, 'id');
   const u = buscarPorId('usuarios', id);
   if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');
@@ -165,6 +172,7 @@ function usuariosDesactivar(ctx, payload) {
   auditar(ctx.usuario.email, 'USUARIO_DESACTIVADO', 'usuario', id,
     { estado: u.estado }, { estado: 'INACTIVO', sesiones_revocadas: sesiones });
   return { usuario: usuarioResumen_(despues) };
+  });
 }
 
 /**
@@ -209,6 +217,7 @@ function empresasListar(ctx, payload) {
  * actividades asignadas a una empresa invisible.
  */
 function empresasEstado(ctx, payload) {
+  return conBloqueo(function () {
   const id = exigirTexto(payload.id, 'id');
   const activo = !!payload.activo;
   const e = buscarPorId('empresas', id);
@@ -264,9 +273,11 @@ function empresasEstado(ctx, payload) {
   auditar(ctx.usuario.email, activo ? 'EMPRESA_ACTIVADA' : 'EMPRESA_DESACTIVADA', 'empresa', id,
     { activo: bool(e.activo) }, { activo: activo, usuarios_apagados: usuariosApagados });
   return { empresa: { id: despues.id, activo: bool(despues.activo) }, usuarios_apagados: usuariosApagados };
+  });
 }
 
 function empresasGuardar(ctx, payload) {
+  return conBloqueo(function () {
   const razon = exigirTexto(payload.razon_social, 'razon_social', 160);
   const cambios = {
     razon_social: razon,
@@ -291,4 +302,5 @@ function empresasGuardar(ctx, payload) {
   const nueva = insertar('empresas', Object.assign({ id: newId('EMP'), activo: true }, cambios), ctx.usuario.email);
   auditar(ctx.usuario.email, 'EMPRESA_CREADA', 'empresa', nueva.id, null, cambios);
   return { empresa: nueva };
+  });
 }

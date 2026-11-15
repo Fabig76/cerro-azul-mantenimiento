@@ -300,7 +300,7 @@
     let valorNumInicial = 0;
     const previos = (existente && existente.datos) ? existente.datos : null;
     const caja = el('div', 'bloque');
-    caja.appendChild(el('div', 'kicker', 'Nueva propuesta'));
+    caja.appendChild(el('div', 'kicker', editando ? 'Corregir propuesta' : 'Nueva propuesta'));
 
     const sel = el('select', 'item-input');
     sel.id = 'prNodo';
@@ -457,6 +457,7 @@
         afecta_uso: afecta.checked,
         valor_cotizado: valorNum,
         cotizacion_vigente_hasta: vigencia.value || '',
+        archivos_pendientes: !!(cotizacion || fotosNuevas.length),
       };
 
       const r = editando
@@ -507,8 +508,13 @@
 
       enviar.disabled = false;
       enviar.textContent = editando ? 'Guardar cambios' : 'Enviar propuesta';
+      // RN-54 · Con los archivos arriba, la propuesta queda completa: ahora sí se avisa.
+      if (!editando) {
+        API.llamar('propuestas.lista', { id: id }, { token: Sesion.token() }).catch(function () {});
+      }
+
       if (pdfFallo) {
-        aviso('La propuesta se envió, pero la cotización no subió. Toca «Falta la cotización» en la tarjeta para intentarlo otra vez.', 'info');
+        aviso('La propuesta se envió, pero la cotización no subió. Toca «Corregir» en la tarjeta y adjunta la cotización otra vez para intentarlo otra vez.', 'info');
       } else if (fotosNuevas.length && subidas < fotosNuevas.length) {
         const faltan = fotosNuevas.length - subidas;
         aviso('La propuesta se envió, pero falta ' + faltan + (faltan === 1 ? ' foto' : ' fotos') +
@@ -568,14 +574,56 @@
     fila.appendChild(campo('Prioridad', prioridad));
     caja.appendChild(fila);
     caja.appendChild(etiquetaAfecta);
-    caja.appendChild(campo('Valor de la cotización (COP)', valor,
+    caja.appendChild(campo('Valor de la cotización (COP, IVA incluido)', valor,
       'Solo el número. Si no hay cotización, déjalo vacío.'));
     caja.appendChild(campo('Vigente hasta (opcional)', vigencia));
+    // V3 · Lo que ya está guardado se ve, con su botón para cambiarlo o quitarlo.
+    if (previos && previos.cotizacion) {
+      const actual = el('p', 'bajada-tarjeta',
+        'Cotización actual: ' + previos.cotizacion.nombre + ' (' +
+        Math.round((previos.cotizacion.bytes || 0) / 1024) + ' KB)');
+      caja.appendChild(actual);
+      const ver = boton('Ver PDF', 'btn-mini');
+      ver.addEventListener('click', function () { abrirPdf(previos.id, ver); });
+      caja.appendChild(ver);
+      btnPdf.textContent = 'Cambiar cotización (PDF)';
+    }
     caja.appendChild(btnPdf);
     caja.appendChild(inpPdf);
     caja.appendChild(nombrePdf);
-    caja.appendChild(campo('Fotos de la visita (0 a 3)', fotos,
-      'Estas fotos no reemplazan la foto de antes.'));
+
+    const yaTiene = previos && previos.fotos ? previos.fotos.length : 0;
+    const cupo = Math.max(0, 3 - yaTiene);
+    caja.appendChild(campo('Fotos de la visita (máximo 3)', fotos,
+      yaTiene
+        ? 'Ya tiene ' + yaTiene + ' foto(s). Puede agregar ' + cupo + ' más.'
+        : 'Estas fotos no reemplazan la foto de antes.'));
+
+    if (yaTiene) {
+      const listaFotos = el('div', 'fotos');
+      previos.fotos.forEach(function (fotoId, i) {
+        const figura = el('figure', 'foto-item');
+        const img = document.createElement('img');
+        img.className = 'foto-mini';
+        img.alt = 'Foto guardada ' + (i + 1);
+        figura.appendChild(img);
+        figura.appendChild(el('figcaption', 'foto-pie', 'Guardada ' + (i + 1)));
+        const quitar = boton('Quitar', 'btn-mini peligro');
+        quitar.addEventListener('click', async function () {
+          quitar.disabled = true;
+          const r = await API.llamar('propuestas.foto.quitar',
+            { propuesta_id: previos.id, foto_id: fotoId },
+            { token: Sesion.token(), idempotente: true });
+          quitar.disabled = false;
+          if (!r.ok) return aviso(r.message || 'No se pudo quitar la foto.', 'error');
+          formularioPropuesta(r.data.propuesta, r.data.version || previos.version);
+        });
+        figura.appendChild(quitar);
+        listaFotos.appendChild(figura);
+      });
+      caja.appendChild(listaFotos);
+    }
+    if (cupo === 0) btnFoto.classList.add('oculto');
     caja.appendChild(btnFoto);
     caja.appendChild(inp);
     caja.appendChild(acciones);
@@ -789,6 +837,25 @@
       'La plantilla, las etapas y la publicación se ajustan después en la actividad, como siempre.'));
 
     const permisos = abierta.permisos || { decidir: rolActual === 'ADMIN', eliminar: rolActual === 'ADMIN' };
+    // RN-50 · Con valor y sin cotización, hay que marcarlo.
+    let casillaSinCot = null;
+    const hayValor = Number((abierta.propuesta && abierta.propuesta.valor_cotizado) || 0) > 0;
+    const hayPdf = !!(abierta.propuesta && abierta.propuesta.cotizacion);
+    if (hayValor && !hayPdf) {
+      const cajaFalta = el('div', 'aviso-rechazo');
+      cajaFalta.appendChild(el('strong', null, 'Falta la cotización'));
+      cajaFalta.appendChild(el('p', null,
+        'La propuesta tiene valor pero no tiene el PDF. Pídalo antes de aprobar, o marque la casilla para seguir sin él.'));
+      const etiqueta = el('label', 'etiqueta-casilla');
+      casillaSinCot = el('input');
+      casillaSinCot.type = 'checkbox';
+      casillaSinCot.id = 'rvSinCotizacion';
+      etiqueta.appendChild(casillaSinCot);
+      etiqueta.appendChild(el('span', null, 'Apruebo sin cotización'));
+      cajaFalta.appendChild(etiqueta);
+      form.appendChild(cajaFalta);
+    }
+
     const acciones = el('div', 'acciones-form');
     const aprobar = boton('Aprobar y crear la actividad', 'btn primary');
     const rechazar = boton('No aprobar', 'btn peligro');
@@ -819,6 +886,7 @@
       aprobar.textContent = 'Creando…';
       const res = await API.llamar('propuestas.aprobar', {
         id: abierta.propuesta.id,
+        version: abierta && abierta.version,
         titulo: titulo.value.trim(),
         nodo_id: sel.value,
         descripcion: descripcion.value.trim(),
@@ -827,6 +895,7 @@
         prioridad: prioridad.value,
         valor_aprobado: valorAprobado
           ? (Number(String(valorAprobado.value).replace(/[^\d]/g, '')) || 0) : undefined,
+        apruebo_sin_cotizacion: casillaSinCot ? casillaSinCot.checked : undefined,
       }, { token: Sesion.token(), idempotente: true });
       aprobar.disabled = false;
       aprobar.textContent = 'Aprobar y crear la actividad';
@@ -846,6 +915,7 @@
       rechazar.disabled = true;
       const res = await API.llamar('propuestas.rechazar', {
         id: abierta.propuesta.id, motivo: motivo.value.trim(),
+        version: abierta && abierta.version,
       }, { token: Sesion.token(), idempotente: true });
       rechazar.disabled = false;
       if (!res.ok) return aviso(res.message || 'No se pudo rechazar.', 'error');
@@ -854,6 +924,34 @@
     });
 
     acciones.appendChild(aprobar);
+
+    // V5 · Corregir la actividad sin decidir: la propuesta sigue pendiente.
+    if (permisos.editar) {
+      const guardar = boton('Guardar cambios', 'btn');
+      guardar.addEventListener('click', async function () {
+        guardar.disabled = true;
+        guardar.textContent = 'Guardando…';
+        const r = await API.llamar('propuestas.editar', {
+          id: abierta.propuesta.id,
+          version: abierta.version,
+          titulo: titulo.value.trim(),
+          nodo_id: sel.value,
+          descripcion: descripcion.value.trim(),
+          fecha_inicio_plan: inicio.value,
+          fecha_fin_plan: fin.value || inicio.value,
+          prioridad: prioridad.value,
+          valor_aprobado: valorAprobado
+            ? (Number(String(valorAprobado.value).replace(/[^\d]/g, '')) || 0) : undefined,
+        }, { token: Sesion.token(), idempotente: true });
+        guardar.disabled = false;
+        guardar.textContent = 'Guardar cambios';
+        if (!r.ok) return aviso(r.message || 'No se pudo guardar.', 'error');
+        abierta.version = r.data.version || abierta.version;
+        aviso('Cambios guardados. La propuesta sigue pendiente.', 'ok');
+      });
+      acciones.appendChild(guardar);
+    }
+
     acciones.appendChild(rechazar);
 
     if (permisos.eliminar) {

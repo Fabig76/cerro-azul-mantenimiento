@@ -152,3 +152,19 @@ function nodosMover(ctx, payload) {
     return { movido: true, codigo: nuevoCodigo, hijos_recalculados: subarbol.length - 1 };
   });
 }
+
+
+/**
+ * ¿El nodo, o alguno de sus padres, es un sistema sensible?
+ * Vive aquí, global, porque lo usan el snapshot, las notificaciones y los residentes.
+ */
+function esSensible(nodo) {
+  let actual = nodo;
+  let vueltas = 0;
+  while (actual && vueltas < 20) {
+    if (bool(actual.sensible)) return true;
+    actual = actual.parent_id ? buscarPorId('nodos', actual.parent_id) : null;
+    vueltas++;
+  }
+  return false;
+}

@@ -883,8 +883,9 @@
     ajustarCifras();
     window.addEventListener('resize', ajustarCifras);
 
-    cargar().then(function () {
-      ultimoSnap = null;
+    cargar().then(function (snap) {
+      // Se conserva el snapshot: el selector de torre y «Reportar un daño» lo necesitan.
+      if (snap) ultimoSnap = snap;
       ruta(ultimoSnap);
     });
   });

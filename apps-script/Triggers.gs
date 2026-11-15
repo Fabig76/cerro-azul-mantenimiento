@@ -34,6 +34,14 @@ function instalarDisparadores() {
 
 /** Disparador diario de los avisos. */
 function avisosDiariosDisparador() {
+  // Primero se genera lo que ya toca por el plan (RN-06); así el aviso de «hoy empieza»
+  // sale con los trabajos de hoy y el mantenimiento obligatorio no depende de un botón.
+  try {
+    const g = generarActividadesPendientes('disparador');
+    console.log('plan: ' + JSON.stringify(g));
+  } catch (e) {
+    console.error('plan: ' + e.message);
+  }
   try {
     const r = avisosDiarios_();
     console.log('avisos diarios: ' + JSON.stringify(r));

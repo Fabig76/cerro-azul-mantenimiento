@@ -133,7 +133,7 @@ function residentesReportar(ctx, payload) {
  * Acción pública de consulta: solo el estado y la fecha. Nunca el texto, la foto
  * ni el motivo del descarte (RN-52).
  */
-function publicReporteEstado(p) {
+function publicReporteEstado(ctx, p) {
   const codigo = String((p && p.codigo) || '').trim().toUpperCase();
   if (!codigo) return { estado: 'NO_ENCONTRADO' };
 
