@@ -638,42 +638,6 @@
     original.appendChild(el('div', 'kicker', 'Lo que propuso el contratista'));
     original.appendChild(el('p', 'texto-reportado', abierta.propuesta.hallazgo));
     original.appendChild(el('p', 'bajada-tarjeta', 'Propone: ' + abierta.propuesta.alcance));
-    // v1.6: cuánto cuesta y el PDF de la cotización (opcional, pero con valor).
-    const valor = el('input', 'item-input');
-    valor.id = 'prValor';
-    valor.type = 'text';
-    valor.inputMode = 'numeric';
-    valor.placeholder = '$ 1.250.000';
-    valor.addEventListener('blur', function () {
-      const n = Number(String(valor.value).replace(/[^\d]/g, ''));
-      if (n > 0) valor.value = '$ ' + n.toLocaleString('es-CO');
-    });
-
-    const vigencia = el('input', 'item-input');
-    vigencia.id = 'prVigencia';
-    vigencia.type = 'date';
-
-    let cotizacion = null;
-    const inpPdf = el('input');
-    inpPdf.type = 'file';
-    inpPdf.accept = 'application/pdf';
-    inpPdf.className = 'oculto';
-    const btnPdf = boton('Adjuntar cotización (PDF)');
-    const nombrePdf = el('p', 'bajada-tarjeta');
-    btnPdf.addEventListener('click', function () { inpPdf.click(); });
-    inpPdf.addEventListener('change', function () {
-      const file = inpPdf.files && inpPdf.files[0];
-      if (!file) return;
-      if (file.size > 5 * 1024 * 1024) {
-        cotizacion = null;
-        nombrePdf.textContent = '';
-        inpPdf.value = '';
-        return aviso('La cotización pesa más de 5 MB. Guárdela de nuevo en menor calidad o pida una versión liviana.', 'error');
-      }
-      cotizacion = file;
-      nombrePdf.textContent = 'Cotización lista: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
-    });
-
     const fotos = el('div', 'fotos');
     (abierta.propuesta.fotos || []).forEach(function (fotoId, i) {
       const figura = el('figure', 'foto-item');
