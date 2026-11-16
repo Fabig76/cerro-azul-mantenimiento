@@ -647,9 +647,9 @@ function ecumuladoEstado_(elementos) {
  */
 function programarSnapshot_() {
   try {
-    // Si ya hay una programada, no se apilan disparadores.
-    if (cacheGet('snap:programado')) return;
-    cachePut('snap:programado', '1', 300);
+    // Si ya hay uno esperando, no se apila. Se mira en los disparadores de verdad, no
+    // solo en la caché: la caché puede perderse y dejar dos.
+    if (triggersDeSnapshot_().length) return;
     ScriptApp.newTrigger('regenerarSnapshotProgramado').timeBased().after(60 * 1000).create();
   } catch (e) {
     // Sin permiso para crear disparadores, se sigue como antes (bajo demanda).
@@ -657,8 +657,23 @@ function programarSnapshot_() {
   }
 }
 
-/** El disparador de un solo uso: regenera y se quita. */
+/** Disparadores de un solo uso que estén vivos (puede haber más de uno si algo falló). */
+function triggersDeSnapshot_() {
+  try {
+    return ScriptApp.getProjectTriggers().filter(function (t) {
+      return t.getHandlerFunction() === 'regenerarSnapshotProgramado';
+    });
+  } catch (e) { return []; }
+}
+
+/**
+ * El disparador de un solo uso: regenera y se quita TODOS los suyos, para que no
+ * queden disparadores repetidos haciendo el mismo trabajo.
+ */
 function regenerarSnapshotProgramado() {
+  triggersDeSnapshot_().forEach(function (t) {
+    try { ScriptApp.deleteTrigger(t); } catch (e) { /* ya no está */ }
+  });
   try { cachePut('snap:programado', '', 1); } catch (e) { /* nada */ }
   regenerarSnapshot();
 }

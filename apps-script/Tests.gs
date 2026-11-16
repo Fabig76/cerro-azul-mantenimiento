@@ -255,7 +255,7 @@ function pruebasPropuestas_() {
   filtrar('notificaciones', function (n) {
     return String(n.entidad_id) === String(propuesta.id) && String(n.estado) === 'PENDIENTE';
   }).forEach(function (n) {
-    actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'prueba automática' }, 'prueba');
+    actualizar('notificaciones', n.id, { estado: 'PRUEBA', error: 'prueba automática' }, 'prueba');
   });
 }
 
@@ -349,7 +349,7 @@ function pruebasAvisos_() {
   } finally {
     filtrar('notificaciones', function (n) {
       return String(n.entidad_id) === String(act.id);
-    }).forEach(function (n) { actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'prueba' }, 'prueba'); });
+    }).forEach(function (n) { actualizar('notificaciones', n.id, { estado: 'PRUEBA', error: 'prueba' }, 'prueba'); });
     actualizar('actividades', act.id, { activo: false }, 'prueba');
   }
 }
@@ -430,7 +430,7 @@ function pruebasNovedadesMias_() {
     filtrar('notificaciones', function (n) {
       return String(n.usuario_id) === String(uno.id) && String(n.tipo) === 'ACTIVIDAD_ASIGNADA' &&
         String(n.entidad_id) === '';
-    }).forEach(function (n) { actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'prueba' }, 'prueba'); });
+    }).forEach(function (n) { actualizar('notificaciones', n.id, { estado: 'PRUEBA', error: 'prueba' }, 'prueba'); });
   }
 }
 

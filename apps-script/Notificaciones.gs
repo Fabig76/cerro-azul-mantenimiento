@@ -390,12 +390,23 @@ function filasPorHoja_() {
 function correosPendientes_() {
   let pendientes = 0;
   let errores = 0;
+  const motivos = {};
   filtrar('notificaciones', function (n) {
+    if (String(n.estado) === 'PRUEBA') return false;
+    // Filas viejas de pruebas, marcadas ERROR antes de existir el estado PRUEBA.
+    if (/^prueba/i.test(String(n.error || ''))) return false;
     if (String(n.estado) === 'PENDIENTE') pendientes++;
-    if (String(n.estado) === 'ERROR') errores++;
+    if (String(n.estado) === 'ERROR') {
+      errores++;
+      // Saber POR QUÉ fallan: sin esto solo se ve el número.
+      const motivo = String(n.error || 'sin motivo').slice(0, 80);
+      motivos[motivo] = (motivos[motivo] || 0) + 1;
+    }
     return false;
   });
-  return { pendientes: pendientes, errores: errores };
+  const lista = Object.keys(motivos).map(function (m) { return { motivo: m, cuantos: motivos[m] }; });
+  lista.sort(function (a, b) { return b.cuantos - a.cuantos; });
+  return { pendientes: pendientes, errores: errores, motivos: lista.slice(0, 5) };
 }
 
 /**

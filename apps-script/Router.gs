@@ -104,6 +104,7 @@ const ACCIONES = {
   'entrega.exportar': { fn: accionEntrega, sesion: true, roles: ['ADMIN'] },
   'notificaciones.mias': { fn: notificacionesMias, sesion: true },
   'sistema.rendimiento': { fn: sistemaRendimiento, sesion: true, roles: ['ADMIN'] },
+  'sistema.disparadores.reparar': { fn: sistemaDisparadoresReparar, sesion: true, roles: ['ADMIN'] },
   'sistema.estado': { fn: sistemaEstado, sesion: true, roles: ['ADMIN'] },
   'tests.ejecutar': { fn: accionTests, sesion: true, roles: ['ADMIN'] },
   'config.get': { fn: configGet, sesion: true, roles: ['ADMIN'] },

@@ -15,8 +15,10 @@ const DISPARADORES = [
  * Se puede ejecutar cuantas veces haga falta.
  */
 function instalarDisparadores() {
+  // También se limpian los de un solo uso del snapshot, que se acumulaban.
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (DISPARADORES.indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t);
+    const h = t.getHandlerFunction();
+    if (DISPARADORES.indexOf(h) >= 0 || h === 'regenerarSnapshotProgramado') ScriptApp.deleteTrigger(t);
   });
 
   ScriptApp.newTrigger('regenerarSnapshot').timeBased().everyHours(1).create();
@@ -72,4 +74,15 @@ function recalcularTodoDiario() {
     console.error('purga de propuestas: ' + e.message);
   }
   regenerarSnapshot();
+}
+
+/**
+ * Acción: reinstalar los disparadores y limpiar los de un solo uso que hayan quedado.
+ * Apps Script no los borra si el proyecto se actualiza antes de que corran.
+ */
+function sistemaDisparadoresReparar(ctx) {
+  const r = instalarDisparadores();
+  auditar(ctx.usuario.email, 'DISPARADORES_REPARADOS', 'sistema', '', null,
+    { disparadores: r.disparadores });
+  return r;
 }
