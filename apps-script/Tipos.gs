@@ -175,9 +175,19 @@ function plantillasGuardar(ctx, payload) {
       };
     }), ctx.usuario.email);
 
+    // K2 · Un cambio de plantilla no toca lo que ya está en la calle: se dice cuántos
+    // trabajos abiertos siguen con la versión anterior.
+    const abiertas = filtrar('actividades', function (a) {
+      return bool(a.activo) && String(a.plantilla_id) === String(plantilla.id) &&
+        ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA'].indexOf(String(a.estado)) >= 0;
+    }).length;
+
     auditar(ctx.usuario.email, 'PLANTILLA_GUARDADA', 'plantilla', plantilla.id, null,
-      { nombre: nombre, version: version, items: items.length, etapas: etapas.length });
-    return { plantilla: plantilla, version: version, items: items.length, etapas: etapas.length };
+      { nombre: nombre, version: version, items: items.length, etapas: etapas.length, abiertas: abiertas });
+    return {
+      plantilla: plantilla, version: version, items: items.length, etapas: etapas.length,
+      abiertas_anteriores: abiertas,
+    };
   });
 }
 

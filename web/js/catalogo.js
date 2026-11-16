@@ -103,8 +103,142 @@
     leerEtapasPlantilla = window.Etapas.crear(cont, iniciales || []);
   }
 
+  /**
+   * K1 · Editor de la lista de chequeo por filas. Mantiene el textarea #plaItems
+   * sincronizado, así el guardado sigue igual que antes (menos riesgo).
+   */
+  const ITEM_TIPOS = [['SI_NO', 'Sí / No'], ['NUMERO', 'Número'], ['TEXTO', 'Texto'], ['FOTO', 'Solo foto']];
+  let filasChecklist = [];
+
+  function sincronizarChecklist() {
+    const area = document.getElementById('plaItems');
+    if (!area) return;
+    area.value = filasChecklist
+      .filter(function (f) { return String(f.pregunta || '').trim(); })
+      .map(function (f) {
+        return [f.grupo || 'General', f.pregunta.trim(), f.tipo, Number(f.peso) || 1,
+          f.foto ? 'foto' : ''].join(' | ').replace(/ \| $/, '');
+      }).join('\n');
+    pintarVistaPrevia();
+  }
+
+  function pintarEditorChecklist() {
+    const cont = document.getElementById('editorChecklist');
+    if (!cont) return;
+    cont.textContent = '';
+
+    if (!filasChecklist.length) {
+      cont.appendChild(el('p', 'bajada-tarjeta', 'Todavía no hay preguntas.'));
+    }
+
+    filasChecklist.forEach(function (fila, i) {
+      const caja = el('div', 'fila-checklist');
+
+      const grupo = el('input', 'item-input chico');
+      grupo.placeholder = 'Grupo';
+      grupo.value = fila.grupo || '';
+      grupo.addEventListener('input', function () { fila.grupo = grupo.value; sincronizarChecklist(); });
+
+      const pregunta = el('input', 'item-input');
+      pregunta.placeholder = 'Pregunta (ej. Paneles limpios y sin sombras)';
+      pregunta.value = fila.pregunta || '';
+      pregunta.addEventListener('input', function () { fila.pregunta = pregunta.value; sincronizarChecklist(); });
+
+      const tipo = el('select', 'item-input chico');
+      ITEM_TIPOS.forEach(function (t) {
+        const op = el('option', null, t[1]);
+        op.value = t[0];
+        if (t[0] === fila.tipo) op.selected = true;
+        tipo.appendChild(op);
+      });
+      tipo.addEventListener('change', function () { fila.tipo = tipo.value; sincronizarChecklist(); });
+
+      const peso = el('input', 'item-input chico');
+      peso.type = 'number';
+      peso.min = '1';
+      peso.max = '5';
+      peso.value = String(fila.peso || 1);
+      peso.title = 'Peso';
+      peso.addEventListener('input', function () { fila.peso = Number(peso.value) || 1; sincronizarChecklist(); });
+
+      const foto = el('label', 'etiqueta-casilla');
+      const casilla = el('input');
+      casilla.type = 'checkbox';
+      casilla.checked = !!fila.foto;
+      casilla.addEventListener('change', function () { fila.foto = casilla.checked; sincronizarChecklist(); });
+      foto.appendChild(casilla);
+      foto.appendChild(el('span', null, 'Foto'));
+
+      const quitar = el('button', 'btn-mini peligro', 'Quitar');
+      quitar.type = 'button';
+      quitar.addEventListener('click', function () {
+        filasChecklist.splice(i, 1);
+        pintarEditorChecklist();
+        sincronizarChecklist();
+      });
+
+      caja.appendChild(grupo);
+      caja.appendChild(pregunta);
+      caja.appendChild(tipo);
+      caja.appendChild(peso);
+      caja.appendChild(foto);
+      caja.appendChild(quitar);
+      cont.appendChild(caja);
+    });
+
+    pintarVistaPrevia();
+  }
+
+  /** Cómo lo verá el contratista: la misma lista, en orden. */
+  function pintarVistaPrevia() {
+    const cont = document.getElementById('vistaChecklist');
+    if (!cont) return;
+    cont.textContent = '';
+    const validas = filasChecklist.filter(function (f) { return String(f.pregunta || '').trim(); });
+    if (!validas.length) return;
+
+    const grupos = {};
+    validas.forEach(function (f) {
+      const g = f.grupo || 'General';
+      grupos[g] = grupos[g] || [];
+      grupos[g].push(f);
+    });
+    Object.keys(grupos).forEach(function (g) {
+      const caja = el('div', 'vista-grupo');
+      caja.appendChild(el('div', 'kicker', g));
+      grupos[g].forEach(function (f) {
+        const linea = el('div', 'vista-item');
+        linea.appendChild(el('span', 'vista-marca', '☐'));
+        linea.appendChild(el('span', null, f.pregunta));
+        const et = (ITEM_TIPOS.filter(function (t) { return t[0] === f.tipo; })[0] || ['', f.tipo])[1];
+        linea.appendChild(el('span', 'badge gray', et));
+        if (f.foto) linea.appendChild(el('span', 'badge warn', 'foto'));
+        caja.appendChild(linea);
+      });
+      cont.appendChild(caja);
+    });
+  }
+
   function preparar() {
     montarEtapasPlantilla([]);
+
+    // K1 · Botón para agregar preguntas y vista previa de la lista.
+    const agregar = document.getElementById('btnAgregarItem');
+    if (agregar && !agregar.dataset.listo) {
+      agregar.dataset.listo = '1';
+      agregar.addEventListener('click', function () { window.Catalogo.agregarItem({}); });
+      const cont = document.getElementById('editorChecklist');
+      if (cont && !document.getElementById('vistaChecklist')) {
+        const previa = el('div', 'vista-previa');
+        previa.appendChild(el('div', 'kicker', 'Así lo verá el contratista'));
+        const caja = el('div');
+        caja.id = 'vistaChecklist';
+        previa.appendChild(caja);
+        cont.parentNode.insertBefore(previa, cont.nextSibling);
+      }
+      pintarEditorChecklist();
+    }
+
     const formTipo = document.getElementById('formTipo');
     if (formTipo) {
       formTipo.addEventListener('submit', async function (ev) {
@@ -164,8 +298,11 @@
         }, { token: Sesion.token(), idempotente: true });
         if (!r.ok) return aviso(r.message || 'No se pudo guardar la plantilla.', 'error');
         if (window.Datos) Datos.invalidar('plantillas.listar');
+        // K2 · Desde cuándo aplica el cambio.
+        const abiertas = Number(r.data.abiertas_anteriores || 0);
         aviso('Plantilla guardada en la versión ' + r.data.version + ' con ' + r.data.items +
-          ' ítems y ' + r.data.etapas + ' etapas.', 'ok');
+          ' ítems y ' + r.data.etapas + ' etapas.' +
+          (abiertas ? ' ' + abiertas + ' trabajo(s) abierto(s) siguen con la versión anterior.' : ''), 'ok');
         document.getElementById('plaItems').value = '';
         montarEtapasPlantilla([]);
         cargar();
@@ -173,5 +310,24 @@
     }
   }
 
-  window.Catalogo = { cargar: cargar, preparar: preparar };
+  window.Catalogo = {
+    cargar: cargar,
+    preparar: preparar,
+    // Para las pruebas y para reabrir una plantilla existente.
+    cargarItems: function (items) {
+      filasChecklist = (items || []).map(function (it) {
+        return { grupo: it.grupo || 'General', pregunta: it.pregunta || '',
+          tipo: it.tipo_respuesta || 'SI_NO', peso: Number(it.peso) || 1,
+          foto: !!it.requiere_foto };
+      });
+      pintarEditorChecklist();
+      sincronizarChecklist();
+    },
+    agregarItem: function (it) {
+      filasChecklist.push(Object.assign({ grupo: 'General', pregunta: '', tipo: 'SI_NO', peso: 1, foto: false }, it || {}));
+      pintarEditorChecklist();
+      sincronizarChecklist();
+    },
+    items: function () { return filasChecklist.slice(); },
+  };
 })();

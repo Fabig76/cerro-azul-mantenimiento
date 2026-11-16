@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<form id="formPlantilla">
+  <input id="plaNombre" type="text">
+  <select id="plaTipo"></select>
+  <select id="plaMetodo"><option value="CHECKLIST">CHECKLIST</option></select>
+  <input id="plaNorma" type="text">
+  <div id="editorChecklist" class="editor-checklist"></div>
+  <button type="button" class="btn sm" id="btnAgregarItem">Agregar pregunta</button>
+  <details class="oculto"><textarea id="plaItems"></textarea></details>
+  <button type="submit" id="btnGuardarPlantilla">Guardar</button>
+</form>
+<div id="avisoCatalogo" class="msg"></div>
+<div id="listaPlantillas"></div>
+<script>
+window.CFG = { API_URL: '' };
+window.__guardado = null;
+window.__aviso = '';
+window.API = { llamar: function (accion, payload) {
+  if (accion === 'plantillas.guardar') { window.__guardado = payload; return Promise.resolve({ ok: true, data: { version: 3, items: (payload.items||[]).length, etapas: 0, abiertas_anteriores: 0 } }); }
+  if (accion === 'plantillas.listar') return Promise.resolve({ ok: true, data: { plantillas: [] } });
+  if (accion === 'tipos.listar') return Promise.resolve({ ok: true, data: { tipos: [] } });
+  if (accion === 'etapas.listar') return Promise.resolve({ ok: true, data: { etapas: [] } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+window.Datos = { obtener: function (a) { return window.API.llamar(a, {}); }, invalidar: function () {} };
+</script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/catalogo.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  try {
+    Catalogo.preparar();
+    await esperar(100);
+    Catalogo.agregarItem({ grupo: 'Limpieza', pregunta: 'Paneles limpios', tipo: 'SI_NO', peso: 2, foto: true });
+    Catalogo.agregarItem({ grupo: 'Eléctrico', pregunta: 'Voltaje de salida', tipo: 'NUMERO', peso: 3, foto: false });
+    await esperar(200);
+
+    ok(document.querySelectorAll('.fila-checklist').length === 2, 'cada pregunta es una fila');
+    const texto = document.getElementById('plaItems').value;
+    ok(texto.indexOf('Limpieza | Paneles limpios | SI_NO | 2 | foto') >= 0,
+      'el texto que se guarda es el de siempre (' + JSON.stringify(texto.split(String.fromCharCode(10))[0]) + ')');
+    ok(texto.split(String.fromCharCode(10)).length === 2, 'una línea por pregunta');
+
+    ok(document.getElementById('vistaChecklist').textContent.indexOf('Paneles limpios') >= 0,
+      'la vista previa muestra las preguntas');
+    ok(document.getElementById('vistaChecklist').textContent.indexOf('Limpieza') >= 0,
+      'agrupadas por grupo');
+
+    // Quitar
+    document.querySelectorAll('.fila-checklist .peligro')[0].click();
+    await esperar(150);
+    ok(document.querySelectorAll('.fila-checklist').length === 1, 'se puede quitar una fila');
+    ok(document.getElementById('plaItems').value.indexOf('Paneles limpios') < 0, 'y desaparece del texto');
+
+    // Guardar con el formulario real
+    document.getElementById('plaNombre').value = 'Prueba';
+    document.getElementById('formPlantilla').dispatchEvent(new Event('submit'));
+    await esperar(300);
+    ok(window.__guardado && window.__guardado.items.length === 1, 'al guardar van las preguntas del editor');
+    ok(window.__guardado && window.__guardado.items[0].tipo_respuesta === 'NUMERO', 'con su tipo');
+    // K2 · Si hay trabajos abiertos con la versión vieja, se avisa al guardar
+    ok(window.__aviso.indexOf('siguen con la versión anterior') < 0,
+      'sin trabajos abiertos no se habla de versiones viejas');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

@@ -13,10 +13,10 @@
 <link rel="manifest" href="./site.webmanifest">
 <meta name="theme-color" content="#4f46e5">
 <title>Mantenimiento · Panel Cerro Azul</title>
-<link rel="stylesheet" href="./css/tokens.css?v=177">
-<link rel="stylesheet" href="./css/base.css?v=177">
-<link rel="stylesheet" href="./css/app.css?v=177">
-<script src="./js/tema.js?v=177"></script>
+<link rel="stylesheet" href="./css/tokens.css?v=178">
+<link rel="stylesheet" href="./css/base.css?v=178">
+<link rel="stylesheet" href="./css/app.css?v=178">
+<script src="./js/tema.js?v=178"></script>
 </head>
 <body>
 
@@ -479,8 +479,14 @@
           <input id="plaNorma" type="text" maxlength="160">
         </div>
         <div class="campo">
-          <label for="plaItems">Ítems (uno por línea: grupo | pregunta | tipo | peso | foto)</label>
-          <textarea id="plaItems" class="item-input" placeholder="Limpieza | Paneles limpios y sin sombras | SI_NO | 2 | foto&#10;Eléctrico | Voltaje de salida | NUMERO | 2&#10;Documento | Certificado del inversor | FOTO | 1"></textarea>
+          <label>Lista de chequeo</label>
+          <p class="bajada-tarjeta">Agregue una fila por pregunta. Así la verá el contratista en la obra.</p>
+          <div id="editorChecklist" class="editor-checklist"></div>
+          <button type="button" class="btn sm" id="btnAgregarItem">Agregar pregunta</button>
+          <details class="oculto">
+            <summary>Texto</summary>
+            <textarea id="plaItems" class="item-input" placeholder="Limpieza | Paneles limpios y sin sombras | SI_NO | 2 | foto"></textarea>
+          </details>
         </div>
         <div class="campo">
           <label>Etapas sugeridas (opcional)</label>
@@ -667,29 +673,29 @@
 </footer>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="./config.js?v=177"></script>
-<script src="./js/cargando.js?v=177"></script>
-  <script src="./js/api.js?v=177"></script>
-<script src="./js/datos.js?v=177"></script>
-<script src="./js/asignacion.js?v=177"></script>
-<script src="./js/fotocache.js?v=177"></script>
-<script src="./js/sesion.js?v=177"></script>
-<script src="./js/google.js?v=177"></script>
-<script src="./js/fotos.js?v=177"></script>
-<script src="./js/etapas.js?v=177"></script>
-<script src="./js/propuestas.js?v=177"></script>
-<script src="./js/actividad.js?v=177"></script>
-<script src="./js/usuarios.js?v=177"></script>
-<script src="./js/elemento.js?v=177"></script>
-<script src="./js/residentes.js?v=177"></script>
-<script src="./js/novedades.js?v=177"></script>
-<script src="./js/alertas.js?v=177"></script>
-<script src="./js/plan.js?v=177"></script>
-<script src="./js/catalogo.js?v=177"></script>
-<script src="./js/consejo.js?v=177"></script>
-<script src="./js/empresas.js?v=177"></script>
-<script src="./js/respaldo.js?v=177"></script>
-<script src="./js/pruebas.js?v=177"></script>
-<script src="./js/app.js?v=177"></script>
+<script src="./config.js?v=178"></script>
+<script src="./js/cargando.js?v=178"></script>
+  <script src="./js/api.js?v=178"></script>
+<script src="./js/datos.js?v=178"></script>
+<script src="./js/asignacion.js?v=178"></script>
+<script src="./js/fotocache.js?v=178"></script>
+<script src="./js/sesion.js?v=178"></script>
+<script src="./js/google.js?v=178"></script>
+<script src="./js/fotos.js?v=178"></script>
+<script src="./js/etapas.js?v=178"></script>
+<script src="./js/propuestas.js?v=178"></script>
+<script src="./js/actividad.js?v=178"></script>
+<script src="./js/usuarios.js?v=178"></script>
+<script src="./js/elemento.js?v=178"></script>
+<script src="./js/residentes.js?v=178"></script>
+<script src="./js/novedades.js?v=178"></script>
+<script src="./js/alertas.js?v=178"></script>
+<script src="./js/plan.js?v=178"></script>
+<script src="./js/catalogo.js?v=178"></script>
+<script src="./js/consejo.js?v=178"></script>
+<script src="./js/empresas.js?v=178"></script>
+<script src="./js/respaldo.js?v=178"></script>
+<script src="./js/pruebas.js?v=178"></script>
+<script src="./js/app.js?v=178"></script>
 </body>
 </html>

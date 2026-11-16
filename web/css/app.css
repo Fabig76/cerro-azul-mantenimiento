@@ -789,3 +789,16 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 .esqueleto-bloque.bajo { height: 9px; opacity: .7; }
 @keyframes esqueleto-latir { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 @media (prefers-reduced-motion: reduce) { .esqueleto-bloque { animation: none; } }
+
+/* Editor de la lista de chequeo: una fila por pregunta */
+.editor-checklist { display: grid; gap: 8px; margin: 8px 0; }
+.fila-checklist { display: grid; grid-template-columns: 110px 1fr 110px 60px auto auto; gap: 6px; align-items: center; }
+.fila-checklist .item-input.chico { width: 100%; }
+.vista-previa { margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 12px; }
+.vista-grupo { margin-bottom: 10px; }
+.vista-item { display: flex; gap: 8px; align-items: center; padding: 4px 0; flex-wrap: wrap; }
+.vista-marca { color: var(--text-soft); }
+@media (max-width: 720px) {
+  .fila-checklist { grid-template-columns: 1fr 1fr; }
+  .fila-checklist .item-input { grid-column: span 2; }
+}
