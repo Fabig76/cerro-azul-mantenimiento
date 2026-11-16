@@ -5,6 +5,27 @@
 
 const PROPS = PropertiesService.getScriptProperties();
 
+/**
+ * MEDIDOR · Cuenta lo que cuesta cada petición: lecturas de hoja, escrituras y celdas.
+ * Se reinicia al empezar cada acción y se anota al terminar (Router.doPost).
+ */
+const MEDIDOR = { lecturas: 0, escrituras: 0, celdas: 0, llamadas: 0, cacheHits: 0, cacheMiss: 0 };
+function medir(tipo, celdas) {
+  if (tipo === 'lectura') MEDIDOR.lecturas++;
+  if (tipo === 'escritura') MEDIDOR.escrituras++;
+  if (celdas) MEDIDOR.celdas += celdas;
+}
+function medirReiniciar() {
+  MEDIDOR.lecturas = 0; MEDIDOR.escrituras = 0; MEDIDOR.celdas = 0; MEDIDOR.llamadas = 0;
+  MEDIDOR.cacheHits = 0; MEDIDOR.cacheMiss = 0;
+}
+function medirResumen() {
+  return {
+    lecturas: MEDIDOR.lecturas, escrituras: MEDIDOR.escrituras, celdas: MEDIDOR.celdas,
+    cache_hits: MEDIDOR.cacheHits, cache_miss: MEDIDOR.cacheMiss,
+  };
+}
+
 function prop(clave, valor) {
   if (valor === undefined) return PROPS.getProperty(clave);
   PROPS.setProperty(clave, String(valor));
@@ -45,17 +66,67 @@ function campo(nombre, col) {
   return i;
 }
 
+/**
+ * Hojas pequeñas y de lectura constante: se guardan en caché entre peticiones.
+ * La clave lleva `datos:version`, que cambia con cada escritura, así que nunca se
+ * sirve una copia vieja después de un cambio.
+ */
+const HOJAS_CACHEADAS = ['config', 'usuarios', 'empresas', 'nodos', 'tipos_elemento',
+  'plantillas', 'plantilla_items', 'plan_tipo', 'recurrencias'];
+
+/** Lee del CacheService, juntando los trozos en que se partió. */
+function leerCacheGrande(clave) {
+  const trozos = Number(cacheGet(clave + ':n') || 0);
+  if (!trozos) return null;
+  let texto = '';
+  for (let i = 0; i < trozos; i++) {
+    const parte = cacheGet(clave + ':' + i);
+    if (parte === null || parte === undefined) return null;
+    texto += parte;
+  }
+  try { return JSON.parse(texto); } catch (e) { return null; }
+}
+
+/** Guarda en trozos de menos de 90 KB (límite por clave del CacheService). */
+function guardarCacheGrande(clave, valor, segundos) {
+  try {
+    const texto = JSON.stringify(valor);
+    const tam = 90000;
+    let n = 0;
+    for (let i = 0; i < texto.length; i += tam) {
+      cachePut(clave + ':' + n, texto.slice(i, i + tam), segundos);
+      n++;
+    }
+    cachePut(clave + ':n', String(n), segundos);
+  } catch (e) { /* si no cabe, se sigue leyendo la hoja */ }
+}
+
 /** Todas las filas como objetos; se omiten las filas vacías. */
 function filas(nombre) {
   if (!filas._c) filas._c = {};
   if (filas._c[nombre]) return filas._c[nombre];
+
+  // Caché entre peticiones de las hojas pequeñas. La clave lleva la versión de los
+  // datos, que se renueva con cada escritura sobre estas hojas.
+  if (HOJAS_CACHEADAS.indexOf(nombre) >= 0) {
+    const version = cacheGet('datos:version') || '0';
+    const delCache = leerCacheGrande('filas:' + nombre + ':' + version);
+    if (delCache) {
+      MEDIDOR.cacheHits++;
+      filas._c[nombre] = delCache;
+      return delCache;
+    }
+    MEDIDOR.cacheMiss++;
+  }
   const sh = hoja(nombre);
   const ultima = sh.getLastRow();
   if (ultima < 2) {
     filas._c[nombre] = [];
     return filas._c[nombre];
   }
-  const valores = sh.getRange(1, 1, ultima, Math.max(sh.getLastColumn(), SCHEMA[nombre].length)).getValues();
+  const ancho = Math.max(sh.getLastColumn(), SCHEMA[nombre].length);
+  const valores = sh.getRange(1, 1, ultima, ancho).getValues();
+  medir('lectura', ultima * ancho);
   const cab = valores[0].map(function (h) { return String(h || '').trim(); });
   const salida = [];
   for (let r = 1; r < valores.length; r++) {
@@ -68,7 +139,16 @@ function filas(nombre) {
     salida.push(obj);
   }
   filas._c[nombre] = salida;
+  if (HOJAS_CACHEADAS.indexOf(nombre) >= 0) {
+    guardarCacheGrande('filas:' + nombre + ':' + (cacheGet('datos:version') || '0'), salida, 7200);
+  }
   return salida;
+}
+
+/** Marca que los datos cambiaron: invalida las cachés entre peticiones. */
+function marcarCambio(nombre) {
+  if (nombre && HOJAS_CACHEADAS.indexOf(nombre) < 0) return;
+  try { cachePut('datos:version', String(Date.now()), 7200); } catch (e) { /* sin caché se sigue */ }
 }
 
 /** Invalida la caché de una hoja (o de todas) dentro de la misma ejecución. */
@@ -138,6 +218,8 @@ function insertar(nombre, obj, usuario) {
   if (cabeceras(nombre).actualizado_por !== undefined) datos.actualizado_por = usuario || '';
   if (cabeceras(nombre).activo !== undefined && datos.activo === undefined) datos.activo = true;
   sh.appendRow(aFila(nombre, datos));
+  medir('escritura', 1);
+  marcarCambio(nombre);
   limpiarCache(nombre);
   return datos;
 }
@@ -159,6 +241,8 @@ function insertarVarias(nombre, objetos, usuario) {
     return aFila(nombre, d);
   });
   sh.getRange(sh.getLastRow() + 1, 1, salida.length, salida[0].length).setValues(salida);
+  medir('escritura', salida.length * salida[0].length);
+  marcarCambio(nombre);
   limpiarCache(nombre);
   return objetos;
 }
@@ -172,12 +256,24 @@ function actualizar(nombre, id, cambios, usuario) {
   const parche = Object.assign({}, cambios);
   if (cab.actualizado_en !== undefined) parche.actualizado_en = ahoraIso();
   if (cab.actualizado_por !== undefined) parche.actualizado_por = usuario || '';
+
   Object.keys(parche).forEach(function (k) {
-    const i = cab[k];
-    if (i === undefined) throw new Error('MODELO: ' + nombre + ' no tiene columna ' + k);
-    sh.getRange(fila._fila, i + 1).setValue(parche[k]);
+    if (cab[k] === undefined) throw new Error('MODELO: ' + nombre + ' no tiene columna ' + k);
   });
-  limpiarCache(nombre);
+
+  // Se lee la fila una vez, se aplica el parche en memoria y se escribe con UN setValues.
+  const ancho = Math.max(sh.getLastColumn(), SCHEMA[nombre].length);
+  const rango = sh.getRange(fila._fila, 1, 1, ancho);
+  const valores = rango.getValues()[0];
+  Object.keys(parche).forEach(function (k) { valores[cab[k]] = parche[k]; });
+  rango.setValues([valores]);
+  medir('lectura', ancho);
+  medir('escritura', ancho);
+  marcarCambio(nombre);
+
+  // Se actualiza la copia en memoria en vez de tirar la caché: la siguiente búsqueda
+  // no tiene que releer la hoja completa.
+  Object.assign(fila, parche);
   return Object.assign({}, fila, parche);
 }
 

@@ -171,22 +171,71 @@ function recalcularSalud_(nodoId, usuario) {
 
 /** Recalcula todos los elementos y sus ancestros. Lo usa el disparador diario y el admin. */
 function recalcularTodo(usuario) {
-  const elementos = filtrar('nodos', function (n) {
-    return String(n.clase) === 'ELEMENTO' && bool(n.activo);
+  const quien = usuario || 'sistema';
+
+  // Todo se calcula en memoria y se escribe de una sola vez. Antes se hacía un
+  // actualizar por equipo y por ancestro: con 150 equipos el disparador se cortaba.
+  const nodos = filtrar('nodos', function (n) { return bool(n.activo); });
+  const porId = {};
+  nodos.forEach(function (n) { porId[n.id] = n; });
+
+  const salud = {};
+  nodos.filter(function (n) { return String(n.clase) === 'ELEMENTO'; }).forEach(function (e) {
+    const r = calcularSalud_(e);
+    salud[e.id] = { estado: r.estado, puntaje: r.puntaje };
   });
-  elementos.forEach(function (e) {
-    recalcularSalud_(e.id, usuario || 'sistema');
+
+  // De abajo hacia arriba: cuando se llega a un agrupador, sus hijos ya están resueltos.
+  const porProfundidad = nodos.slice().sort(function (a, b) {
+    return (Number(b.profundidad) || 0) - (Number(a.profundidad) || 0);
   });
-  // Los agrupadores sin elementos quedan en SIN_DATOS.
-  filtrar('nodos', function (n) {
-    return String(n.clase) === 'AGRUPADOR' && bool(n.activo);
-  }).forEach(function (g) {
-    const hijos = filtrar('nodos', function (n) {
-      return String(n.parent_id) === String(g.id) && bool(n.activo) && n.salud_puntaje !== '';
+
+  const umbral = configNumero('umbral_rojo_pct', 20) / 100;
+
+  porProfundidad.filter(function (n) { return String(n.clase) !== 'ELEMENTO'; }).forEach(function (padre) {
+    const hijos = nodos.filter(function (n) {
+      return String(n.parent_id) === String(padre.id) && salud[n.id] && salud[n.id].puntaje !== null;
     });
     if (!hijos.length) {
-      actualizar('nodos', g.id, { salud_estado: 'SIN_DATOS', salud_puntaje: '', salud_calculada_en: ahoraIso() }, usuario || 'sistema');
+      salud[padre.id] = { estado: 'SIN_DATOS', puntaje: null };
+      return;
     }
+    const peso = hijos.reduce(function (s, h) { return s + (Number(h.criticidad) || 2); }, 0);
+    const suma = hijos.reduce(function (s, h) { return s + Number(salud[h.id].puntaje) * (Number(h.criticidad) || 2); }, 0);
+    const criticos = hijos.filter(function (h) { return salud[h.id].estado === 'CRITICO'; }).length;
+    const atencion = hijos.filter(function (h) { return salud[h.id].estado === 'ATENCION'; }).length;
+    const estado = criticos / hijos.length > umbral ? 'CRITICO'
+      : (criticos > 0 || atencion / hijos.length > umbral) ? 'ATENCION'
+      : 'AL_DIA';
+    salud[padre.id] = { estado: estado, puntaje: Math.round(suma / peso) };
   });
-  return { elementos: elementos.length };
+
+  // Una sola lectura y una sola escritura de la hoja.
+  const sh = hoja('nodos');
+  const ancho = Math.max(sh.getLastColumn(), SCHEMA.nodos.length);
+  const cab = cabeceras('nodos');
+  const ultima = sh.getLastRow();
+  if (ultima < 2) return { elementos: 0 };
+  const rango = sh.getRange(2, 1, ultima - 1, ancho);
+  const valores = rango.getValues();
+  const ahora = ahoraIso();
+  let cambios = 0;
+
+  valores.forEach(function (fila, i) {
+    const id = String(fila[cab.id] || '');
+    const s = salud[id];
+    if (!s) return;
+    if (cab.salud_estado !== undefined) fila[cab.salud_estado] = s.estado;
+    if (cab.salud_puntaje !== undefined) fila[cab.salud_puntaje] = s.puntaje === null ? '' : s.puntaje;
+    if (cab.salud_calculada_en !== undefined) fila[cab.salud_calculada_en] = ahora;
+    cambios++;
+  });
+
+  rango.setValues(valores);
+  medir('lectura', (ultima - 1) * ancho);
+  medir('escritura', (ultima - 1) * ancho);
+  limpiarCache('nodos');
+
+  return { elementos: Object.keys(salud).length, filas_escritas: cambios };
 }
+

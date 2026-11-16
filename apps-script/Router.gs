@@ -102,6 +102,7 @@ const ACCIONES = {
   'propuestas.retirar': { fn: propuestasRetirar, sesion: true, roles: ['CONTRATISTA'] },
   'entrega.exportar': { fn: accionEntrega, sesion: true, roles: ['ADMIN'] },
   'notificaciones.mias': { fn: notificacionesMias, sesion: true },
+  'sistema.rendimiento': { fn: sistemaRendimiento, sesion: true, roles: ['ADMIN'] },
   'sistema.estado': { fn: sistemaEstado, sesion: true, roles: ['ADMIN'] },
   'tests.ejecutar': { fn: accionTests, sesion: true, roles: ['ADMIN'] },
   'config.get': { fn: configGet, sesion: true, roles: ['ADMIN'] },
@@ -149,6 +150,7 @@ function doGet(e) {
 
 function doPost(e) {
   const t0 = Date.now();
+  medirReiniciar();
   let cuerpo;
   try {
     cuerpo = JSON.parse((e && e.postData && e.postData.contents) || '{}');
@@ -203,7 +205,9 @@ function doPost(e) {
     const salida = def.fn(ctx, cuerpo.payload || {}, cuerpo.requestId || null);
     // Una escritura deja el portal público desactualizado hasta la próxima visita.
     // Las lecturas no lo marcan, para no regenerar el snapshot en cada consulta.
-    const esLectura = /\.(listar|get|panel|me|arbol|ver)$/.test(accion) || accion === 'ping';
+    // Leer el estado del sistema no cambia los datos: si contara como escritura,
+    // invalidaba todas las cachés cada vez que se abría Sistema.
+    const esLectura = /\.(listar|get|panel|me|arbol|ver|rendimiento|estado|ficha)$/.test(accion) || accion === 'ping';
     if (!esLectura && !def.crudo) {
       cachePut('snap:obsoleto', '1', 7200);
       // Cambia la versión de los datos: las cachés por nodo dejan de servir.
@@ -222,8 +226,16 @@ function doPost(e) {
   } catch (ex) {
     return responder(aError_(ex));
   } finally {
+    // Punto 9 · Queda el costo de cada acción: para Sistema y para comparar antes/después.
     const ms = Date.now() - t0;
-    if (ms > 20000) console.warn('acción lenta: ' + accion + ' ' + ms + ' ms');
+    const costo = medirResumen();
+    const registro = { accion: accion, ms: ms, lecturas: costo.lecturas,
+      escrituras: costo.escrituras, cache_hits: costo.cache_hits, cache_miss: costo.cache_miss,
+      version: cacheGet('datos:version') || '0' };
+    try { registrarRendimiento_(registro); } catch (e) { /* medir no puede romper la acción */ }
+    if (ms > 5000) {
+      console.log('RENDIMIENTO ' + JSON.stringify(registro));
+    }
   }
 }
 
@@ -385,4 +397,42 @@ function nodosGet(ctx, payload) {
     lecturas: lecturas,
     novedades: novedades,
   };
+}
+
+/**
+ * Guarda las acciones más lentas del día. Es una lista corta en caché: sirve para ver
+ * dónde se va el tiempo sin abrir los registros de Apps Script.
+ */
+function registrarRendimiento_(registro) {
+  let lista = [];
+  try {
+    const crudo = cacheGet('rend:top');
+    lista = crudo ? JSON.parse(crudo) : [];
+  } catch (e) { lista = []; }
+  if (!Array.isArray(lista)) lista = [];
+  // Se guarda lo ÚLTIMO de cada acción (no lo más lento de la historia): así se puede
+  // comparar antes y después de un cambio.
+  const porAccion = {};
+  lista.forEach(function (r) { porAccion[r.accion] = r; });
+  porAccion[registro.accion] = registro;
+  const top = Object.keys(porAccion).map(function (k) { return porAccion[k]; });
+  top.sort(function (a, b) { return b.ms - a.ms; });
+  cachePut('rend:top', JSON.stringify(top.slice(0, 15)), 86400);
+}
+
+/** Acción: lo que cuesta el portal hoy, por acción. */
+function sistemaRendimiento(ctx) {
+  // Diagnóstico de la caché: se escribe y se lee de vuelta para saber si sirve.
+  const prueba = { trozos: 0, leido: false, version: cacheGet('datos:version') || '0' };
+  try {
+    guardarCacheGrande('prueba:cache', { hola: 'mundo', n: 12345 }, 600);
+    prueba.trozos = Number(cacheGet('prueba:cache:n') || 0);
+    const vuelta = leerCacheGrande('prueba:cache');
+    prueba.leido = !!(vuelta && vuelta.n === 12345);
+    prueba.nodos = !!leerCacheGrande('filas:nodos:' + (cacheGet('datos:version') || '0'));
+  } catch (e) { prueba.error = String(e && e.message); }
+
+  let top = [];
+  try { top = JSON.parse(cacheGet('rend:top') || '[]'); } catch (e) { top = []; }
+  return { acciones: top, medido_en: ahoraIso(), cache: prueba };
 }
