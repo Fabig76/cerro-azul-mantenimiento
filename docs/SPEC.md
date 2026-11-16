@@ -751,6 +751,18 @@ para que un residente reportara un daño desde el equipo; ese reporte ya está a
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
 
+### 10.2 octies. Alertas automáticas y reasignación (v1.8)
+
+- **AL-01.** Una novedad **ALTA** o **CRÍTICA** deja una alerta en **BORRADOR** con su título y su
+  texto público, ligada a la novedad, y encola `ALERTA_SUGERIDA` a los administradores. **No se publica
+  sola**: el mensaje al conjunto lo decide la administración.
+- **AL-02.** Dos días antes de un trabajo con `afecta_uso` y publicable, el disparador de las 6:00
+  **publica** una alerta de cierre de área. Una por trabajo: no se repite. Un sistema sensible no se nombra.
+- **AL-03.** Al resolver una novedad, su alerta queda marcada (`sugerida_cerrar`) con una línea en la
+  línea de tiempo, y se informa cuántas quedaron por cerrar. **No se cierra sola**.
+- **U2.** Desactivar a una persona con trabajos abiertos o planes activos **se niega** hasta elegir a
+  quién se los pasa (`reasignar_a`, otra persona activa de la misma empresa).
+
 ### 10.2 septies. Propuestas: versión, corrección y eliminación (v1.7)
 
 - **RN-41.** Solo **ADMIN** ve los botones de decidir (aprobar, no aprobar, guardar cambios, eliminar).
