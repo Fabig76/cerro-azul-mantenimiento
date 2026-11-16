@@ -224,6 +224,21 @@ function textoNotificacion_(tipo, entidadId) {
     };
   }
 
+  if (tipo === 'ALERTA_SUGERIDA') {
+    const a = buscarPorId('alertas', entidadId);
+    return {
+      asunto: 'Cerro Azul · hay una alerta por revisar',
+      cuerpo: [
+        'Hola.',
+        '',
+        'Se sugirió una alerta a partir de una novedad grave' + (a ? ': «' + a.titulo + '»' : '') + '.',
+        'Está en borrador: revísela y publíquela si el conjunto debe saberlo.',
+        '',
+        'Administración — Urbanización Cerro Azul',
+      ].join('\n'),
+    };
+  }
+
   if (tipo === 'HOJA_GRANDE') {
     const partes = String(entidadId || '').split(':');
     const tabla = partes[0];
@@ -568,6 +583,7 @@ function notificacionesMias(ctx, payload) {
     USUARIO_NUEVO: 'Se creó tu usuario',
     HOJA_GRANDE: 'Una tabla del portal está creciendo',
     PROPUESTA_ELIMINADA: 'La administración eliminó tu propuesta',
+    ALERTA_SUGERIDA: 'Hay una alerta por revisar',
   };
 
   return {

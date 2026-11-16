@@ -125,3 +125,121 @@ function alertasCerrar(ctx, payload) {
   auditar(ctx.usuario.email, 'ALERTA_CERRADA', 'alerta', id, { estado: a.estado }, { estado: 'CERRADA' });
   return { alerta: alertaResumen_(despues) };
 }
+
+// ---------------------------------------------------------------------------
+// Alertas automáticas (AL-01, AL-02, AL-03)
+// ---------------------------------------------------------------------------
+
+/**
+ * AL-02 · Dos días antes de un trabajo que afecta el uso, se avisa solo.
+ * Es la que más ve el residente: «el salón estará cerrado el…».
+ * Se llama desde el disparador de las 6:00.
+ */
+function alertasAfectaUso_(diasAntes) {
+  const dias = Number(diasAntes || 2);
+  const objetivo = sumarDias(hoyIso(), dias);
+  const creadas = [];
+
+  filtrar('actividades', function (a) {
+    if (!bool(a.activo) || !bool(a.afecta_uso) || !bool(a.publicable)) return false;
+    if (['PROGRAMADA', 'EN_EJECUCION'].indexOf(String(a.estado)) < 0) return false;
+    return fechaIso_(a.fecha_inicio_plan) === objetivo;
+  }).forEach(function (a) {
+    // Una por trabajo y por fecha: no se repite al día siguiente.
+    if (filtrar('alertas', function (x) {
+      return bool(x.activo) && String(x.actividad_id) === String(a.id) &&
+        String(x.origen) === 'AUTOMATICA_AFECTA_USO';
+    })[0]) return;
+
+    const nodo = a.nodo_id ? buscarPorId('nodos', a.nodo_id) : null;
+    const sensible = nodo ? esSensible(nodo) : false;
+    const cuando = String(a.fecha_inicio_plan) === String(a.fecha_fin_plan)
+      ? 'el ' + a.fecha_inicio_plan
+      : 'del ' + a.fecha_inicio_plan + ' al ' + a.fecha_fin_plan;
+
+    const creada = insertar('alertas', {
+      id: newId('ALE'),
+      nivel: 'AVISO',
+      categoria: 'CIERRE_AREA',
+      // Un sistema sensible nunca se nombra: se dice que hay un trabajo, no cuál.
+      titulo: sensible ? 'Trabajo programado que afecta el uso' : a.titulo,
+      mensaje_publico: (sensible ? 'Habrá un trabajo en un sistema del conjunto ' : 'Trabajo en ' +
+        (nodo ? nodo.nombre : 'el conjunto') + ' ' + cuando + '. ') +
+        'Puede afectar el uso normal de la zona.',
+      nodo_id: sensible ? '' : (a.nodo_id || ''),
+      novedad_id: '',
+      actividad_id: a.id,
+      inicio: hoyIso(),
+      fin: a.fecha_fin_plan,
+      fijada: false,
+      actualizaciones_json: '[]',
+      estado: 'PUBLICADA',
+      origen: 'AUTOMATICA_AFECTA_USO',
+      activo: true,
+    }, 'sistema');
+    creadas.push(creada.id);
+  });
+
+  if (creadas.length) regenerarSnapshot();
+  return { creadas: creadas.length };
+}
+
+/**
+ * AL-01 · Una novedad ALTA o CRÍTICA deja una alerta en BORRADOR para que la
+ * administración la revise, y avisa a los administradores. No se publica sola.
+ */
+function alertaPorNovedad_(novedad) {
+  if (!novedad) return null;
+  const gravedad = String(novedad.gravedad || '').toUpperCase();
+  if (['ALTA', 'CRITICA'].indexOf(gravedad) < 0) return null;
+
+  // Una sola alerta por novedad.
+  const ya = filtrar('alertas', function (x) {
+    return bool(x.activo) && String(x.novedad_id) === String(novedad.id);
+  })[0];
+  if (ya) return ya;
+
+  const nodo = novedad.nodo_id ? buscarPorId('nodos', novedad.nodo_id) : null;
+  const sensible = nodo ? esSensible(nodo) : false;
+  const alerta = insertar('alertas', {
+    id: newId('ALE'),
+    nivel: gravedad === 'CRITICA' ? 'CRITICA' : 'URGENTE',
+    categoria: novedad.tipo === 'FALLA' ? 'FALLA' : 'GENERAL',
+    titulo: novedad.titulo || 'Novedad que requiere atención',
+    mensaje_publico: novedad.texto_publico || novedad.descripcion || '',
+    nodo_id: sensible ? '' : (novedad.nodo_id || ''),
+    novedad_id: novedad.id,
+    actividad_id: '',
+    inicio: hoyIso(),
+    fin: novedad.fecha_compromiso || '',
+    fijada: false,
+    actualizaciones_json: '[]',
+    estado: 'BORRADOR',
+    origen: 'AUTOMATICA_NOVEDAD',
+    activo: true,
+  }, 'sistema');
+
+  auditar('sistema', 'ALERTA_SUGERIDA', 'alerta', alerta.id, null,
+    { novedad_id: novedad.id, gravedad: gravedad });
+  return alerta;
+}
+
+/**
+ * AL-03 · Al resolver una novedad, su alerta se propone cerrar: no se cierra sola
+ * porque el mensaje público lo escribe la administración.
+ */
+function alertasProponerCierre_(novedadId, motivo) {
+  const alertas = filtrar('alertas', function (x) {
+    return bool(x.activo) && String(x.novedad_id) === String(novedadId) &&
+      ['PUBLICADA', 'ACTUALIZADA'].indexOf(String(x.estado)) >= 0;
+  });
+  if (!alertas.length) return 0;
+
+  alertas.forEach(function (a) {
+    const linea = fromJson(a.actualizaciones_json, []);
+    linea.push({ fecha: ahoraIso(), texto: 'La novedad quedó resuelta' + (motivo ? ': ' + motivo : '') +
+      '. Se puede cerrar esta alerta.' });
+    actualizar('alertas', a.id, { actualizaciones_json: toJson(linea), sugerida_cerrar: true }, 'sistema');
+  });
+  return alertas.length;
+}

@@ -152,6 +152,7 @@ function usuariosAsignar(ctx, payload) {
 function usuariosDesactivar(ctx, payload) {
   desdePortal_(payload);
   return conBloqueo(function () {
+  limpiarCache('usuarios');
   const id = exigirTexto(payload.id, 'id');
   const u = buscarPorId('usuarios', id);
   if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');
@@ -159,21 +160,45 @@ function usuariosDesactivar(ctx, payload) {
     fallar_('VALIDACION', 'No puedes desactivar tu propia cuenta.');
   }
 
-  const sesiones = revocarSesiones_(id, ctx.usuario.email);
-  const hoy = hoyIso();
-  asignacionesDe_(id).forEach(function (a) {
-    actualizar('asignaciones', a.id, { hasta: hoy, activo: false }, ctx.usuario.email);
+  // U2 · Qué queda a su nombre: trabajos abiertos y planes que lo tienen de responsable.
+  const abiertos = filtrar('actividades', function (a) {
+    return String(a.responsable_id) === String(id) && bool(a.activo) &&
+      ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA', 'RECHAZADA'].indexOf(String(a.estado)) >= 0;
   });
-  const despues = actualizar('usuarios', id, {
-    estado: 'INACTIVO',
-    inactivo_desde: hoy,
-  }, ctx.usuario.email);
+  const planes = filtrar('recurrencias', function (r) {
+    return bool(r.activo) && bool(r.activa) && String(r.responsable_id) === String(id);
+  });
 
-  auditar(ctx.usuario.email, 'USUARIO_DESACTIVADO', 'usuario', id,
-    { estado: u.estado }, { estado: 'INACTIVO', sesiones_revocadas: sesiones });
-  return { usuario: usuarioResumen_(despues) };
+  const destino = payload.reasignar_a ? String(payload.reasignar_a) : '';
+  if ((abiertos.length || planes.length) && !destino) {
+    fallar_('CONFLICTO', 'Tiene ' + abiertos.length + ' trabajo(s) abierto(s) y ' +
+      planes.length + ' plan(es). Elija a quién se los pasa antes de desactivarlo.');
+  }
+  if (destino) {
+    const otro = buscarPorId('usuarios', destino);
+    if (!otro || !bool(otro.activo) || String(otro.estado) !== 'ACTIVO') {
+      fallar_('VALIDACION', 'La persona a la que se reasigna no está activa.');
+    }
+    if (String(otro.id) === String(id)) fallar_('VALIDACION', 'No puede reasignarse a sí mismo.');
+    abiertos.forEach(function (a) {
+      actualizar('actividades', a.id, { responsable_id: destino }, ctx.usuario.email);
+    });
+    planes.forEach(function (r) {
+      actualizar('recurrencias', r.id, { responsable_id: destino }, ctx.usuario.email);
+    });
+  }
+
+  const despues = actualizar('usuarios', id, { estado: 'INACTIVO' }, ctx.usuario.email);
+  revocarSesiones_(id, ctx.usuario.email);
+  auditar(ctx.usuario.email, 'USUARIO_DESACTIVADO', 'usuario', id, { estado: u.estado },
+    { estado: 'INACTIVO', reasignados: abiertos.length + planes.length, a: destino });
+  return {
+    usuario: despues,
+    reasignados: { trabajos: abiertos.length, planes: planes.length, a: destino },
+  };
   });
 }
+
 
 /**
  * Empresas contratistas. Sin `todas` devuelve solo las activas (es lo que necesitan

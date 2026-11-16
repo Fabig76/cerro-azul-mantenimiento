@@ -214,6 +214,50 @@
     desactivar.addEventListener('click', async function () {
       const r = await API.llamar('usuarios.desactivar', { id: u.id }, { token: Sesion.token(), idempotente: true });
       if (window.Datos) Datos.invalidar('usuarios.listar');
+
+      // U2 · Si tiene trabajo abierto, el servidor se niega: se pide a quién pasarlo.
+      if (!r.ok && r.code === 'CONFLICTO') {
+        if (caja.querySelector('.reasignar-caja')) return;
+        const colegas = usuarios.filter(function (x) {
+          return String(x.id) !== String(u.id) && x.estado === 'ACTIVO' &&
+            String(x.empresa_id || '') === String(u.empresa_id || '');
+        });
+        const cajita = el('div', 'bloque reasignar-caja');
+        cajita.appendChild(el('p', 'aviso-rechazo-fecha', r.message));
+        if (!colegas.length) {
+          cajita.appendChild(el('p', 'bajada-tarjeta',
+            'No hay otra persona activa en la misma empresa. Active a alguien primero o cierre los trabajos.'));
+          caja.appendChild(cajita);
+          return;
+        }
+        const sel = el('select', 'item-input');
+        colegas.forEach(function (x) {
+          const op = el('option', null, x.nombre || x.email);
+          op.value = x.id;
+          sel.appendChild(op);
+        });
+        cajita.appendChild(campo('Pasar sus trabajos y planes a', sel));
+        const ir = el('button', 'btn peligro', 'Reasignar y desactivar');
+        ir.type = 'button';
+        ir.addEventListener('click', async function () {
+          ir.disabled = true;
+          ir.textContent = 'Reasignando…';
+          const r2 = await API.llamar('usuarios.desactivar',
+            { id: u.id, reasignar_a: sel.value }, { token: Sesion.token(), idempotente: true });
+          if (window.Datos) Datos.invalidar('usuarios.listar');
+          ir.disabled = false;
+          ir.textContent = 'Reasignar y desactivar';
+          if (!r2.ok) return aviso(r2.message || 'No se pudo reasignar.', 'error');
+          aviso('Usuario desactivado. Pasaron ' + (r2.data.reasignados.trabajos + r2.data.reasignados.planes) +
+            ' trabajo(s) y plan(es).', 'ok');
+          await cargar();
+          document.getElementById('panelUsuario').classList.add('oculto');
+        });
+        cajita.appendChild(ir);
+        caja.appendChild(cajita);
+        return;
+      }
+
       if (!r.ok) return aviso(r.message || 'No se pudo desactivar.', 'error');
       aviso('Usuario desactivado y sesiones revocadas.', 'ok');
       await cargar();

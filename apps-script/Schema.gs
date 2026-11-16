@@ -7,7 +7,7 @@ const CAMPOS_AUDITORIA = ['creado_en', 'creado_por', 'actualizado_en', 'actualiz
 
 // Sube este número cada vez que cambie el esquema: la app lo compara con la
 // propiedad de script y crea las pestañas o columnas nuevas sin exigir setup().
-const ESQUEMA_VERSION = 6;
+const ESQUEMA_VERSION = 7;
 
 const SCHEMA = {
   nodos: [
@@ -100,7 +100,7 @@ const SCHEMA = {
 
   alertas: [
     'id', 'nivel', 'categoria', 'titulo', 'mensaje_publico', 'nodo_id', 'novedad_id', 'actividad_id',
-    'inicio', 'fin', 'estado', 'fijada', 'origen', 'actualizaciones_json',
+    'inicio', 'fin', 'estado', 'fijada', 'origen', 'actualizaciones_json', 'sugerida_cerrar',
   ].concat(CAMPOS_AUDITORIA),
 
   auditoria: ['id', 'fecha', 'usuario_email', 'accion', 'entidad', 'entidad_id', 'antes_json', 'despues_json', 'ip_hint'],

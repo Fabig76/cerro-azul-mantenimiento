@@ -66,6 +66,8 @@ function runAllTests() {
   pruebasConsejoSoloLectura_();
   pruebasFicha_();
   pruebasResidentes_();
+  pruebasAlertasAutomaticas_();
+  pruebasReasignarAlDesactivar_();
   pruebasPropuestasV17_();
   pruebasFilasPorHoja_();
 
@@ -772,6 +774,117 @@ function pruebasPropuestasV17_() {
   } else {
     RESULTADOS.detalle.push('OMITE · propuestas v1.7 · no hay pendientes');
   }
+}
+
+/**
+ * AL-01, AL-02 y AL-03: las alertas que antes el SPEC prometía y no existían.
+ */
+function pruebasAlertasAutomaticas_() {
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo) && String(n.clase) === 'AGRUPADOR'; })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · alertas automáticas · sin nodos'); return; }
+
+  const creadas = [];
+
+  // AL-02 · Dos días antes de un trabajo que afecta el uso
+  const hoy = hoyIso();
+  const act = insertar('actividades', {
+    id: newId('ACT'), titulo: 'PRUEBA afecta uso', descripcion: '', nodo_id: nodo.id,
+    plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: '',
+    tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+    fecha_inicio_plan: sumarDias(hoy, 2), fecha_fin_plan: sumarDias(hoy, 2),
+    dias_plan: 1, prioridad: 'MEDIA', estado: 'PROGRAMADA', vencida: false, en_riesgo: false,
+    avance_reportado_pct: 0, avance_aprobado_pct: 0, fecha_inicio_real: '',
+    fecha_reporte_final: '', fecha_aprobacion: '', obligatoria_legal: false,
+    afecta_uso: true, publicable: true, acta_file_id: '', inicio_sin_foto_motivo: '',
+    propuesta_id: '', activo: true,
+  }, 'prueba');
+
+  const primera = alertasAfectaUso_(2);
+  verdadero_(primera.creadas >= 1, 'AL-02 crea la alerta dos días antes del trabajo');
+  const segunda = alertasAfectaUso_(2);
+  verdadero_(segunda.creadas === 0, 'AL-02 no duplica la alerta al día siguiente');
+
+  const alerta = filtrar('alertas', function (a) {
+    return String(a.actividad_id) === String(act.id) && bool(a.activo);
+  })[0];
+  verdadero_(!!alerta && String(alerta.estado) === 'PUBLICADA', 'la alerta de AL-02 sale publicada');
+  if (alerta) creadas.push(alerta.id);
+
+  // AL-01 · Una novedad grave deja una alerta en borrador
+  const novedad = insertar('novedades', {
+    id: newId('NOV'), nodo_id: nodo.id, titulo: 'PRUEBA novedad grave',
+    descripcion: 'Falla grave para probar la alerta automática', tipo: 'FALLA',
+    gravedad: 'ALTA', estado: 'ABIERTA', reportada_por: 'prueba@urbcerroazul.com',
+    origen: 'PRUEBA', actividad_origen_id: '', actividad_correctiva_id: '',
+    fecha_deteccion: hoy, fecha_compromiso: '', fecha_resolucion: '',
+    publicable: true, texto_publico: 'Texto público de prueba', activo: true,
+  }, 'prueba');
+
+  const sugerida = alertaPorNovedad_(novedad);
+  verdadero_(!!sugerida && String(sugerida.estado) === 'BORRADOR', 'AL-01 deja la alerta en borrador');
+  const otraVez = alertaPorNovedad_(novedad);
+  verdadero_(!!otraVez && String(otraVez.id) === String(sugerida.id), 'AL-01 no duplica la alerta');
+  if (sugerida) creadas.push(sugerida.id);
+
+  // AL-03 · Al resolver la novedad, se propone cerrar la alerta
+  actualizar('alertas', sugerida.id, { estado: 'PUBLICADA' }, 'prueba');
+  const propuestas = alertasProponerCierre_(novedad.id, 'se cambió la pieza');
+  verdadero_(propuestas >= 1, 'AL-03 marca la alerta para cerrar al resolver la novedad');
+  const cerrada = buscarPorId('alertas', sugerida.id);
+  verdadero_(!!cerrada && bool(cerrada.sugerida_cerrar), 'y la deja marcada para que decida el administrador');
+
+  // Limpieza
+  creadas.forEach(function (id) { actualizar('alertas', id, { activo: false }, 'prueba'); });
+  actualizar('actividades', act.id, { activo: false }, 'prueba');
+  actualizar('novedades', novedad.id, { activo: false }, 'prueba');
+}
+
+/**
+ * U2 · Desactivar a alguien con trabajo abierto exige pasar sus trabajos a otra persona.
+ */
+function pruebasReasignarAlDesactivar_() {
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  const empresa = filtrar('empresas', function (e) { return bool(e.activo); })[0];
+  if (!nodo || !empresa) { RESULTADOS.detalle.push('OMITE · reasignar · sin datos'); return; }
+
+  const hoy = hoyIso();
+  const uno = insertar('usuarios', {
+    id: newId('USU'), email: 'prueba-uno@urbcerroazul.com', nombre: 'Prueba uno',
+    telefono: '3000000000', rol: 'CONTRATISTA', empresa_id: empresa.id,
+    estado: 'ACTIVO', activo: true,
+  }, 'prueba');
+  const dos = insertar('usuarios', {
+    id: newId('USU'), email: 'prueba-dos@urbcerroazul.com', nombre: 'Prueba dos',
+    telefono: '3000000001', rol: 'CONTRATISTA', empresa_id: empresa.id,
+    estado: 'ACTIVO', activo: true,
+  }, 'prueba');
+
+  const act = insertar('actividades', {
+    id: newId('ACT'), titulo: 'PRUEBA reasignar', descripcion: '', nodo_id: nodo.id,
+    plantilla_id: '', plantilla_version: '', empresa_id: empresa.id, responsable_id: uno.id,
+    tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+    fecha_inicio_plan: hoy, fecha_fin_plan: hoy, dias_plan: 1, prioridad: 'MEDIA',
+    estado: 'PROGRAMADA', vencida: false, en_riesgo: false, avance_reportado_pct: 0,
+    avance_aprobado_pct: 0, fecha_inicio_real: '', fecha_reporte_final: '',
+    fecha_aprobacion: '', obligatoria_legal: false, afecta_uso: false, publicable: false,
+    acta_file_id: '', inicio_sin_foto_motivo: '', propuesta_id: '', activo: true,
+  }, 'prueba');
+
+  let codigo = '';
+  try { usuariosDesactivar(ctx, { id: uno.id }); } catch (e) { codigo = String(e.message); }
+  verdadero_(codigo.indexOf('CONFLICTO') === 0, 'sin reasignar, desactivar se niega');
+
+  const r = usuariosDesactivar(ctx, { id: uno.id, reasignar_a: dos.id });
+  verdadero_(String(buscarPorId('usuarios', uno.id).estado) === 'INACTIVO', 'con reasignación, se desactiva');
+  verdadero_(String(buscarPorId('actividades', act.id).responsable_id) === String(dos.id),
+    'y el trabajo abierto pasa a la otra persona');
+  verdadero_(Number(r.reasignados.trabajos) >= 1, 'informando cuántos pasaron');
+
+  actualizar('actividades', act.id, { activo: false }, 'prueba');
+  actualizar('usuarios', uno.id, { activo: false }, 'prueba');
+  actualizar('usuarios', dos.id, { activo: false }, 'prueba');
 }
 
 function pruebasSuperficiePublica_() {

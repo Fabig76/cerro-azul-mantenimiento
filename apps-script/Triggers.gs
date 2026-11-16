@@ -44,6 +44,11 @@ function avisosDiariosDisparador() {
   } catch (e) {
     console.error('plan: ' + e.message);
   }
+  // AL-02 · Aviso público dos días antes de un trabajo que afecta el uso.
+  try {
+    const a = alertasAfectaUso_(2);
+    if (a.creadas) console.log('alertas de afecta-uso: ' + a.creadas);
+  } catch (e) { console.error('alertas de afecta-uso: ' + (e && e.message)); }
   try {
     const r = avisosDiarios_();
     console.log('avisos diarios: ' + JSON.stringify(r));

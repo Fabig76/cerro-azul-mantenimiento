@@ -115,7 +115,19 @@ function crearNovedad_(ctx, datos) {
   auditar(ctx.usuario.email, 'NOVEDAD_CREADA', 'novedad', novedad.id, null,
     { nodo: nodo.codigo, gravedad: gravedad, tipo: tipo });
 
-  return { novedad: novedadResumen_(novedad) };
+  // AL-01 · Si es grave, se deja una alerta lista para revisar (no se publica sola).
+  let alerta = null;
+  try {
+    alerta = alertaPorNovedad_(novedad);
+    if (alerta) {
+      adminsEmails_().forEach(function (correo) {
+        const u = usuarioPorEmail_(correo);
+        if (u) encolarUnaVez_(u.id, 'ALERTA_SUGERIDA', alerta.id);
+      });
+    }
+  } catch (e) { console.error('alerta sugerida: ' + (e && e.message)); }
+
+  return { novedad: novedadResumen_(novedad), alerta_sugerida: alerta ? alerta.id : '' };
 }
 
 function novedadesResolver(ctx, payload) {
@@ -133,6 +145,11 @@ function novedadesResolver(ctx, payload) {
 
     auditar(ctx.usuario.email, 'NOVEDAD_RESUELTA', 'novedad', id, { estado: n.estado }, { estado: 'RESUELTA' });
     recalcularSalud_(n.nodo_id, ctx.usuario.email);
-    return { novedad: novedadResumen_(despues) };
+
+    // AL-03 · La alerta que contaba esta novedad se puede cerrar: se deja marcada.
+    let sugeridas = 0;
+    try { sugeridas = alertasProponerCierre_(id, payload.comentario || ''); } catch (e) { /* no frena */ }
+
+    return { novedad: novedadResumen_(despues), alertas_por_cerrar: sugeridas };
   });
 }
