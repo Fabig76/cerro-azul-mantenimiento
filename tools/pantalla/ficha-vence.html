@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div id="listaEmpresas"></div>
+<div id="listaFichas"></div>
+<span id="conteoFichas"></span>
+<input type="checkbox" id="empVerInactivas">
+<div id="avisoEmpresas" class="msg"></div>
+<script>
+window.CFG = { API_URL: '' };
+const en = (d) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
+window.API = { llamar: function (accion) {
+  if (accion === 'empresas.listar') return Promise.resolve({ ok: true, data: { empresas: [
+    { id: 'E1', razon_social: 'Vence pronto', activo: true, nit: '1', vigencia_hasta: en(18), vencida: false },
+    { id: 'E2', razon_social: 'Ya venció', activo: true, nit: '2', vigencia_hasta: en(-5), vencida: true },
+    { id: 'E3', razon_social: 'Lejos', activo: true, nit: '3', vigencia_hasta: en(200), vencida: false },
+  ] } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+window.Datos = { obtener: function (a) { return window.API.llamar(a, {}); }, invalidar: function () {} };
+</script>
+<script src="../../web/js/empresas.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  try {
+    await Empresas.cargar();
+    await Empresas.cargarFichas();
+    await esperar(300);
+    const texto = document.getElementById('listaFichas').textContent;
+    ok(/Vence en 18 días/.test(texto), 'avisa cuando el contrato está por vencer');
+    ok(texto.indexOf('Contrato vencido') >= 0, 'y sigue marcando el ya vencido');
+    ok(!/Vence en 200/.test(texto), 'sin avisar cuando falta mucho');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

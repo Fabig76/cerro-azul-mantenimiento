@@ -7,9 +7,11 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 [ -x "$CHROME" ] || { echo "No se encontró Chrome"; exit 1; }
 
 correr() {
-  "$CHROME" --headless=new --disable-gpu --virtual-time-budget=8000 \
+  # $2 = milisegundos de reloj virtual (por defecto 8000). Las pruebas con esperas
+  # largas necesitan más; si no, el título queda en «cargando» y la prueba se pierde.
+  "$CHROME" --headless=new --disable-gpu --virtual-time-budget=${2:-8000} \
     --dump-dom "file://$(pwd)/tools/pantalla/$1" 2>/dev/null \
-    | grep -o "<title>[^<]*</title>" | sed 's/<[^>]*>//g' | tr '|' '\n'
+    | grep -o "<title>[^<]*</title>" | sed 's/<[^>]*>//g' | tr '|' '\n' || true
 }
 
 SALIDA="$(correr prueba.html)
@@ -30,7 +32,10 @@ $(correr consejo-inicio.html)
 $(correr reporte-publico.html)
 $(correr residentes-panel.html)
 $(correr propuestas-v17.html)
-$(correr lento.html)
+$(correr lento.html 24000)
+$(correr novedad-reparacion.html)
+$(correr sistema-estado.html 24000)
+$(correr ficha-vence.html)
 $(correr contratista-completo.html)"
 
 echo "$SALIDA"

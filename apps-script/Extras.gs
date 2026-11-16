@@ -77,6 +77,12 @@ function novedadesEditar(ctx, payload) {
     cambios.texto_publico = String(payload.texto_publico || '').slice(0, 400);
   }
   if (payload.publicable !== undefined) cambios.publicable = !!payload.publicable;
+  // N5 · El trabajo que atiende la novedad se puede ligar desde el panel.
+  if (payload.actividad_correctiva_id !== undefined) {
+    const actId = payload.actividad_correctiva_id || '';
+    if (actId && !buscarPorId('actividades', actId)) fallar_('VALIDACION', 'Ese trabajo no existe.');
+    cambios.actividad_correctiva_id = actId;
+  }
   if (!Object.keys(cambios).length) fallar_('VALIDACION', 'No hay cambios.');
 
   const despues = actualizar('novedades', id, cambios, ctx.usuario.email);

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div id="avisoNovedades" class="msg"></div>
+<div id="listaNovedades"></div>
+<script>
+window.CFG = { API_URL: '' };
+window.__rol = 'ADMIN';
+window.__llamadas = [];
+const NOVEDAD = {
+  id: 'NOV_1', titulo: 'Filtración en el techo', descripcion: 'Humedad en el cielo raso',
+  tipo: 'DANO', gravedad: 'ALTA', estado: 'ABIERTA', fecha_deteccion: '2026-11-15',
+  nodo: { id: 'N1', codigo: 'CA-AC', nombre: 'Áreas comunes' },
+  actividad_correctiva_id: '', publicable: true, texto_publico: 'Se filtra el techo',
+};
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload });
+  if (accion === 'novedades.listar') return Promise.resolve({ ok: true, data: { novedades: [NOVEDAD] } });
+  if (accion === 'actividades.crear') return Promise.resolve({ ok: true, data: { actividad: { id: 'ACT_NUEVA' } } });
+  if (accion === 'novedades.editar') return Promise.resolve({ ok: true, data: { novedad: NOVEDAD } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Datos = { obtener: function (a) { return window.API.llamar(a, {}); }, invalidar: function () {} };
+</script>
+<script src="../../web/js/novedades.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  try {
+    await Novedades.cargar();
+    await esperar(300);
+    const botones = Array.prototype.slice.call(document.querySelectorAll('button')).map(function (b) { return b.textContent; });
+    ok(botones.indexOf('Programar reparación') >= 0, 'la novedad ofrece «Programar reparación»');
+
+    const btn = Array.prototype.slice.call(document.querySelectorAll('button'))
+      .filter(function (b) { return b.textContent === 'Programar reparación'; })[0];
+    btn.click();
+    await esperar(400);
+    const crear = window.__llamadas.filter(function (x) { return x.accion === 'actividades.crear'; })[0];
+    ok(!!crear, 'crea el trabajo');
+    ok(crear && crear.payload.nodo_id === 'N1', 'con la sección de la novedad, sin volver a elegirla');
+    ok(crear && crear.payload.titulo.indexOf('Filtración') >= 0, 'con el título de la novedad');
+    ok(crear && crear.payload.novedad_id === 'NOV_1', 'y ligado a la novedad');
+    ok(crear && crear.payload.prioridad === 'ALTA', 'con prioridad según la gravedad');
+    const liga = window.__llamadas.filter(function (x) { return x.accion === 'novedades.editar'; })[0];
+    ok(liga && liga.payload.actividad_correctiva_id === 'ACT_NUEVA', 'y deja la novedad ligada al trabajo');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

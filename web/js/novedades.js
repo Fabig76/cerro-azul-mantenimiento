@@ -79,6 +79,39 @@
 
       if (n.descripcion) caja.appendChild(el('p', null, n.descripcion));
 
+      // N5 · Lo que se reporta como daño casi siempre necesita un trabajo: se crea desde
+      // aquí con la sección y la descripción llenas, sin volver a escribirlas.
+      if (n.estado !== 'RESUELTA' && !n.actividad_correctiva_id &&
+          (window.__rol === 'ADMIN' || window.__rol === 'SUPERVISOR')) {
+        const programar = el('button', 'btn sm primary', 'Programar reparación');
+        programar.type = 'button';
+        programar.addEventListener('click', async function () {
+          programar.disabled = true;
+          programar.textContent = 'Creando…';
+          const hoy = new Date().toISOString().slice(0, 10);
+          const r = await API.llamar('actividades.crear', {
+            nodo_id: n.nodo ? n.nodo.id : '',
+            titulo: 'Reparar: ' + n.titulo,
+            descripcion: (n.descripcion || '') + '\n\nReportado en la novedad ' + n.id + '.',
+            fecha_inicio_plan: hoy,
+            fecha_fin_plan: hoy,
+            prioridad: (n.gravedad === 'CRITICA' ? 'URGENTE' : n.gravedad === 'ALTA' ? 'ALTA' : 'MEDIA'),
+            novedad_id: n.id,
+            publicable: false,
+          }, { token: Sesion.token(), idempotente: true });
+          programar.disabled = false;
+          programar.textContent = 'Programar reparación';
+          if (!r.ok) return aviso(r.message || 'No se pudo crear el trabajo.', 'error');
+          aviso('Trabajo creado para atender la novedad.', 'ok');
+          // Queda ligado a la novedad para que no se proponga dos veces.
+          await API.llamar('novedades.editar', { id: n.id, actividad_correctiva_id: r.data.actividad.id },
+            { token: Sesion.token(), idempotente: true });
+          cargar();
+          if (window.App && App.refrescar) App.refrescar();
+        });
+        caja.appendChild(programar);
+      }
+
       if (n.estado !== 'RESUELTA' && (window.__rol === 'ADMIN' || window.__rol === 'SUPERVISOR')) {
         const btn = el('button', 'btn sm', 'Marcar resuelta');
         btn.type = 'button';

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<button id="btnPruebas" type="button">Ejecutar pruebas</button>
+<div class="msg" id="resumenPruebas"></div>
+<div class="lista-pruebas oculto" id="detallePruebas"></div>
+<p class="bajada-tarjeta" id="estadoCorreos"></p>
+<div id="tablaFilas"></div>
+<script>
+window.CFG = { API_URL: '' };
+window.__demora = 6000;
+window.API = { llamar: function (accion) {
+  if (accion === 'sistema.estado') return Promise.resolve({ ok: true, data: {
+    correos: { pendientes: 0, errores: 1, motivos: [{ motivo: 'sin correo', cuantos: 1 }] },
+    admins: ['heylerguaza@live.com'],
+    ultimo_recalculo: 'terminó 2026-11-16T03:04:12-05:00 en 52 s',
+    disparadores: ['regenerarSnapshot'], faltan: [], filas: { actividades: 46 }, archivo: { aviso: 15000, limite: 20000 },
+  } });
+  if (accion === 'tests.ejecutar') {
+    return new Promise(function (res) { setTimeout(function () {
+      res({ ok: true, data: { pasadas: 124, fallidas: 0, detalle: ['OK · una'] } });
+    }, window.__demora); });
+  }
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+</script>
+<script src="../../web/js/pruebas.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  try {
+    Pruebas.preparar();
+    await esperar(200);
+    await esperar(200);
+    const estado = document.getElementById('estadoCorreos').textContent;
+    ok(estado.indexOf('heylerguaza@live.com') >= 0, 'muestra a quién le llegan los avisos');
+    ok(estado.indexOf('terminó') >= 0 && estado.indexOf('52 s') >= 0, 'y cómo terminó el último recálculo');
+    ok(estado.indexOf('sin correo') >= 0, 'y por qué falló un correo');
+
+    // SI1 · Al ejecutar las pruebas se ve el tiempo corriendo
+    document.getElementById('btnPruebas').click();
+    await esperar(50);
+    await esperar(1600);
+    const btn = document.getElementById('btnPruebas');
+    ok(/Ejecutando… \d+ s/.test(btn.textContent), 'mientras corren las pruebas se ve el tiempo (' + btn.textContent + ')');
+    ok(document.getElementById('resumenPruebas').textContent.indexOf('30 segundos') >= 0, 'y avisa que tarda');
+    await esperar(5200);
+    ok(document.getElementById('resumenPruebas').textContent.indexOf('124') >= 0, 'al terminar muestra el resultado');
+    ok(btn.textContent === 'Ejecutar pruebas', 'y el botón vuelve a su sitio');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

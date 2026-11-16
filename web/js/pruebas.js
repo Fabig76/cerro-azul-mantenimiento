@@ -14,8 +14,21 @@
     if (!btn) return;
     btn.addEventListener('click', async function () {
       btn.disabled = true;
-      btn.textContent = 'Ejecutando…';
+      const resumen0 = document.getElementById('resumenPruebas');
+      const segundos = { t: 0 };
+      // SI1 · Las pruebas tardan unos 30 s. Se cuenta el tiempo para que se vea vivo.
+      btn.textContent = 'Ejecutando… 0 s';
+      if (resumen0) {
+        resumen0.className = 'msg mostrar info';
+        resumen0.textContent = 'Corriendo las verificaciones. Tarda unos 30 segundos; no cierre la pantalla.';
+      }
+      const reloj = setInterval(function () {
+        segundos.t++;
+        btn.textContent = 'Ejecutando… ' + segundos.t + ' s';
+      }, 1000);
+
       const r = await API.llamar('tests.ejecutar', {}, { token: Sesion.token() });
+      clearInterval(reloj);
       btn.disabled = false;
       btn.textContent = 'Ejecutar pruebas';
 
@@ -67,8 +80,21 @@
     if (!btn) return;
     btn.addEventListener('click', async function () {
       btn.disabled = true;
-      btn.textContent = 'Ejecutando…';
+      const resumen0 = document.getElementById('resumenPruebas');
+      const segundos = { t: 0 };
+      // SI1 · Las pruebas tardan unos 30 s. Se cuenta el tiempo para que se vea vivo.
+      btn.textContent = 'Ejecutando… 0 s';
+      if (resumen0) {
+        resumen0.className = 'msg mostrar info';
+        resumen0.textContent = 'Corriendo las verificaciones. Tarda unos 30 segundos; no cierre la pantalla.';
+      }
+      const reloj = setInterval(function () {
+        segundos.t++;
+        btn.textContent = 'Ejecutando… ' + segundos.t + ' s';
+      }, 1000);
+
       const r = await API.llamar('tests.ejecutar', {}, { token: Sesion.token() });
+      clearInterval(reloj);
       btn.disabled = false;
       btn.textContent = 'Ejecutar pruebas';
 
@@ -113,6 +139,20 @@
       partes.push('Faltan disparadores: ' + r.data.faltan.join(', ') + '. Ejecuta instalarDisparadores().');
     } else {
       partes.push('Los ' + (r.data.disparadores || []).length + ' disparadores están instalados');
+    }
+    // SI2 · Los destinatarios de los avisos y cómo terminó el último recálculo: sin esto,
+    // un recálculo cortado o unos avisos sin destinatario pasan en silencio.
+    const admins = r.data.admins || [];
+    partes.push(admins.length
+      ? 'Avisos a ' + admins.join(', ')
+      : 'Sin destinatarios de avisos: config.guardar admin_emails');
+    const ultimo = String(r.data.ultimo_recalculo || '');
+    partes.push(ultimo ? 'Último recálculo: ' + ultimo : 'Último recálculo: sin registro todavía');
+
+    const motivos = (c.motivos || []);
+    if (motivos.length) {
+      const detalle = motivos.map(function (m) { return m.cuantos + ' por «' + m.motivo + '»'; }).join(', ');
+      partes.push('Motivos de error: ' + detalle);
     }
     caja.textContent = partes.join(' · ') + '.';
     pintarFilas(r.data.filas || {}, r.data.archivo || {});
@@ -166,5 +206,6 @@
 
   window.Pruebas = {
     preparar: function () { prepararPruebas(); prepararRefresco(); cargarEstado(); },
+    cargarEstado: cargarEstado,
   };
 })();

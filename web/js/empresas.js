@@ -63,7 +63,17 @@
       const cab = el('div', 'ficha-cab');
       cab.appendChild(el('h3', null, f.razon_social));
       if (!f.activo) cab.appendChild(el('span', 'badge gray', 'Inactiva'));
-      if (f.vencida) cab.appendChild(el('span', 'badge danger', 'Contrato vencido'));
+      if (f.vencida) {
+        cab.appendChild(el('span', 'badge danger', 'Contrato vencido'));
+      } else {
+        const dias = f.vigencia_hasta
+          ? Math.round((new Date(f.vigencia_hasta) - new Date(new Date().toISOString().slice(0, 10))) / 86400000)
+          : null;
+        if (dias !== null && dias >= 0 && dias <= 30) {
+          cab.appendChild(el('span', 'badge warn',
+            dias === 0 ? 'Vence hoy' : 'Vence en ' + dias + (dias === 1 ? ' día' : ' días')));
+        }
+      }
       caja.appendChild(cab);
 
       const datos = el('div', 'ficha-datos');

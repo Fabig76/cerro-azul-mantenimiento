@@ -806,6 +806,8 @@
       btn.textContent = 'Comprimiendo la foto…';
       try {
         const prep = await Fotos.preparar(file);
+        // C5 · La subida puede tardar varios segundos con mala señal: se dice qué pasa.
+        btn.textContent = 'Subiendo ' + (prep.kb || Math.round((prep.base64 || '').length / 1365)) + ' KB…';
         const r = await API.llamar('evidencias.upload', {
           actividad_id: a.id,
           momento: momento,
