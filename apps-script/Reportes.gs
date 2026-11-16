@@ -372,6 +372,9 @@ function reportesRevisar(ctx, payload) {
 
     return {
       actividad: actividadResumen_(actActualizada),
+      // Punto 12 · El detalle completo vuelve con la respuesta: la pantalla no tiene
+      // que pedirlo otra vez (antes eran dos peticiones en serie para aprobar).
+      detalle: detalleActividad_(ctx, actActualizada.id),
       estado_revision: decision === 'APROBAR' ? 'APROBADO' : 'RECHAZADO',
     };
   });

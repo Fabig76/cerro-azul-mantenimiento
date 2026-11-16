@@ -57,6 +57,7 @@ const ACCIONES = {
   'actividades.cancelar': { fn: actividadesCancelar, sesion: true, roles: ['ADMIN'] },
 
   'usuarios.listar': { fn: usuariosListar, sesion: true, roles: ['ADMIN'] },
+  'usuarios.guardar': { fn: usuariosGuardar, sesion: true, roles: ['ADMIN'] },
   'usuarios.activar': { fn: usuariosActivar, sesion: true, roles: ['ADMIN'] },
   'usuarios.editar': { fn: usuariosEditar, sesion: true, roles: ['ADMIN'] },
   'usuarios.asignar': { fn: usuariosAsignar, sesion: true, roles: ['ADMIN'] },
@@ -212,6 +213,8 @@ function doPost(e) {
       cachePut('snap:obsoleto', '1', 7200);
       // Cambia la versión de los datos: las cachés por nodo dejan de servir.
       cachePut('datos:version', String(Date.now()), 7200);
+      // Y se programa la regeneración: el residente no debe pagarla al entrar.
+      programarSnapshot_();
     }
 
     // La cola de correos se vacía fuera del ciclo de la acción (RN-20).

@@ -1318,7 +1318,8 @@
         }, { token: Sesion.token(), idempotente: true });
         if (!r.ok) return aviso(r.message || 'No se pudo aprobar.', 'error');
         aviso('Reporte aprobado. El avance ya cuenta y el semáforo se recalculó.', 'ok');
-        abrir(a.id, rol);
+        // La respuesta trae el detalle: no hace falta pedirlo otra vez.
+        refrescarDesde(r, a.id);
       });
 
       const rechazar = el('button', 'btn', 'Rechazar');
@@ -1331,7 +1332,7 @@
         }, { token: Sesion.token(), idempotente: true });
         if (!r.ok) return aviso(r.message || 'No se pudo rechazar.', 'error');
         aviso('Reporte rechazado. El contratista verá el motivo.', 'ok');
-        abrir(a.id, rol);
+        refrescarDesde(r, a.id);
       });
 
       caja.appendChild(aprobar);

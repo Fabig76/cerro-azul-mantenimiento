@@ -350,6 +350,9 @@ function regenerarSnapshot() {
     hoja_.getRange(2, 1, 1, 3).setValues([[ 'snapshot', texto, ahoraIso() ]]);
   }
   cachePut('snap', texto, 3600);
+  // La lista de fotos públicas se guarda aparte, ya lista para public.foto.
+  cachePut('snap:fotos', JSON.stringify(snap.fotos_publicas || []), 7200);
+  cachePut('snap:programado', '', 1);
   return { generado_en: snap.generado_en, bytes: texto.length };
 }
 
@@ -418,9 +421,15 @@ function publicFoto(param) {
   if (!id) return noEncontrada;
 
   // RN-23: solo se sirven ids del conjunto publicado en el snapshot vigente.
+  // Punto 15 · La lista de fotos públicas va aparte en caché: no hace falta parsear
+  // el snapshot entero (decenas de KB) para servir una miniatura.
   const publicadas = (function () {
     try {
-      return JSON.parse(snapshotPublico_()).fotos_publicas || [];
+      const enCache = cacheGet('snap:fotos');
+      if (enCache) return JSON.parse(enCache);
+      const lista = JSON.parse(snapshotPublico_()).fotos_publicas || [];
+      cachePut('snap:fotos', JSON.stringify(lista), 7200);
+      return lista;
     } catch (e) {
       return [];
     }
@@ -629,4 +638,27 @@ function ecumuladoEstado_(elementos) {
   if (d.ATENCION > 0) return 'ATENCION';
   if (d.AL_DIA > 0) return 'AL_DIA';
   return 'SIN_DATOS';
+}
+
+/**
+ * Punto 15 · Deja programada UNA regeneración del snapshot dentro de un minuto.
+ * Antes se regeneraba dentro de la petición del primer residente que entraba, que
+ * esperaba 4 segundos o más. Con un minuto de retraso se juntan varias escrituras.
+ */
+function programarSnapshot_() {
+  try {
+    // Si ya hay una programada, no se apilan disparadores.
+    if (cacheGet('snap:programado')) return;
+    cachePut('snap:programado', '1', 300);
+    ScriptApp.newTrigger('regenerarSnapshotProgramado').timeBased().after(60 * 1000).create();
+  } catch (e) {
+    // Sin permiso para crear disparadores, se sigue como antes (bajo demanda).
+    console.warn('no se pudo programar el snapshot: ' + (e && e.message));
+  }
+}
+
+/** El disparador de un solo uso: regenera y se quita. */
+function regenerarSnapshotProgramado() {
+  try { cachePut('snap:programado', '', 1); } catch (e) { /* nada */ }
+  regenerarSnapshot();
 }

@@ -304,3 +304,63 @@ function empresasGuardar(ctx, payload) {
   return { empresa: nueva };
   });
 }
+
+
+/**
+ * Punto 16 · Guardar y asignar en una sola acción, con un solo bloqueo.
+ * Antes la pantalla encadenaba activar → asignar → listar: unos 8 segundos.
+ */
+function usuariosGuardar(ctx, payload) {
+  desdePortal_(payload);
+  const id = exigirTexto(payload.id, 'id');
+
+  return conBloqueo(function () {
+    limpiarCache('usuarios');
+    const u = buscarPorId('usuarios', id);
+    if (!u) fallar_('NO_ENCONTRADO', 'El usuario no existe.');
+
+    const cambios = {};
+    if (payload.rol !== undefined) {
+      cambios.rol = exigirEnEnum(payload.rol, 'rol', ['CONTRATISTA', 'SUPERVISOR', 'ADMIN', 'CONSEJO']);
+    }
+    if (payload.empresa_id !== undefined) {
+      const empresaId = payload.empresa_id || '';
+      if (empresaId && !buscarPorId('empresas', empresaId)) fallar_('VALIDACION', 'La empresa no existe.');
+      cambios.empresa_id = empresaId;
+    }
+    if (payload.estado !== undefined) {
+      cambios.estado = exigirEnEnum(payload.estado, 'estado', ['ACTIVO', 'INACTIVO', 'PENDIENTE']);
+      if (cambios.estado === 'INACTIVO' && !payload.reasignar) {
+        const abiertos = filtrar('actividades', function (a) {
+          return String(a.responsable_id) === String(id) && bool(a.activo) &&
+            ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA', 'RECHAZADA'].indexOf(String(a.estado)) >= 0;
+        });
+        if (abiertos.length) {
+          fallar_('CONFLICTO', 'Tiene ' + abiertos.length + ' trabajo(s) abierto(s). ' +
+            'Pase esos trabajos a otra persona antes de desactivarlo.');
+        }
+      }
+    }
+    if (Object.keys(cambios).length) actualizar('usuarios', id, cambios, ctx.usuario.email);
+
+    // Las secciones, si vienen.
+    if (payload.nodo_ids !== undefined) {
+      const nodos = (payload.nodo_ids || []).filter(Boolean);
+      filtrar('asignaciones', function (a) {
+        return String(a.usuario_id) === String(id) && bool(a.activo);
+      }).forEach(function (a) { actualizar('asignaciones', a.id, { activo: false }, ctx.usuario.email); });
+      nodos.forEach(function (nodoId) {
+        insertar('asignaciones', {
+          id: newId('ASI'), usuario_id: id, nodo_id: nodoId,
+          desde: hoyIso(), hasta: '', activo: true,
+        }, ctx.usuario.email);
+      });
+    }
+
+    auditar(ctx.usuario.email, 'USUARIO_GUARDADO', 'usuario', id, null, cambios);
+    return {
+      usuario: buscarPorId('usuarios', id),
+      asignados: nodosAsignados_(id).map(function (n) { return n.id; }),
+    };
+  });
+}

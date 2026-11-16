@@ -189,24 +189,20 @@
         .call(caja.querySelectorAll('input[type="checkbox"]:checked'))
         .map(function (c) { return c.dataset.nodo; });
 
-      if (u.estado !== 'ACTIVO') {
-        const act = await API.llamar('usuarios.activar', {
-          id: u.id, rol: sRol.value, empresa_id: sEmp.value,
-        }, { token: t, idempotente: true });
-      if (window.Datos) Datos.invalidar('usuarios.listar');
-        if (!act.ok) return aviso(act.message || 'No se pudo activar.', 'error');
-      } else {
-        const ed = await API.llamar('usuarios.editar', {
-          id: u.id, rol: sRol.value, empresa_id: sEmp.value,
-        }, { token: t, idempotente: true });
-      if (window.Datos) Datos.invalidar('usuarios.listar');
-        if (!ed.ok) return aviso(ed.message || 'No se pudo guardar.', 'error');
-      }
-      const asig = await API.llamar('usuarios.asignar', {
-        id: u.id, nodo_ids: nodoIds,
+      // Punto 16 · Rol, empresa, estado y secciones en UNA petición (antes eran tres en
+      // serie: unos 8 segundos de espera con el botón sin decir nada).
+      guardar.disabled = true;
+      const antesTexto = guardar.textContent;
+      guardar.textContent = 'Guardando…';
+      const r = await API.llamar('usuarios.guardar', {
+        id: u.id, rol: sRol.value, empresa_id: sEmp.value, nodo_ids: nodoIds,
+        estado: u.estado !== 'ACTIVO' ? 'ACTIVO' : undefined,
+        reasignar: true,
       }, { token: t, idempotente: true });
+      guardar.disabled = false;
+      guardar.textContent = antesTexto;
       if (window.Datos) Datos.invalidar('usuarios.listar');
-      if (!asig.ok) return aviso(asig.message || 'No se pudieron asignar las secciones.', 'error');
+      if (!r.ok) return aviso(r.message || 'No se pudo guardar.', 'error');
       aviso('Usuario guardado con ' + nodoIds.length + ' sección(es).', 'ok');
       await cargar();
       document.getElementById('panelUsuario').classList.add('oculto');
