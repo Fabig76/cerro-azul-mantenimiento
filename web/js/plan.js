@@ -95,6 +95,22 @@
         (r.empresa ? ' · ' + r.empresa : ''));
       caja.appendChild(detalle);
 
+      // PL3 · Cómo quedó el último trabajo que generó este plan.
+      if (r.ultima) {
+        const u = r.ultima;
+        const estados = { PROGRAMADA: ['warn', 'programada'], EN_EJECUCION: ['warn', 'en ejecución'],
+          REPORTADA: ['warn', 'reportada'], RECHAZADA: ['danger', 'devuelta'],
+          APROBADA: ['ok', 'aprobada'], CERRADA: ['ok', 'cerrada'], CANCELADA: ['gray', 'cancelada'] };
+        const et = estados[u.estado] || ['gray', String(u.estado).toLowerCase()];
+        const linea = el('p', 'bajada-tarjeta');
+        linea.appendChild(el('span', 'badge ' + et[0], u.vencida ? 'vencida' : et[1]));
+        linea.appendChild(document.createTextNode(' Última: ' + (u.fecha_inicio_plan || '—') +
+          (u.avance_aprobado_pct ? ' · ' + u.avance_aprobado_pct + '% aprobado' : '')));
+        caja.appendChild(linea);
+      } else {
+        caja.appendChild(el('p', 'bajada-tarjeta', 'Todavía no ha generado ningún trabajo.'));
+      }
+
       const btn = el('button', 'btn sm', r.activa ? 'Pausar' : 'Reactivar');
       btn.type = 'button';
       btn.addEventListener('click', async function () {

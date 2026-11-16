@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div id="listaPlan"></div>
+<div id="avisoPlan" class="msg"></div>
+<div id="conteoPlan"></div>
+<script>
+window.CFG = { API_URL: '' };
+window.API = { llamar: function (accion) {
+  if (accion === 'recurrencias.listar') return Promise.resolve({ ok: true, data: { recurrencias: [
+    { id: 'R1', frecuencia: 'MENSUAL', activa: true, obligatoria_legal: true, plantilla: 'Fumigación',
+      proxima_fecha: '2026-12-01', empresa: 'MAXCONTROL', ultima: { id: 'A1', estado: 'CERRADA',
+      fecha_inicio_plan: '2026-11-01', vencida: false, avance_aprobado_pct: 100 } },
+    { id: 'R2', frecuencia: 'TRIMESTRAL', activa: true, obligatoria_legal: false, plantilla: 'Tanque',
+      proxima_fecha: '2027-01-15', empresa: 'Hidroservicios', ultima: { id: 'A2', estado: 'PROGRAMADA',
+      fecha_inicio_plan: '2026-10-20', vencida: true, avance_aprobado_pct: 0 } },
+    { id: 'R3', frecuencia: 'ANUAL', activa: false, obligatoria_legal: false, plantilla: 'Pintura',
+      proxima_fecha: '2027-06-01', empresa: '', ultima: null },
+  ] } });
+  if (accion === 'nodos.arbol') return Promise.resolve({ ok: true, data: { nodos: [] } });
+  if (accion === 'plantillas.listar') return Promise.resolve({ ok: true, data: { plantillas: [] } });
+  if (accion === 'empresas.listar') return Promise.resolve({ ok: true, data: { empresas: [] } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+window.Datos = { obtener: function (a) { return window.API.llamar(a, {}); }, invalidar: function () {} };
+</script>
+<script src="../../web/js/plan.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  try {
+    await Plan.cargar();
+    await esperar(300);
+    const texto = document.getElementById('listaPlan').textContent;
+    ok(texto.indexOf('Última: 2026-11-01') >= 0, 'muestra la última actividad generada');
+    ok(texto.indexOf('100% aprobado') >= 0, 'con su avance');
+    ok(/vencida/.test(texto), 'y marca la que está vencida');
+    ok(texto.indexOf('Todavía no ha generado ningún trabajo') >= 0, 'y dice cuando no ha generado nada');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

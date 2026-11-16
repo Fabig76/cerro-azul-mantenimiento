@@ -46,7 +46,32 @@ function recurrenciasListar(ctx, payload) {
     });
   }
   lista.sort(function (a, b) { return fechaIso_(a.proxima_fecha) < fechaIso_(b.proxima_fecha) ? -1 : 1; });
-  return { recurrencias: lista.map(recurrenciaResumen_) };
+  // PL3 · La última actividad que generó cada plan y cómo quedó: así se ve de un
+  // vistazo qué mantenimiento no se está cumpliendo.
+  const porRecurrencia = {};
+  filtrar('actividades', function (a) {
+    return bool(a.activo) && !!a.recurrencia_id;
+  }).forEach(function (a) {
+    const r = String(a.recurrencia_id);
+    const previa = porRecurrencia[r];
+    if (!previa || String(a.fecha_inicio_plan) > String(previa.fecha_inicio_plan)) {
+      porRecurrencia[r] = {
+        id: a.id,
+        estado: a.estado,
+        fecha_inicio_plan: a.fecha_inicio_plan,
+        vencida: bool(a.vencida),
+        avance_aprobado_pct: Number(a.avance_aprobado_pct) || 0,
+      };
+    }
+  });
+
+  return {
+    recurrencias: lista.map(function (r) {
+      const resumen = recurrenciaResumen_(r);
+      resumen.ultima = porRecurrencia[String(r.id)] || null;
+      return resumen;
+    }),
+  };
 }
 
 function recurrenciasGuardar(ctx, payload) {

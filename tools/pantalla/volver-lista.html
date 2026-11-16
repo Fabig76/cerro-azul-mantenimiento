@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div class="grupos-lista" id="gruposActividades"></div>
+<input type="search" id="buscarActividades">
+<div id="conteoActividades"></div>
+<div id="listaActividades"></div>
+<div id="sinActividades" class="vacio oculto"></div>
+<button id="verMasActividades" hidden></button>
+<div id="avisoActividades" class="msg"></div>
+<div id="contenidoActividad"></div>
+<div id="avisoActividad"></div>
+<div id="vistaActividad" hidden></div>
+<script>
+window.CFG = { API_URL: '' };
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.__pedidos = [];
+const FILAS = [];
+for (let i = 1; i <= 40; i++) {
+  FILAS.push({ id: 'A' + i, titulo: 'Trabajo ' + i, nodo_codigo: 'CA-T1', estado: 'PROGRAMADA',
+    fecha_inicio_plan: '2026-11-20', fecha_fin_plan: '2026-11-20' });
+}
+</script>
+<script src="../../web/js/cargando.js"></script>
+<script src="../../web/js/api.js"></script>
+<script src="../../web/js/datos.js"></script>
+<script src="../../web/js/asignacion.js"></script>
+<script src="../../web/js/sesion.js"></script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script src="../../web/js/propuestas.js"></script>
+<script src="../../web/js/novedades.js"></script>
+<script src="../../web/js/app.js"></script>
+<script>
+window.API = { llamar: function (accion, payload) {
+  window.__pedidos.push({ accion: accion, payload: payload });
+  if (accion === 'actividades.listar') {
+    const tam = payload.tam || 20;
+    const desde = ((payload.pagina || 1) - 1) * tam;
+    return Promise.resolve({ ok: true, data: { actividades: FILAS.slice(desde, desde + tam),
+      total: FILAS.length, conteos: { PENDIENTES: FILAS.length } } });
+  }
+  if (accion === 'actividades.get') return Promise.resolve({ ok: true, data: { actividad: FILAS[0], hitos: [], fotos: [] } });
+  if (accion === 'nodos.arbol') return Promise.resolve({ ok: true, data: { nodos: [] } });
+  if (accion === 'notificaciones.mias') return Promise.resolve({ ok: true, data: { novedades: [] } });
+  if (accion === 'propuestas.listar') return Promise.resolve({ ok: true, data: { propuestas: [] } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; }, limpiar: function () {} };
+</script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  try {
+    await esperar(700);
+    App.refrescar();
+    await esperar(400);
+    const cont = document.getElementById('listaActividades');
+    ok(cont.querySelectorAll('.actividad').length === 20, 'la lista pinta la primera página');
+
+    // Cargar más: 40 en total
+    document.getElementById('verMasActividades').click();
+    await esperar(400);
+    ok(cont.querySelectorAll('.actividad').length === 40, 'con «Ver más» llega a 40 · tarjetas=' + cont.querySelectorAll('.actividad').length + ' pedidos=' + window.__pedidos.filter(function(p){return p.accion==='actividades.listar';}).map(function(p){return (p.payload.pagina||1)+'/'+(p.payload.tam||20)+(p.payload.grupo?' '+p.payload.grupo:'');}).join(','));
+
+    window.__pedidos = [];
+    App.refrescar({ conservar: true });
+    await esperar(400);
+    const pedido = window.__pedidos.filter(function (p) { return p.accion === 'actividades.listar'; })[0];
+    ok(!!pedido && pedido.payload.tam >= 40, 'al volver pide de una vez las que había (' + (pedido ? pedido.payload.tam : '—') + ')');
+    ok(cont.querySelectorAll('.actividad').length === 40, 'y no se queda en la página 1');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

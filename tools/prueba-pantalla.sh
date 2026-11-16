@@ -36,6 +36,8 @@ $(correr lento.html 24000)
 $(correr novedad-reparacion.html)
 $(correr sistema-estado.html 24000)
 $(correr ficha-vence.html)
+$(correr plan-ultima.html)
+$(correr volver-lista.html)
 $(correr contratista-completo.html)"
 
 echo "$SALIDA"

@@ -732,7 +732,7 @@
     const turno = listaEstado.turno || 0;
 
     const pedir = {
-      tam: 20,
+      tam: Number(opciones && opciones.tam) || 20,
       pagina: listaEstado.pagina,
       grupo: listaEstado.grupo,
     };
@@ -875,6 +875,12 @@
       if (masTemprano) {
         const faltan = listaEstado.total - listaEstado.cargadas;
         masTemprano.hidden = faltan <= 0;
+        masTemprano.textContent = 'Ver más (' + listaEstado.cargadas + ' de ' + listaEstado.total + ')';
+        // Faltaba el clic: en la lista agrupada el botón se veía y no hacía nada.
+        masTemprano.onclick = function () {
+          listaEstado.pagina += 1;
+          cargarActividades(Sesion.token(), { sumar: true });
+        };
       }
       return;
     }
@@ -1090,7 +1096,25 @@
   }
 
   window.App = {
-    refrescar: function () { cargarActividades(Sesion.token()); },
+    /**
+     * A6 · Refrescar conservando el puesto: mismo grupo, misma página, lo mismo cargado
+     * y el scroll donde estaba. Antes volver del detalle devolvía a la página 1.
+     */
+    refrescar: function (opciones) {
+      const conservar = !!(opciones && opciones.conservar);
+      if (!conservar) { cargarActividades(Sesion.token()); return; }
+      const y = window.scrollY;
+      const antes = { pagina: listaEstado.pagina, cargadas: listaEstado.cargadas };
+      const previo = listaEstado.cargando;
+      // Se piden de una vez todas las que ya estaban a la vista.
+      const tam = Math.max(20, antes.cargadas || 0);
+      listaEstado.pagina = 1;
+      listaEstado.cargadas = 0;
+      cargarActividades(Sesion.token(), { tam: tam }).then(function () {
+        window.scrollTo(0, y);
+        listaEstado.cargando = previo;
+      });
+    },
     pestana: mostrarPestana,
     // Lo que la lista ya sabe de un trabajo, para pintar el detalle al instante.
     datosDeTarjeta: function (id) { return vistas[id] || null; },

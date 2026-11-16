@@ -156,7 +156,7 @@
     // Sin cambios no hay nada que recargar: volver no debe costar una petición.
     if (cambiosPendientes && window.App && App.refrescar) {
       cambiosPendientes = false;
-      App.refrescar();
+      App.refrescar({ conservar: true });
     }
   }
 
