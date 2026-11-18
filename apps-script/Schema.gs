@@ -71,7 +71,7 @@ const SCHEMA = {
     'id', 'codigo_consulta', 'nodo_id', 'descripcion', 'foto_file_id', 'foto_mini_file_id',
     'foto_sha256', 'estado', 'dispositivo_hash', 'revisado_por', 'revisado_en',
     'motivo_descarte', 'novedad_id', 'foto_purgada_en',
-  , 'foto_quitada_por', 'foto_quitada_en', 'foto_motivo'].concat(CAMPOS_AUDITORIA),
+    'foto_quitada_por', 'foto_quitada_en', 'foto_motivo',].concat(CAMPOS_AUDITORIA),
 
   hitos: ['id', 'actividad_id', 'orden', 'nombre', 'peso', 'fecha_plan', 'estado', 'fecha_aprobacion']
     .concat(CAMPOS_AUDITORIA),

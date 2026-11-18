@@ -393,6 +393,69 @@ function empresasEliminar(ctx, payload) {
   });
 }
 
+/**
+ * RN-60 · Fusionar la empresa repetida con la correcta: mueve usuarios, trabajos, planes
+ * y propuestas, y luego suprime la de origen. El historial no se pierde.
+ */
+function empresasFusionar(ctx, payload) {
+  desdePortal_(payload);
+  const id = exigirTexto(payload.id, 'id');
+  const destinoId = exigirTexto(payload.destino_id, 'destino_id');
+  const motivo = exigirTexto(payload.motivo, 'motivo', 500).trim();
+  if (motivo.length < 10) fallar_('VALIDACION', 'Escribe el motivo (al menos 10 caracteres).');
+
+  return conBloqueo(function () {
+    limpiarCache('empresas');
+    const origen = buscarPorId('empresas', id);
+    const destino = buscarPorId('empresas', destinoId);
+    if (!origen || origen.suprimida_en) fallar_('NO_ENCONTRADO', 'La empresa de origen no existe.');
+    if (!destino || destino.suprimida_en) fallar_('NO_ENCONTRADO', 'La empresa de destino no existe.');
+    if (String(id) === String(destinoId)) {
+      fallar_('VALIDACION', 'No se puede fusionar una empresa consigo misma.');
+    }
+    if (!bool(destino.activo)) {
+      fallar_('VALIDACION', 'La empresa de destino debe estar activa.');
+    }
+
+    const movidos = { usuarios: 0, actividades: 0, recurrencias: 0, propuestas: 0 };
+    funcionMover_('usuarios', id, destinoId, movidos, 'usuarios');
+    funcionMover_('actividades', id, destinoId, movidos, 'actividades');
+    funcionMover_('recurrencias', id, destinoId, movidos, 'recurrencias');
+    funcionMover_('propuestas', id, destinoId, movidos, 'propuestas');
+
+    const despues = actualizar('empresas', id, {
+      activo: false,
+      estado: 'INACTIVA',
+      suprimida_en: ahoraIso(),
+      suprimida_por: ctx.usuario.email,
+      motivo_supresion: 'Fusionada en ' + destino.razon_social + ': ' + motivo,
+    }, ctx.usuario.email);
+
+    auditar(ctx.usuario.email, 'EMPRESA_FUSIONADA', 'empresa', id,
+      { razon_social: origen.razon_social, nit: origen.nit },
+      { destino_id: destinoId, destino: destino.razon_social, movidos: movidos, motivo: motivo });
+
+    marcarCambio('usuarios');
+    marcarCambio('empresas');
+    programarSnapshot_();
+    return {
+      empresa: { id: despues.id, razon_social: despues.razon_social },
+      destino: { id: destino.id, razon_social: destino.razon_social },
+      movidos: movidos,
+    };
+  });
+}
+
+/** Mueve las filas de una hoja que apuntan a la empresa de origen. */
+function funcionMover_(nombre, origenId, destinoId, movidos, clave) {
+  filtrar(nombre, function (x) {
+    return String(x.empresa_id || '') === String(origenId);
+  }).forEach(function (x) {
+    actualizar(nombre, x.id, { empresa_id: destinoId }, 'sistema');
+    movidos[clave]++;
+  });
+}
+
 function empresasGuardar(ctx, payload) {
   return conBloqueo(function () {
   const razon = exigirTexto(payload.razon_social, 'razon_social', 160);

@@ -212,6 +212,48 @@
       cajaAviso.appendChild(desvincular);
     }
 
+    // RN-60 · Fusionar: mover todo a la empresa correcta y conservar el historial.
+    if ((h.actividades + h.recurrencias + h.propuestas) > 0) {
+      const otras = fichas.filter(function (x) {
+        return x.activo && String(x.id) !== String(f.id);
+      });
+      if (otras.length) {
+        const sel = el('select', 'item-input');
+        otras.forEach(function (x) {
+          const op = el('option', null, x.razon_social + (x.nit ? ' · ' + x.nit : ''));
+          op.value = x.id;
+          sel.appendChild(op);
+        });
+        const etiquetaSel = el('p', 'bajada-tarjeta', 'Fusionar con');
+        cajaAviso.appendChild(etiquetaSel);
+        cajaAviso.appendChild(sel);
+        const fusionar = el('button', 'btn sm primary', 'Fusionar');
+        fusionar.type = 'button';
+        fusionar.addEventListener('click', async function () {
+          const destino = otras.filter(function (x) { return String(x.id) === String(sel.value); })[0];
+          const motivo = window.prompt('Motivo de la fusión (queda en la auditoría)', '');
+          if (motivo === null) return;
+          if (motivo.trim().length < 10) return aviso('Escribe al menos 10 caracteres.', 'error');
+          if (!window.confirm('Se moverán ' + h.usuarios + ' usuario(s), ' + h.actividades +
+              ' trabajo(s), ' + h.recurrencias + ' plan(es) y ' + h.propuestas +
+              ' propuesta(s) a ' + (destino ? destino.razon_social : 'la otra empresa') +
+              '. Esto no se puede deshacer. ¿Seguir?')) return;
+          fusionar.disabled = true;
+          const r = await API.llamar('empresas.fusionar',
+            { id: f.id, destino_id: sel.value, motivo: motivo.trim() },
+            { token: Sesion.token(), idempotente: true });
+          fusionar.disabled = false;
+          if (!r.ok) return aviso(r.message || 'No se pudo fusionar.', 'error');
+          const m = r.data.movidos || {};
+          aviso('Fusionada en ' + r.data.destino.razon_social + ': ' + (m.usuarios || 0) +
+            ' usuario(s), ' + (m.actividades || 0) + ' trabajo(s), ' + (m.recurrencias || 0) +
+            ' plan(es) y ' + (m.propuestas || 0) + ' propuesta(s).', 'ok');
+          await cargar();
+        });
+        cajaAviso.appendChild(fusionar);
+      }
+    }
+
     const cerrar = el('button', 'btn sm', 'Entendido');
     cerrar.type = 'button';
     cerrar.addEventListener('click', function () { cajaAviso.remove(); });

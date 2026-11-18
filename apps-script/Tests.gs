@@ -71,6 +71,7 @@ function runAllTests() {
   pruebasQuitarEvidencia_();
   pruebasEmpresaEliminar_();
   pruebasQuitarCotizacionYFotoResidente_();
+  pruebasFusionarEmpresas_();
   pruebasReasignarAlDesactivar_();
   pruebasPropuestasV17_();
   pruebasFilasPorHoja_();
@@ -796,6 +797,70 @@ function pruebasPropuestasV17_() {
 /**
  * RN-65 y RN-67 · Quitar la cotización de una propuesta y la foto de un residente.
  */
+/**
+ * RN-60 · Fusionar: mover todo a la empresa correcta y suprimir la de origen.
+ */
+function pruebasFusionarEmpresas_() {
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · fusionar · sin nodos'); return; }
+
+  const datos = function (nombre, nit) {
+    return { razon_social: nombre, nit: nit, contacto: '', email: '', telefono: '',
+      contrato_numero: '', vigencia_desde: '', vigencia_hasta: '', poliza_vence: '' };
+  };
+  const origen = insertar('empresas', Object.assign({ id: newId('EMP'), activo: true, estado: 'ACTIVA' },
+    datos('PRUEBA origen', '666000111')), 'prueba');
+  const destino = insertar('empresas', Object.assign({ id: newId('EMP'), activo: true, estado: 'ACTIVA' },
+    datos('PRUEBA destino', '666000222')), 'prueba');
+
+  const usuario = insertar('usuarios', {
+    id: newId('USU'), email: 'fusion-usuario@urbcerroazul.com', nombre: 'Fusion',
+    telefono: '3000000050', rol: 'CONTRATISTA', empresa_id: origen.id, estado: 'ACTIVO', activo: true,
+  }, 'prueba');
+  const act = insertar('actividades', {
+    id: newId('ACT'), titulo: 'PRUEBA fusion', descripcion: '', nodo_id: nodo.id,
+    plantilla_id: '', plantilla_version: '', empresa_id: origen.id, responsable_id: usuario.id,
+    tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+    fecha_inicio_plan: hoyIso(), fecha_fin_plan: hoyIso(), dias_plan: 1, prioridad: 'MEDIA',
+    estado: 'CERRADA', vencida: false, en_riesgo: false, avance_reportado_pct: 100,
+    avance_aprobado_pct: 100, fecha_inicio_real: hoyIso(), fecha_reporte_final: hoyIso(),
+    fecha_aprobacion: hoyIso(), obligatoria_legal: false, afecta_uso: false, publicable: false,
+    acta_file_id: '', inicio_sin_foto_motivo: '', propuesta_id: '', activo: true,
+  }, 'prueba');
+
+  // No consigo misma ni con una desactivada
+  let misma = '';
+  try { empresasFusionar(ctx, { id: origen.id, destino_id: origen.id, motivo: 'prueba de misma' }); } catch (e) { misma = String(e.message); }
+  verdadero_(misma.indexOf('VALIDACION') === 0, 'RN-60 · no se fusiona consigo misma');
+
+  actualizar('empresas', destino.id, { activo: false }, 'prueba');
+  let inactiva = '';
+  try { empresasFusionar(ctx, { id: origen.id, destino_id: destino.id, motivo: 'prueba destino inactivo' }); } catch (e) { inactiva = String(e.message); }
+  verdadero_(inactiva.indexOf('VALIDACION') === 0, 'RN-60 · ni con una empresa desactivada');
+  actualizar('empresas', destino.id, { activo: true }, 'prueba');
+
+  // La fusión de verdad
+  const r = empresasFusionar(ctx, { id: origen.id, destino_id: destino.id, motivo: 'estaba repetida' });
+  verdadero_(Number(r.movidos.usuarios) >= 1, 'RN-60 · mueve los usuarios');
+  verdadero_(Number(r.movidos.actividades) >= 1, 'RN-60 · mueve los trabajos');
+  verdadero_(String(buscarPorId('usuarios', usuario.id).empresa_id) === String(destino.id),
+    'RN-60 · el usuario queda en la empresa de destino');
+  verdadero_(String(buscarPorId('actividades', act.id).empresa_id) === String(destino.id),
+    'RN-60 · el trabajo también');
+  verdadero_(!!buscarPorId('empresas', origen.id).suprimida_en,
+    'RN-60 · y la de origen queda suprimida');
+
+  const lista = empresasListar(ctx, { todas: true }).empresas.map(function (e) { return e.id; });
+  verdadero_(lista.indexOf(destino.id) >= 0 && lista.indexOf(origen.id) < 0,
+    'RN-60 · la de destino sigue y la de origen desaparece de las listas');
+
+  // Limpieza
+  actualizar('actividades', act.id, { activo: false }, 'prueba');
+  actualizar('usuarios', usuario.id, { activo: false }, 'prueba');
+  actualizar('empresas', destino.id, { activo: false, suprimida_en: ahoraIso() }, 'prueba');
+}
+
 function pruebasQuitarCotizacionYFotoResidente_() {
   const ctxAdmin = { usuario: { id: 'ADMIN', email: 'admin@urbcerroazul.com' }, rol: 'ADMIN' };
   const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
@@ -828,7 +893,7 @@ function pruebasQuitarCotizacionYFotoResidente_() {
   // RN-67 · foto del residente
   const rep = insertar('reportes_residentes', {
     id: newId('RRE'), nodo_id: nodo.id, descripcion: 'Se filtra el techo del pasillo',
-    nombre: 'Residente', telefono: '3000000000', codigo_consulta: 'ABC123',
+    codigo_consulta: 'ABC123',
     estado: 'POR_REVISAR', foto_file_id: 'foto-falsa', foto_mini_file_id: 'mini-falsa',
     foto_sha256: 'sha-residente', activo: true,
   }, 'prueba');

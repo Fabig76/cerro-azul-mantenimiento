@@ -37,8 +37,12 @@ window.Datos = { obtener: function (a) { return window.API.llamar(a, {}); }, inv
   function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
   function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
   function tarjeta(nombre) {
+    // Por el título de la ficha, no por el texto: el selector de otra ficha nombra empresas.
     return Array.prototype.slice.call(document.querySelectorAll('#listaFichas .ficha'))
-      .filter(function (c) { return c.textContent.indexOf(nombre) >= 0; })[0];
+      .filter(function (c) {
+        const h = c.querySelector('h3');
+        return h && h.textContent.trim() === nombre;
+      })[0];
   }
   try {
     await Empresas.cargar();
@@ -57,7 +61,7 @@ window.Datos = { obtener: function (a) { return window.API.llamar(a, {}); }, inv
     btn(tarjeta('Con historial'), 'Eliminar').click();
     await esperar(150);
     const t2 = tarjeta('Con historial');
-    ok(t2.textContent.indexOf('No se puede eliminar') >= 0, 'con historial explica por qué');
+    ok(t2.textContent.indexOf('No se puede eliminar') >= 0, 'con historial explica por qué · texto=' + t2.textContent.slice(-160));
     ok(t2.textContent.indexOf('12 trabajos') >= 0, 'con los números');
 
     // Solo usuarios: ofrece desvincular

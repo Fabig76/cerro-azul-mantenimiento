@@ -75,6 +75,7 @@ const ACCIONES = {
   'empresas.listar': { fn: empresasListar, sesion: true, roles: ['ADMIN', 'SUPERVISOR', 'CONSEJO'] },
   'empresas.ficha': { fn: empresasFicha, sesion: true, roles: ['ADMIN', 'SUPERVISOR', 'CONSEJO'] },
   'consejo.resumen': { fn: consejoResumen, sesion: true, roles: ['ADMIN', 'SUPERVISOR', 'CONSEJO'] },
+  'empresas.fusionar': { fn: empresasFusionar, sesion: true, roles: ['ADMIN'] },
   'empresas.eliminar': { fn: empresasEliminar, sesion: true, roles: ['ADMIN'] },
   'empresas.estado': { fn: empresasEstado, sesion: true, roles: ['ADMIN'] },
   'empresas.guardar': { fn: empresasGuardar, sesion: true, roles: ['ADMIN'] },
