@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<span id="conteoUsuarios"></span>
+<div id="listaUsuarios"></div>
+<div class="msg" id="avisoUsuarios"></div>
+<button id="btnNuevoUsuario" hidden></button>
+<div id="panelUsuario" class="oculto"></div>
+<div id="usuariosEmpresa"></div>
+<div id="avisoEmpresa" class="msg"></div>
+<script>
+window.CFG = { API_URL: '' };
+window.__rol = 'ADMIN';
+window.__llamadas = [];
+window.__errores = [];
+window.addEventListener("unhandledrejection", function (e) { window.__errores.push(String((e.reason && e.reason.message) || e.reason)); });
+const CON = { historial: { reportes: 3, evidencias: 2, propuestas: 1, novedades: 0, actividades: 4, abiertos: 0, planes: 0, pendientes: 0 }, puede_eliminar: false };
+const SIN = { historial: { reportes: 0, evidencias: 0, propuestas: 0, novedades: 0, actividades: 0, abiertos: 0, planes: 0, pendientes: 0 }, puede_eliminar: true };
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload });
+  if (accion === 'usuarios.listar') return Promise.resolve({ ok: true, data: { usuarios: [
+    Object.assign({ id: 'U1', nombre: 'Ana con historial', email: 'ana@x.com', estado: 'ACTIVO', asignaciones: [] }, CON),
+    Object.assign({ id: 'U2', nombre: 'Beto de prueba', email: 'beto@x.com', estado: 'ACTIVO', asignaciones: [] }, SIN),
+    Object.assign({ id: 'U3', nombre: 'Carla de prueba', email: 'carla@x.com', estado: 'PENDIENTE', asignaciones: [] }, SIN),
+  ], conteo: { PENDIENTE: 1, ACTIVO: 2, INACTIVO: 0 } } });
+  if (accion === 'empresas.listar') return Promise.resolve({ ok: true, data: { empresas: [] } });
+  if (accion === 'usuarios.eliminar') return Promise.resolve({ ok: true, data: { eliminados: payload.ids, omitidos: [] } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+window.Datos = { obtener: function (a) { return window.API.llamar(a, {}); }, invalidar: function () {} };
+</script>
+<script src="../../web/js/usuarios.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  function casillas() {
+    return Array.prototype.slice.call(document.querySelectorAll('#listaUsuarios .marcar-usuario input'));
+  }
+  try {
+    await Usuarios.cargar();
+    await esperar(300);
+
+    ok(casillas().length === 3, 'cada usuario tiene su casilla');
+    ok(document.body.textContent.indexOf('Solo los que no tienen actividad') >= 0, 'hay filtro «sin actividad»');
+
+    // Marcar las dos cuentas de prueba, por su nombre (el orden cambia con el estado)
+    function marcar(nombre) {
+      const caja = Array.prototype.slice.call(document.querySelectorAll('#listaUsuarios .usuario'))
+        .filter(function (c) { return c.textContent.indexOf(nombre) >= 0; })[0];
+      caja.querySelector('.marcar-usuario input').click();
+    }
+    marcar('Beto de prueba');
+    await esperar(200);
+    marcar('Carla de prueba');
+    await esperar(200);
+    const boton = Array.prototype.slice.call(document.querySelectorAll('button'))
+      .filter(function (b) { return /Eliminar seleccionados/.test(b.textContent); })[0];
+    ok(!!boton && boton.textContent.indexOf('(2)') >= 0, 'con dos marcados aparece «Eliminar seleccionados (2)»');
+
+    // El filtro deja solo los que no tienen actividad
+    const filtro = document.querySelector('#listaUsuarios .barra-usuarios input');
+    filtro.click();
+    await esperar(300);
+    ok(casillas().length === 2, 'el filtro esconde a quien tiene historial');
+
+    // Eliminar los dos
+    window.prompt = function () { return ''; };
+    window.confirm = function () { return true; };
+    window.__llamadas = [];
+window.__errores = [];
+window.addEventListener("unhandledrejection", function (e) { window.__errores.push(String((e.reason && e.reason.message) || e.reason)); });
+    Array.prototype.slice.call(document.querySelectorAll('button'))
+      .filter(function (b) { return /Eliminar seleccionados/.test(b.textContent); })[0].click();
+    await esperar(400);
+    const llamada = window.__llamadas.filter(function (x) { return x.accion === 'usuarios.eliminar'; })[0];
+    ok(!!llamada && llamada.payload.ids.length === 2, 'elimina los dos de una vez · errores=' + (window.__errores||[]).join(';') + ' · aviso=' + (document.getElementById('avisoUsuarios').textContent||'(vacío)'));
+    ok(!!llamada && llamada.payload.ids.indexOf('U1') < 0, 'y no toca al que tiene historial');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

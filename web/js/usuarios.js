@@ -39,10 +39,77 @@
     pintar();
   }
 
+  // RN-73 · Selección múltiple y filtro de cuentas sin actividad.
+  let soloSinActividad = false;
+  const marcados = {};
+
+  function sinActividad(u) {
+    const h = u.historial;
+    if (!h) return false;
+    return (h.reportes + h.evidencias + h.propuestas + h.novedades + h.actividades) === 0;
+  }
+
+  function pintarBarra(cont) {
+    if (window.__rol !== 'ADMIN') return;
+    const esAdmin = window.__rol === 'ADMIN';
+    if (!esAdmin) return;
+
+    const barra = el('div', 'barra-usuarios');
+    const ver = el('label', 'etiqueta-casilla');
+    const casilla = el('input');
+    casilla.type = 'checkbox';
+    casilla.checked = soloSinActividad;
+    casilla.addEventListener('change', function () {
+      soloSinActividad = casilla.checked;
+      pintar();
+    });
+    ver.appendChild(casilla);
+    ver.appendChild(el('span', null, 'Solo los que no tienen actividad'));
+    barra.appendChild(ver);
+
+    const cuantos = Object.keys(marcados).length;
+    if (cuantos) {
+      const borrar = el('button', 'btn sm peligro', 'Eliminar seleccionados (' + cuantos + ')');
+      borrar.type = 'button';
+      borrar.addEventListener('click', function () { eliminarVarios(borrar); });
+      barra.appendChild(borrar);
+    }
+    cont.appendChild(barra);
+  }
+
+  /** Elimina los marcados; el servidor dice cuáles no se pudieron y por qué. */
+  async function eliminarVarios(boton) {
+    const ids = Object.keys(marcados);
+    if (!ids.length) return;
+    const conHistorial = ids.some(function (id) {
+      const u = usuarios.filter(function (x) { return String(x.id) === String(id); })[0];
+      return u && !sinActividad(u);
+    });
+    const motivo = window.prompt(
+      'Motivo (queda en la auditoría)' + (conHistorial ? ', mínimo 10 caracteres' : '') + ':', '');
+    if (motivo === null) return;
+    if (conHistorial && motivo.trim().length < 10) return aviso('Escribe el motivo (10 caracteres).', 'error');
+    if (!window.confirm('¿Eliminar ' + ids.length + ' usuario(s)? Saldrán de la lista; su historial se conserva.')) return;
+
+    boton.disabled = true;
+    boton.textContent = 'Eliminando…';
+    const r = await API.llamar('usuarios.eliminar',
+      { ids: ids, motivo: motivo.trim(), reasignar_a: undefined },
+      { token: Sesion.token(), idempotente: true });
+    boton.disabled = false;
+    if (!r.ok) return aviso(r.message || 'No se pudo eliminar.', 'error');
+    Object.keys(marcados).forEach(function (k) { delete marcados[k]; });
+    const omitidos = r.data.omitidos || [];
+    aviso(r.data.eliminados.length + ' eliminado(s).' +
+      (omitidos.length ? ' ' + omitidos.length + ' no se pudo: ' + omitidos[0].razon + '.' : ''), 'ok');
+    await cargar();
+  }
+
   function pintar() {
     const cont = document.getElementById('listaUsuarios');
     if (!cont) return;
     cont.textContent = '';
+    pintarBarra(cont);
 
     const pendientes = usuarios.filter(function (u) { return u.estado === 'PENDIENTE'; });
     const contador = document.getElementById('conteoUsuarios');
@@ -59,6 +126,7 @@
     }
 
     usuarios
+      .filter(function (u) { return !soloSinActividad || sinActividad(u); })
       .slice()
       .sort(function (a, b) {
         const orden = { PENDIENTE: 0, ACTIVO: 1, INACTIVO: 2 };
@@ -72,6 +140,19 @@
 
   function fila(u) {
     const caja = el('article', 'usuario');
+    if (window.__rol === 'ADMIN') {
+      const etiqueta = el('label', 'etiqueta-casilla marcar-usuario');
+      const casilla = el('input');
+      casilla.type = 'checkbox';
+      casilla.checked = !!marcados[String(u.id)];
+      casilla.addEventListener('change', function () {
+        if (casilla.checked) marcados[String(u.id)] = true; else delete marcados[String(u.id)];
+        pintar();
+      });
+      etiqueta.appendChild(casilla);
+      etiqueta.appendChild(el('span', null, 'Marcar'));
+      caja.appendChild(etiqueta);
+    }
     const cab = el('div', 'usuario-cab');
 
     const quien = el('div');
