@@ -19,6 +19,7 @@ window.App = { pestana: function () {} };
 
   estados.forEach(function (estado) {
     const datos = {
+      permisos: { ejecutar: true, ver: true, motivo: '' },
       actividad: {
         id: 'ACT_1', titulo: 'Prueba', estado: estado, nodo_id: 'NOD_1',
         fecha_inicio_plan: '2026-11-01', fecha_fin_plan: '2026-11-05',
@@ -54,6 +55,7 @@ window.App = { pestana: function () {} };
   // Caso 1: en RECHAZADA el paso 2 («marca el inicio») debe estar hecho
   (function () {
     const datos = {
+      permisos: { ejecutar: true, ver: true, motivo: '' },
       actividad: { id: 'ACT_2', titulo: 'T', estado: 'RECHAZADA', nodo_id: 'NOD_1',
         fecha_inicio_plan: '2026-11-01', fecha_fin_plan: '2026-11-05', prioridad: 'MEDIA',
         avance_aprobado_pct: 0, afecta_uso: false, obligatoria_legal: false },

@@ -9,7 +9,9 @@ function actividadesIniciar(ctx, payload) {
   const id = exigirTexto(payload.id, 'id');
   const act = buscarPorId('actividades', id);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
-  if (!puedeEjecutarActividad_(ctx, act)) fallar_('PROHIBIDO', 'No puedes ejecutar actividades en esa sección.');
+  if (!puedeEjecutarActividad_(ctx, act)) {
+    fallar_('PROHIBIDO', relacionConActividad_(ctx, act).motivo || 'No puedes ejecutar actividades en esa sección.');
+  }
   if (['EN_EJECUCION', 'REPORTADA', 'APROBADA', 'CERRADA'].indexOf(String(act.estado)) >= 0) {
     fallar_('ESTADO_INVALIDO', 'La actividad ya fue iniciada o cerrada.');
   }
@@ -97,7 +99,9 @@ function reportesCrear(ctx, payload) {
   const actividadId = exigirTexto(payload.actividad_id, 'actividad_id');
   const act = buscarPorId('actividades', actividadId);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
-  if (!puedeEjecutarActividad_(ctx, act)) fallar_('PROHIBIDO', 'No puedes ejecutar actividades en esa sección.');
+  if (!puedeEjecutarActividad_(ctx, act)) {
+    fallar_('PROHIBIDO', relacionConActividad_(ctx, act).motivo || 'No puedes ejecutar actividades en esa sección.');
+  }
   if (['APROBADA', 'CERRADA', 'CANCELADA'].indexOf(String(act.estado)) >= 0) {
     fallar_('ESTADO_INVALIDO', 'La actividad ya está cerrada.');
   }

@@ -751,6 +751,17 @@ para que un residente reportara un daño desde el equipo; ese reporte ya está a
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
 
+### 10.2 nonies. Ejecutar una actividad (v1.9)
+
+- **RN-55.** Un contratista **ejecuta** una actividad (fotos, empezar, checklist, etapas, reportar,
+  novedad del trabajo) si: es su **responsable**; **o** es de **su empresa** y **no tiene responsable**;
+  **o** está en una **sección que tiene asignada**. El supervisor y el consejo nunca ejecutan; el
+  administrador siempre.
+- **RN-56.** Lo que se ve y no se puede ejecutar, se ve en **solo lectura**, con el motivo arriba del
+  detalle («Este trabajo es de otra persona de su empresa…»). La pantalla no dibuja botones que el
+  servidor va a negar: los permisos los calcula `relacionConActividad_` y viajan en `actividades.get`.
+  Ver y ejecutar salen de la misma función, para que no puedan volver a contradecirse.
+
 ### 10.2 octies. Alertas automáticas y reasignación (v1.8)
 
 - **AL-01.** Una novedad **ALTA** o **CRÍTICA** deja una alerta en **BORRADOR** con su título y su

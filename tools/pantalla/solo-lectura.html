@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<article class="card" id="vistaActividad"></article>
+<div id="contenidoActividad"></div>
+<div class="msg" id="avisoActividad"></div>
+<script>
+window.CFG = { API_URL: '' };
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.__permisos = null;
+</script>
+<script src="../../web/js/cargando.js"></script>
+<script src="../../web/js/api.js"></script>
+<script src="../../web/js/datos.js"></script>
+<script src="../../web/js/asignacion.js"></script>
+<script src="../../web/js/sesion.js"></script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script>
+window.API = { llamar: function (accion) {
+  if (accion === 'actividades.get') return Promise.resolve({ ok: true, data: {
+    permisos: window.__permisos,
+    actividad: { id: 'A1', titulo: 'Cambio de luminarias', estado: 'PROGRAMADA', nodo_codigo: 'CA-T1',
+      fecha_inicio_plan: '2026-11-20', fecha_fin_plan: '2026-11-20', avance_aprobado_pct: 0 },
+    hitos: [], evidencias: [], reportes: [], plantilla: null,
+  } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+</script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  function botones() {
+    return Array.prototype.slice.call(document.querySelectorAll('#contenidoActividad button'))
+      .map(function (b) { return b.textContent; });
+  }
+  try {
+    // 1 · Puede ejecutar: se ofrecen los botones
+    window.__permisos = { ejecutar: true, ver: true, motivo: '' };
+    await Actividad.abrir('A1', 'CONTRATISTA');
+    await esperar(300);
+    ok(botones().indexOf('1. Tomar la foto de antes') >= 0, 'con permiso se ofrece tomar la foto');
+    ok(botones().indexOf('Empezar el trabajo ahora') >= 0, 'y empezar el trabajo');
+    ok(document.getElementById('contenidoActividad').textContent.indexOf('Solo el responsable') < 0,
+      'sin aviso de solo lectura');
+
+    // 2 · No puede ejecutar: ni botones ni silencio
+    window.__permisos = { ejecutar: false, ver: true,
+      motivo: 'Este trabajo es de otra persona de su empresa. Solo el responsable puede reportarlo.' };
+    document.getElementById('contenidoActividad').textContent = '';
+    await Actividad.abrir('A1', 'CONTRATISTA');
+    await esperar(300);
+    ok(botones().indexOf('1. Tomar la foto de antes') < 0,
+      'sin permiso NO se dibuja el botón de la foto');
+    ok(botones().indexOf('Empezar el trabajo ahora') < 0, 'ni el de empezar');
+    const texto = document.getElementById('contenidoActividad').textContent;
+    ok(texto.indexOf('Solo el responsable puede reportarlo') >= 0, 'y sí el motivo, arriba');
+    ok(texto.indexOf('Cambio de luminarias') >= 0, 'el trabajo se sigue viendo');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

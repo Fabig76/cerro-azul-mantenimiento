@@ -39,6 +39,7 @@ $(correr ficha-vence.html)
 $(correr plan-ultima.html)
 $(correr volver-lista.html)
 $(correr editor-checklist.html)
+$(correr solo-lectura.html)
 $(correr contratista-completo.html)"
 
 echo "$SALIDA"

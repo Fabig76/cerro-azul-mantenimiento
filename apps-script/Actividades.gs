@@ -15,18 +15,9 @@ function plantillaConItems_(plantillaId, version) {
 }
 
 /** ¿El usuario puede ver esta actividad? */
+/** RN-55 · Ver sale de la misma regla que ejecutar, para que no se contradigan. */
 function puedeVerActividad_(ctx, act) {
-  if (puedeLeerTodo_(ctx)) return true;
-  if (String(act.responsable_id) === String(ctx.usuario.id)) return true;
-  if (act.empresa_id && String(act.empresa_id) === String(ctx.usuario.empresa_id || '')) return true;
-  const nodo = buscarPorId('nodos', act.nodo_id);
-  if (!nodo) return false;
-  const asignados = nodosAsignados_(ctx.usuario.id);
-  const propio = nodo.ruta_ids + '/' + nodo.id;
-  return asignados.some(function (a) {
-    const raiz = a.ruta_ids + '/' + a.id;
-    return propio === raiz || propio.indexOf(raiz + '/') === 0;
-  });
+  return relacionConActividad_(ctx, act).ver;
 }
 
 function actividadResumen_(a) {
@@ -393,7 +384,10 @@ function detalleActividad_(ctx, id) {
   const valorAprobado = Number(act.valor_aprobado || 0);
   const conValor = puedeVerValorActividad_(ctx, act);
 
+  const relacion = relacionConActividad_(ctx, act);
   return {
+    // RN-56 · La pantalla dibuja los botones con esto, no con su propia idea del rol.
+    permisos: { ejecutar: relacion.ejecutar, ver: relacion.ver, motivo: relacion.motivo },
     actividad: resumen,
     valor_aprobado: conValor ? valorAprobado : undefined,
     cotizacion: conValor && act.cotizacion_file_id

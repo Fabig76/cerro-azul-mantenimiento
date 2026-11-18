@@ -83,6 +83,18 @@
    * Pinta el detalle con los datos que ya se tienen. Las escrituras devuelven el
    * detalle completo, así que no hace falta volver a pedirlo.
    */
+  /** RN-56 · ¿Puede ejecutar este trabajo? Lo dice el servidor, no el rol. */
+  function puedeEjecutar() {
+    return !!(datos && datos.permisos && datos.permisos.ejecutar);
+  }
+
+  function avisoSoloLectura() {
+    if (!datos || !datos.permisos || datos.permisos.ejecutar) return null;
+    const caja = el('div', 'msg info mostrar');
+    caja.textContent = datos.permisos.motivo || 'Solo el responsable puede reportar este trabajo.';
+    return caja;
+  }
+
   function mostrarDetalle(nuevo, silencio) {
     datos = nuevo;
 
@@ -472,6 +484,8 @@
 
   function bloqueEvidencias() {
     const caja = el('div', 'bloque');
+    // RN-56 · Sin permiso de ejecución no se ofrecen fotos: el servidor las negaría.
+    const sinEjecutar = !puedeEjecutar();
     caja.appendChild(el('div', 'kicker', 'Evidencia'));
     const ev = datos.evidencias || [];
     const antes = ev.filter(function (e) { return e.momento === 'ANTES'; });
@@ -784,6 +798,8 @@
     caja.appendChild(cont);
 
     if (total >= maximo) return caja;
+    // RN-56 · Sin permiso de ejecución no se ofrece subir fotos.
+    if (!puedeEjecutar()) return caja;
 
     const inp = el('input');
     inp.type = 'file';
@@ -1198,6 +1214,8 @@
   function acciones() {
     const caja = el('div', 'bloque acciones-detalle');
     const a = datos.actividad;
+    // RN-56 · Sin permiso de ejecución solo queda el acta (si la hay) y el historial.
+    if (!puedeEjecutar()) return caja;
 
     if (a.estado === 'PROGRAMADA') {
       const btn = el('button', 'btn primary', 'Empezar el trabajo ahora');
@@ -1543,6 +1561,10 @@
 
   function pintarDetalle(cont) {
     cont.appendChild(cabecera());
+
+    // RN-56 · Si se ve pero no se ejecuta, se dice arriba y con el motivo del servidor.
+    const soloLectura = avisoSoloLectura();
+    if (soloLectura) cont.appendChild(soloLectura);
 
     // Un trabajo rechazado tiene que decir por qué y qué hacer.
     const a0 = datos.actividad;

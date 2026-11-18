@@ -25,6 +25,7 @@ window.App = { pestana: function () {}, refrescar: function () {} };
   function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   const datos = {
+    permisos: { ejecutar: true, ver: true, motivo: '' },
     actividad: { id: 'ACT_1', titulo: 'Fumigación', estado: 'EN_EJECUCION', nodo_id: 'NOD_1',
       fecha_inicio_plan: '2026-11-10', fecha_fin_plan: '2026-11-15', prioridad: 'MEDIA',
       avance_aprobado_pct: 0, afecta_uso: false, obligatoria_legal: false,

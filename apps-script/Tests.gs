@@ -67,6 +67,7 @@ function runAllTests() {
   pruebasFicha_();
   pruebasResidentes_();
   pruebasAlertasAutomaticas_();
+  pruebasEjecutarActividad_();
   pruebasReasignarAlDesactivar_();
   pruebasPropuestasV17_();
   pruebasFilasPorHoja_();
@@ -779,6 +780,68 @@ function pruebasPropuestasV17_() {
 /**
  * AL-01, AL-02 y AL-03: las alertas que antes el SPEC prometía y no existían.
  */
+/**
+ * RN-55 y RN-56 · Ver y ejecutar salen de la misma regla.
+ * El caso que fallaba: responsable de un trabajo en una sección que no tiene asignada.
+ */
+function pruebasEjecutarActividad_() {
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo) && String(n.clase) === 'AGRUPADOR'; })[0];
+  const empresa = filtrar('empresas', function (e) { return bool(e.activo); })[0];
+  if (!nodo || !empresa) { RESULTADOS.detalle.push('OMITE · ejecutar · sin datos'); return; }
+
+  const hoy = hoyIso();
+  const uno = insertar('usuarios', {
+    id: newId('USU'), email: 'rnp-uno@urbcerroazul.com', nombre: 'Responsable uno',
+    telefono: '3000000010', rol: 'CONTRATISTA', empresa_id: empresa.id, estado: 'ACTIVO', activo: true,
+  }, 'prueba');
+  const dos = insertar('usuarios', {
+    id: newId('USU'), email: 'rnp-dos@urbcerroazul.com', nombre: 'Compañero dos',
+    telefono: '3000000011', rol: 'CONTRATISTA', empresa_id: empresa.id, estado: 'ACTIVO', activo: true,
+  }, 'prueba');
+
+  const act = insertar('actividades', {
+    id: newId('ACT'), titulo: 'PRUEBA ejecutar', descripcion: '', nodo_id: nodo.id,
+    plantilla_id: '', plantilla_version: '', empresa_id: empresa.id, responsable_id: uno.id,
+    tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+    fecha_inicio_plan: hoy, fecha_fin_plan: hoy, dias_plan: 1, prioridad: 'MEDIA',
+    estado: 'PROGRAMADA', vencida: false, en_riesgo: false, avance_reportado_pct: 0,
+    avance_aprobado_pct: 0, fecha_inicio_real: '', fecha_reporte_final: '',
+    fecha_aprobacion: '', obligatoria_legal: false, afecta_uso: false, publicable: false,
+    acta_file_id: '', inicio_sin_foto_motivo: '', propuesta_id: '', activo: true,
+  }, 'prueba');
+
+  const ctxUno = { usuario: { id: uno.id, email: uno.email, empresa_id: empresa.id }, rol: 'CONTRATISTA' };
+  const ctxDos = { usuario: { id: dos.id, email: dos.email, empresa_id: empresa.id }, rol: 'CONTRATISTA' };
+
+  const rUno = relacionConActividad_(ctxUno, act);
+  verdadero_(rUno.ver === true, 'RN-55 · el responsable ve el trabajo');
+  verdadero_(rUno.ejecutar === true,
+    'RN-55 · y puede ejecutarlo aunque no tenga la sección asignada');
+
+  const rDos = relacionConActividad_(ctxDos, act);
+  verdadero_(rDos.ver === true, 'RN-55 · el compañero de empresa lo ve');
+  verdadero_(rDos.ejecutar === false, 'RN-55 · pero no lo ejecuta: hay otro responsable');
+  verdadero_(String(rDos.motivo).indexOf('otra persona de su empresa') >= 0,
+    'RN-56 · y el motivo lo explica');
+
+  for (const rol of ['SUPERVISOR', 'CONSEJO']) {
+    const r = relacionConActividad_({ usuario: { id: 'X', email: 'x@x.com' }, rol: rol }, act);
+    verdadero_(r.ver === true && r.ejecutar === false, 'RN-55 · ' + rol + ' ve pero no ejecuta');
+  }
+
+  const rAdmin = relacionConActividad_({ usuario: { id: 'A', email: 'a@a.com' }, rol: 'ADMIN' }, act);
+  verdadero_(rAdmin.ejecutar === true, 'RN-55 · el administrador siempre ejecuta');
+
+  // Empresa sin responsable: cualquiera de la empresa ejecuta.
+  actualizar('actividades', act.id, { responsable_id: '' }, 'prueba');
+  const sinResp = relacionConActividad_(ctxDos, buscarPorId('actividades', act.id));
+  verdadero_(sinResp.ejecutar === true, 'RN-55 · sin responsable, la empresa lo puede trabajar');
+
+  actualizar('actividades', act.id, { activo: false }, 'prueba');
+  actualizar('usuarios', uno.id, { activo: false }, 'prueba');
+  actualizar('usuarios', dos.id, { activo: false }, 'prueba');
+}
+
 function pruebasAlertasAutomaticas_() {
   const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
   const nodo = filtrar('nodos', function (n) { return bool(n.activo) && String(n.clase) === 'AGRUPADOR'; })[0];

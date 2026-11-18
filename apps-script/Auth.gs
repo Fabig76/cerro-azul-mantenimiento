@@ -135,17 +135,66 @@ function nodosAsignados_(usuarioId) {
  * Permiso de ejecución: distinto de "puede ver". El supervisor nunca ejecuta y un
  * contratista solo ejecuta en sus secciones asignadas, no en toda la empresa.
  */
-function puedeEjecutarActividad_(ctx, act) {
-  if (ctx.rol === 'ADMIN') return true;
-  if (ctx.rol !== 'CONTRATISTA') return false;
+/**
+ * RN-55 · Cómo se relaciona alguien con una actividad, en un solo lugar.
+ * Ver y ejecutar salen de aquí, así no pueden volver a contradecirse: antes «ver»
+ * incluía ser el responsable o ser de la empresa, y «ejecutar» solo la sección
+ * asignada, y el contratista veía el trabajo sin poder subir la foto.
+ */
+function relacionConActividad_(ctx, act) {
+  const sinNada = { ver: false, ejecutar: false, motivo: 'No tienes acceso a esta actividad.' };
+  if (!ctx || !ctx.usuario || !act) return sinNada;
+
+  const rol = String(ctx.rol);
+  const esAdmin = rol === 'ADMIN';
+  const esSupervisor = rol === 'SUPERVISOR';
+  const esConsejo = rol === 'CONSEJO';
+
+  // Quien puede leer todo, ve todo. Solo el administrador ejecuta siempre.
+  const veTodo = esAdmin || esSupervisor || esConsejo;
+  const esResponsable = String(act.responsable_id) === String(ctx.usuario.id);
+  const mismaEmpresa = !!act.empresa_id && String(act.empresa_id) === String(ctx.usuario.empresa_id || '');
+
+  // Sección asignada (con su subárbol).
+  let enSuSeccion = false;
   const nodo = buscarPorId('nodos', act.nodo_id);
-  if (!nodo) return false;
-  const asignados = nodosAsignados_(ctx.usuario.id);
-  const propio = nodo.ruta_ids + '/' + nodo.id;
-  return asignados.some(function (a) {
-    const raiz = a.ruta_ids + '/' + a.id;
-    return propio === raiz || propio.indexOf(raiz + '/') === 0;
-  });
+  if (nodo) {
+    const propio = nodo.ruta_ids + '/' + nodo.id;
+    enSuSeccion = nodosAsignados_(ctx.usuario.id).some(function (a) {
+      const raiz = a.ruta_ids + '/' + a.id;
+      return propio === raiz || propio.indexOf(raiz + '/') === 0;
+    });
+  }
+
+  const ver = veTodo || esResponsable || mismaEmpresa || enSuSeccion;
+  let ejecutar = false;
+  if (esAdmin) {
+    ejecutar = true;
+  } else if (rol === 'CONTRATISTA') {
+    // RN-55: responsable, o es de su empresa y no tiene responsable, o su sección.
+    ejecutar = esResponsable || (mismaEmpresa && !act.responsable_id) || enSuSeccion;
+  }
+
+  let motivo = '';
+  if (!ver) {
+    motivo = 'No tienes acceso a esta actividad.';
+  } else if (!ejecutar) {
+    if (esSupervisor || esConsejo) {
+      motivo = 'Tu rol puede ver este trabajo, pero no ejecutarlo.';
+    } else if (act.responsable_id && !esResponsable && mismaEmpresa) {
+      motivo = 'Este trabajo es de otra persona de su empresa. Solo el responsable puede reportarlo.';
+    } else if (act.responsable_id && !esResponsable) {
+      motivo = 'Este trabajo tiene otro responsable.';
+    } else {
+      motivo = 'La sección de este trabajo no está entre las suyas.';
+    }
+  }
+
+  return { ver: ver, ejecutar: ejecutar, motivo: motivo };
+}
+
+function puedeEjecutarActividad_(ctx, act) {
+  return relacionConActividad_(ctx, act).ejecutar;
 }
 
 /**

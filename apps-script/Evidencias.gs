@@ -38,7 +38,9 @@ function evidenciasUpload(ctx, payload) {
   const actividadId = exigirTexto(payload.actividad_id, 'actividad_id');
   const act = buscarPorId('actividades', actividadId);
   if (!act) fallar_('NO_ENCONTRADO', 'La actividad no existe.');
-  if (!puedeEjecutarActividad_(ctx, act)) fallar_('PROHIBIDO', 'No puedes subir fotos a esta actividad.');
+  if (!puedeEjecutarActividad_(ctx, act)) {
+    fallar_('PROHIBIDO', relacionConActividad_(ctx, act).motivo || 'No puedes subir fotos a esta actividad.');
+  }
   if (['APROBADA', 'CERRADA', 'CANCELADA'].indexOf(String(act.estado)) >= 0) {
     fallar_('ESTADO_INVALIDO', 'La actividad ya está cerrada.');
   }
