@@ -108,6 +108,8 @@ const ACCIONES = {
   'propuestas.retirar': { fn: propuestasRetirar, sesion: true, roles: ['CONTRATISTA'] },
   'entrega.exportar': { fn: accionEntrega, sesion: true, roles: ['ADMIN'] },
   'notificaciones.mias': { fn: notificacionesMias, sesion: true },
+  'sistema.restos.contar': { fn: function (ctx) { return contarRestosDePruebas_(); }, sesion: true, roles: ['ADMIN'] },
+  'sistema.restos.limpiar': { fn: function (ctx) { return limpiarRestosDePruebas(ctx); }, sesion: true, roles: ['ADMIN'] },
   'sistema.rendimiento': { fn: sistemaRendimiento, sesion: true, roles: ['ADMIN'] },
   'sistema.disparadores.reparar': { fn: sistemaDisparadoresReparar, sesion: true, roles: ['ADMIN'] },
   'sistema.estado': { fn: sistemaEstado, sesion: true, roles: ['ADMIN'] },

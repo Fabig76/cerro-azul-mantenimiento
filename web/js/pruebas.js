@@ -121,6 +121,44 @@
     });
   }
 
+  /** Restos de pruebas anteriores: cuántos y con un botón para borrarlos. */
+  async function revisarRestos() {
+    const caja = document.getElementById('restosPruebas');
+    const boton = document.getElementById('btnRestosPruebas');
+    if (!caja || !boton) return;
+    const r = await API.llamar('sistema.restos.contar', {}, { token: Sesion.token() });
+    if (!r.ok) { caja.textContent = 'No se pudo revisar.'; return; }
+    const total = Number((r.data && r.data.total) || 0);
+    if (!total) {
+      caja.textContent = 'No hay datos de pruebas anteriores.';
+      boton.classList.add('oculto');
+      return;
+    }
+    const detalle = Object.keys(r.data.por_hoja || {})
+      .map(function (k) { return k + ': ' + r.data.por_hoja[k]; }).join(' · ');
+    caja.textContent = 'Quedaron ' + total + ' fila(s) de pruebas anteriores (' + detalle + ').';
+    boton.classList.remove('oculto');
+    boton.textContent = 'Borrar datos de pruebas anteriores (' + total + ')';
+  }
+
+  function prepararRestos() {
+    const boton = document.getElementById('btnRestosPruebas');
+    if (!boton || boton.dataset.listo) return;
+    boton.dataset.listo = '1';
+    boton.addEventListener('click', async function () {
+      if (!window.confirm('Se borrarán las filas creadas por las pruebas, con respaldo previo. ' +
+        'No toca nada creado por personas. ¿Seguir?')) return;
+      boton.disabled = true;
+      boton.textContent = 'Borrando…';
+      const r = await API.llamar('sistema.restos.limpiar', {}, { token: Sesion.token(), idempotente: true });
+      boton.disabled = false;
+      if (!r.ok) return aviso('No se pudo limpiar: ' + (r.message || ''), 'error');
+      aviso('Listo: ' + r.data.borradas + ' fila(s) borradas.', 'ok');
+      revisarRestos();
+    });
+    revisarRestos();
+  }
+
   /** Cola de correos y disparadores: si algo se atasca, se ve aquí. */
   async function cargarEstado() {
     const caja = document.getElementById('estadoCorreos');
@@ -205,7 +243,9 @@
   }
 
   window.Pruebas = {
-    preparar: function () { prepararPruebas(); prepararRefresco(); cargarEstado(); },
+    preparar: function () { prepararPruebas(); prepararRefresco(); cargarEstado(); prepararRestos(); },
     cargarEstado: cargarEstado,
+    revisarRestos: revisarRestos,
+    prepararRestos: prepararRestos,
   };
 })();

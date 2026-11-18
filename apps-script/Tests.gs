@@ -45,37 +45,78 @@ function runAllTests() {
   RESULTADOS.fallidas = 0;
   RESULTADOS.detalle = [];
 
-  pruebasFechas_();
-  pruebasSalud_();
-  pruebasChecklist_();
-  pruebasRitmo_();
-  pruebasSuperficiePublica_();
-  pruebasRechazoYReenvio_();
-  pruebasPropuestas_();
-  pruebasListaActividades_();
-  pruebasAvisos_();
-  pruebasSubidaRepetida_();
-  pruebasDetalleEnEscrituras_();
-  pruebasNovedadesMias_();
-  pruebasSeccionRaiz_();
-  pruebasResponsable_();
-  pruebasFotoDeEtapa_();
-  pruebasEmpresaEstado_();
-  pruebasArchivoCerrado_();
-  pruebasCotizacion_();
-  pruebasConsejoSoloLectura_();
-  pruebasFicha_();
-  pruebasResidentes_();
-  pruebasAlertasAutomaticas_();
-  pruebasEjecutarActividad_();
-  pruebasQuitarEvidencia_();
-  pruebasEmpresaEliminar_();
-  pruebasQuitarCotizacionYFotoResidente_();
-  pruebasFusionarEmpresas_();
-  pruebasPurgaYNovedadConFoto_();
-  pruebasReasignarAlDesactivar_();
-  pruebasPropuestasV17_();
-  pruebasFilasPorHoja_();
+  // R3 · Cada grupo va aparte: si uno lanza, se anota y la batería sigue. Antes una
+  // excepción tumbaba todo y dejaba sin correr la limpieza de los grupos a medias.
+  // RN-75 · Se anotan la hora y la última fila de cada hoja: al terminar se borra
+  // exactamente lo que añadió la batería, sin tocar nada anterior.
+  const inicio = ahoraIso();
+  const marcas = marcarFilas_();
+  const grupos = [
+    'pruebasFechas_',
+    'pruebasSalud_',
+    'pruebasChecklist_',
+    'pruebasRitmo_',
+    'pruebasSuperficiePublica_',
+    'pruebasRechazoYReenvio_',
+    'pruebasPropuestas_',
+    'pruebasListaActividades_',
+    'pruebasAvisos_',
+    'pruebasSubidaRepetida_',
+    'pruebasDetalleEnEscrituras_',
+    'pruebasNovedadesMias_',
+    'pruebasSeccionRaiz_',
+    'pruebasResponsable_',
+    'pruebasFotoDeEtapa_',
+    'pruebasEmpresaEstado_',
+    'pruebasArchivoCerrado_',
+    'pruebasCotizacion_',
+    'pruebasConsejoSoloLectura_',
+    'pruebasFicha_',
+    'pruebasResidentes_',
+    'pruebasAlertasAutomaticas_',
+    'pruebasEjecutarActividad_',
+    'pruebasQuitarEvidencia_',
+    'pruebasEmpresaEliminar_',
+    'pruebasQuitarCotizacionYFotoResidente_',
+    'pruebasFusionarEmpresas_',
+    'pruebasPurgaYNovedadConFoto_',
+    'pruebasReasignarAlDesactivar_',
+    'pruebasPropuestasV17_',
+    'pruebasFilasPorHoja_',
+  ];
+
+  grupos.forEach(function (nombre) {
+    try {
+      const fn = globalThis[nombre];
+      if (typeof fn !== 'function') throw new Error('no existe');
+      fn();
+    } catch (e) {
+      RESULTADOS.fallidas++;
+      RESULTADOS.detalle.push('FALLA · ' + nombre + ' · ' + (e && e.message ? e.message : e));
+    }
+  });
+
+  // RN-75 · Las pruebas no dejan filas.
+  try {
+    borrarFilasNuevas_(marcas);
+    const limpieza = borrarRestosDePruebas_(inicio);
+    if (limpieza && limpieza.filas) {
+      RESULTADOS.detalle.push('OK   · limpieza · ' + limpieza.filas + ' fila(s) de prueba borradas');
+    }
+  } catch (e) {
+    RESULTADOS.fallidas++;
+    RESULTADOS.detalle.push('FALLA · limpieza de pruebas · ' + (e && e.message ? e.message : e));
+  }
+
+  // RN-75 · Y se comprueba: la batería no puede dejar filas.
+  try {
+    const restos = contarRestosDePruebas_();
+    if (restos.total) {
+      RESULTADOS.fallidas++;
+      RESULTADOS.detalle.push('FALLA · quedaron ' + restos.total + ' fila(s) de prueba: ' +
+        JSON.stringify(restos.por_hoja));
+    }
+  } catch (e) { /* el conteo no debe tumbar la batería */ }
 
   // Las fallas van primero: son lo único que hay que leer.
   RESULTADOS.detalle.sort(function (a, b) {
@@ -1359,3 +1400,184 @@ function pruebasSuperficiePublica_() {
   const snap = doGet({ parameter: { action: 'public.snapshot' } }).getContent();
   verdadero_(snap.indexOf('generado_en') > 0, 'public.snapshot responde');
 }
+// ---------------------------------------------------------------------------
+// RN-75 · Las pruebas no dejan datos
+// ---------------------------------------------------------------------------
+
+/**
+ * Borra FÍSICAMENTE las filas que crearon las pruebas (`creado_por = 'prueba'`).
+ * Se hace de abajo hacia arriba para que los índices no se corran.
+ * No toca nada creado por personas.
+ */
+/** Última fila con datos de cada hoja, para saber qué añadió la batería. */
+function marcarFilas_() {
+  const marcas = {};
+  Object.keys(SCHEMA).forEach(function (nombre) {
+    try { marcas[nombre] = hoja(nombre).getLastRow(); } catch (e) { /* hoja inexistente */ }
+  });
+  return marcas;
+}
+
+/**
+ * Borra las filas añadidas por encima de la marca, de abajo hacia arriba.
+ * Es la red de seguridad: cubre lo que firman las funciones internas como 'sistema'.
+ */
+function borrarFilasNuevas_(marcas) {
+  if (!marcas) return { filas: 0 };
+  let filas = 0;
+  Object.keys(marcas).forEach(function (nombre) {
+    let sh;
+    try { sh = hoja(nombre); } catch (e) { return; }
+    const ultima = sh.getLastRow();
+    const desde = Number(marcas[nombre]) || 1;
+    for (let fila = ultima; fila > desde; fila--) {
+      sh.deleteRow(fila);
+      filas++;
+    }
+  });
+  limpiarCache();
+  return { filas: filas };
+}
+
+/** Ids de usuarios creados por una prueba (antes de borrarlos). */
+function idsDePruebaUsuarios_() {
+  try {
+    return filtrar('usuarios', function (u) { return esDePrueba_(u.creado_por); })
+      .map(function (u) { return String(u.id); });
+  } catch (e) { return []; }
+}
+
+/** ¿Esta firma es de una prueba? Cubre 'prueba' y 'prueba@urbcerroazul.com'. */
+function esDePrueba_(valor) {
+  return /^prueba/i.test(String(valor || '').trim());
+}
+
+/**
+ * ¿Esta fila la pudo crear la batería? Las pruebas llaman funciones internas que firman
+ * como 'sistema'; una persona nunca firma así. Se combina con la hora de inicio de la
+ * corrida para no tocar nada anterior.
+ */
+function esFirmaDeBateria_(valor) {
+  const v = String(valor || '').trim();
+  return esDePrueba_(v) || v === 'sistema' || v === '';
+}
+
+function borrarRestosDePruebas_(desdeIso) {
+  const desde = desdeIso ? new Date(desdeIso).getTime() : 0;
+  // Se apuntan ANTES de borrar los usuarios: sus notificaciones y sesiones quedan huérfanas.
+  const idsPrueba = idsDePruebaUsuarios_();
+  let filas = 0;
+  let archivos = 0;
+
+  /** Fecha de la fila como número (Sheets devuelve Date, no texto). */
+  function cuando_(valor) {
+    if (!valor) return 0;
+    if (Object.prototype.toString.call(valor) === '[object Date]') return valor.getTime();
+    const t = new Date(String(valor)).getTime();
+    if (!isNaN(t)) return t;
+    const soloFecha = fechaIso_(valor);
+    return soloFecha ? new Date(soloFecha).getTime() : 0;
+  }
+
+  /** ¿Se borra esta fila? */
+  function esResto_(firma, fecha) {
+    if (desde) {
+      return esFirmaDeBateria_(firma) && cuando_(fecha) >= desde;
+    }
+    return esDePrueba_(firma);
+  }
+
+  // Hojas con creado_por / creado_en.
+  Object.keys(SCHEMA).forEach(function (nombre) {
+    let cab;
+    try { cab = cabeceras(nombre); } catch (e) { return; }
+    const colFirma = cab.creado_por;
+    if (colFirma === undefined) return;
+    const sh = hoja(nombre);
+    const ultima = sh.getLastRow();
+    if (ultima < 2) return;
+
+    const ancho = sh.getLastColumn();
+    const datos = sh.getRange(2, 1, ultima - 1, ancho).getValues();
+    const colFecha = cab.creado_en !== undefined ? cab.creado_en : cab.actualizado_en;
+
+    for (let i = datos.length - 1; i >= 0; i--) {
+      const fila = datos[i];
+      const fecha = colFecha === undefined ? '' : fila[colFecha];
+      if (!esResto_(fila[colFirma], fecha)) continue;
+
+      if (nombre === 'evidencias') {
+        ['drive_file_id', 'mini_file_id', 'public_file_id'].forEach(function (k) {
+          if (cab[k] === undefined) return;
+          const archivoId = String(fila[cab[k]] || '');
+          if (!archivoId) return;
+          try { DriveApp.getFileById(archivoId).setTrashed(true); archivos++; } catch (e) { /* ya no está */ }
+        });
+      }
+      sh.deleteRow(i + 2);
+      filas++;
+    }
+  });
+
+  // Hojas sin creado_por: se miran por su firma (usuario) y su fecha.
+  ['auditoria', 'notificaciones', 'sesiones'].forEach(function (nombre) {
+    let cab;
+    try { cab = cabeceras(nombre); } catch (e) { return; }
+    const colFirma = cab.usuario_email !== undefined ? cab.usuario_email
+      : (cab.usuario !== undefined ? cab.usuario
+        : (cab.usuario_id !== undefined ? cab.usuario_id : cab.creado_por));
+    if (colFirma === undefined) return;
+    const colFecha = cab.fecha !== undefined ? cab.fecha
+      : (cab.creado_en !== undefined ? cab.creado_en : undefined);
+
+    const sh = hoja(nombre);
+    const ultima = sh.getLastRow();
+    if (ultima < 2) return;
+    const datos = sh.getRange(2, 1, ultima - 1, sh.getLastColumn()).getValues();
+
+    for (let i = datos.length - 1; i >= 0; i--) {
+      const fila = datos[i];
+      const fecha = colFecha === undefined ? '' : fila[colFecha];
+      const firma = String(fila[colFirma] || '');
+      // En notificaciones y sesiones la firma es un id: vale si era de un usuario de prueba.
+      const deUsuarioPrueba = idsPrueba.indexOf(firma) >= 0;
+      const resto = deUsuarioPrueba ||
+        (fecha && desde ? cuando_(fecha) >= desde && (esFirmaDeBateria_(firma) || deUsuarioPrueba) : esDePrueba_(firma));
+      if (!resto) continue;
+      sh.deleteRow(i + 2);
+      filas++;
+    }
+  });
+
+  limpiarCache();
+  return { filas: filas, archivos: archivos };
+}
+
+/** Cuenta lo que quedó de pruebas anteriores, sin borrar nada. */
+function contarRestosDePruebas_() {
+  const conteo = {};
+  let total = 0;
+  Object.keys(SCHEMA).forEach(function (nombre) {
+    if (SCHEMA[nombre].indexOf('creado_por') < 0) return;
+    try {
+      const n = filtrar(nombre, function (x) { return esDePrueba_(x.creado_por); }).length;
+      if (n) { conteo[nombre] = n; total += n; }
+    } catch (e) { /* hoja que no existe todavía */ }
+  });
+  return { total: total, por_hoja: conteo };
+}
+
+/**
+ * Limpieza de una sola vez de lo que ya quedó de pruebas anteriores. Respalda antes.
+ * La llama el botón de Sistema.
+ */
+function limpiarRestosDePruebas(ctx) {
+  const antes = contarRestosDePruebas_();
+  if (!antes.total) return { borradas: 0, por_hoja: {} };
+  try { respaldarLibro(); } catch (e) { /* el respaldo no debe impedir la limpieza */ }
+  const r = borrarRestosDePruebas_();
+  auditar(ctx && ctx.usuario ? ctx.usuario.email : 'sistema', 'RESTOS_DE_PRUEBAS_BORRADOS',
+    'sistema', '', null, { filas: r.filas, archivos: r.archivos, antes: antes.por_hoja });
+  return { borradas: r.filas, archivos: r.archivos, por_hoja: antes.por_hoja };
+}
+

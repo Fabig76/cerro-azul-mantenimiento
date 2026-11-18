@@ -45,7 +45,7 @@ const SCHEMA = {
   empresas: [
     'id', 'razon_social', 'nit', 'contacto', 'email', 'telefono', 'contrato_numero', 'vigencia_desde',
     'vigencia_hasta', 'poliza_vence', 'estado', 'aviso_vencimiento_en',
-  , 'suprimida_en', 'suprimida_por', 'motivo_supresion'].concat(CAMPOS_AUDITORIA),
+    'suprimida_en', 'suprimida_por', 'motivo_supresion'].concat(CAMPOS_AUDITORIA),
 
   asignaciones: ['id', 'usuario_id', 'nodo_id', 'desde', 'hasta'].concat(CAMPOS_AUDITORIA),
 
@@ -87,7 +87,7 @@ const SCHEMA = {
     'id', 'reporte_id', 'actividad_id', 'nodo_id', 'momento', 'drive_file_id', 'mini_file_id', 'mime',
     'bytes', 'sha256', 'fecha_captura', 'fecha_subida', 'lat', 'lng', 'contiene_personas', 'publicable',
     'public_file_id',
-  , 'quitada_por', 'quitada_en', 'motivo_quitada', 'archivo_purgado_en'].concat(CAMPOS_AUDITORIA),
+    'quitada_por', 'quitada_en', 'motivo_quitada', 'archivo_purgado_en'].concat(CAMPOS_AUDITORIA),
 
   lecturas_estado: ['id', 'nodo_id', 'fecha', 'condicion_operativa', 'origen', 'reporte_id', 'usuario_id', 'nota']
     .concat(CAMPOS_AUDITORIA),
@@ -96,7 +96,7 @@ const SCHEMA = {
     'id', 'nodo_id', 'titulo', 'descripcion', 'tipo', 'gravedad', 'estado', 'reportada_por', 'origen',
     'actividad_origen_id', 'actividad_correctiva_id', 'fecha_deteccion', 'fecha_compromiso',
     'fecha_resolucion', 'publicable', 'texto_publico',
-  , 'reporte_residente_id'].concat(CAMPOS_AUDITORIA),
+    'reporte_residente_id'].concat(CAMPOS_AUDITORIA),
 
   alertas: [
     'id', 'nivel', 'categoria', 'titulo', 'mensaje_publico', 'nodo_id', 'novedad_id', 'actividad_id',

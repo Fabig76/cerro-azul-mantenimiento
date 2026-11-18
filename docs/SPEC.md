@@ -751,6 +751,19 @@ para que un residente reportara un daño desde el equipo; ese reporte ya está a
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
 
+### 10.3 bis. Las pruebas no dejan datos (v1.10)
+
+- **RN-75.** «Ejecutar pruebas» no deja **ninguna** fila nueva. Cada grupo corre con `try/catch`
+  propio (una excepción no tumba la batería), y al terminar se borran las filas añadidas durante la
+  corrida: primero por firma (`creado_por = 'prueba'` o `prueba@…`), después por marca de la última
+  fila de cada hoja antes de empezar. Un conteo final falla si quedó algo.
+- La auditoría y las notificaciones del propio ensayo se borran también (firma `usuario_email` o
+  `usuario_id` de un usuario de prueba).
+- **Una sola vez**, Sistema ofrece «Borrar datos de pruebas anteriores (N filas)»: cuenta por hoja,
+  respalda el libro y borra solo lo firmado por una prueba.
+- **R1.** `Schema.gs` no puede tener huecos (`undefined`) ni columnas repetidas: `revisar-columnas.mjs`
+  falla si los hay. Un hueco rompía `setup()` al crear una hoja nueva.
+
 ### 10.2 duodecies. Purga de archivos y novedad con foto (v1.9)
 
 - **RN-68.** En la limpieza diaria, los archivos de evidencias inactivas (quitadas o reemplazadas)

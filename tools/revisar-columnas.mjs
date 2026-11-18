@@ -111,4 +111,26 @@ if (problemas.length) {
   problemas.forEach((p) => console.log('  ' + p));
   process.exit(1);
 }
+// Un arreglo con un hueco (undefined) o con columnas repetidas rompe la creación de una
+// hoja nueva: setValues recibe una celda undefined y setup() se cae.
+{
+  const src = fs.readFileSync(path.join(raiz, 'apps-script/Schema.gs'), 'utf8');
+  const f = new Function(src.replace(/\bconst /g, 'var ') + '; return SCHEMA;');
+  const esquema = f();
+  const problemas = [];
+  Object.keys(esquema).forEach(function (hoja) {
+    const lista = esquema[hoja];
+    const huecos = lista.filter(function (x) { return x === undefined || x === null || x === ''; }).length;
+    const repetidas = lista.filter(function (x, i) { return lista.indexOf(x) !== i; });
+    if (huecos) problemas.push(hoja + ': ' + huecos + ' hueco(s) en el esquema');
+    if (repetidas.length) problemas.push(hoja + ': columnas repetidas ' + [...new Set(repetidas)].join(', '));
+  });
+  if (problemas.length) {
+    console.log('ESQUEMA INVÁLIDO:');
+    problemas.forEach(function (x) { console.log('  ' + x); });
+    process.exit(1);
+  }
+  console.log('OK: ' + Object.keys(esquema).length + ' hojas sin huecos ni repetidas');
+}
+
 console.log('OK: ' + revisadas + ' escrituras revisadas contra ' + Object.keys(tablas).length + ' tablas');
