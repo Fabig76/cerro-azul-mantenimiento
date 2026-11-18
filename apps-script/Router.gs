@@ -58,6 +58,7 @@ const ACCIONES = {
   'actividades.cancelar': { fn: actividadesCancelar, sesion: true, roles: ['ADMIN'] },
 
   'usuarios.listar': { fn: usuariosListar, sesion: true, roles: ['ADMIN'] },
+  'usuarios.eliminar': { fn: usuariosEliminar, sesion: true, roles: ['ADMIN'] },
   'usuarios.guardar': { fn: usuariosGuardar, sesion: true, roles: ['ADMIN'] },
   'usuarios.activar': { fn: usuariosActivar, sesion: true, roles: ['ADMIN'] },
   'usuarios.editar': { fn: usuariosEditar, sesion: true, roles: ['ADMIN'] },

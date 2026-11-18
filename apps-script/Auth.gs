@@ -67,6 +67,10 @@ function autenticar_(token) {
   if (String(usuario.estado) === 'PENDIENTE') {
     return { ok: false, respuesta: err('PENDIENTE', 'Tu cuenta está en revisión.') };
   }
+  // RN-71 · Si la cuenta fue eliminada, la sesión muere en la siguiente petición.
+  if (usuario.suprimido_en) {
+    return { ok: false, respuesta: err('SESION_INVALIDA', 'Tu cuenta ya no está disponible.') };
+  }
   if (String(usuario.estado) !== 'ACTIVO') {
     return { ok: false, respuesta: err('INACTIVO', 'Tu cuenta está inactiva.') };
   }
@@ -336,7 +340,7 @@ function continuarIngreso_(usuario, origen, propio) {
 /** Busca el usuario por correo. No lo crea: el alta pasa por el registro con autorización. */
 function usuarioPorEmail_(email) {
   return filtrar('usuarios', function (u) {
-    return String(u.email || '').toLowerCase() === email && !bool(u.suprimido_en);
+    return String(u.email || '').toLowerCase() === email && !u.suprimido_en;
   })[0] || null;
 }
 

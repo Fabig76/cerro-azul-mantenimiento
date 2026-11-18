@@ -264,6 +264,16 @@
       document.getElementById('panelUsuario').classList.add('oculto');
     });
 
+    // RN-70 a RN-73 · Eliminar: lo saca de la lista; su historial de trabajos se conserva.
+    const eliminar = el('button', 'btn sm peligro', 'Eliminar');
+    eliminar.type = 'button';
+    eliminar.addEventListener('click', function () { eliminarUsuario(u, caja, eliminar); });
+    const accionesPanel = caja.querySelector('.acciones-panel') || caja;
+    accionesPanel.appendChild(eliminar);
+    caja.appendChild(el('p', 'bajada-tarjeta',
+      'Desactivar le quita el acceso y lo deja en la lista. Eliminar lo saca de la lista; ' +
+      'su historial de trabajos se conserva.'));
+
     const cerrar = el('button', 'btn', 'Cerrar');
     cerrar.type = 'button';
     cerrar.addEventListener('click', function () {
@@ -275,6 +285,88 @@
     acciones.appendChild(cerrar);
     caja.appendChild(acciones);
     return caja;
+  }
+
+  /**
+   * RN-70 a RN-72 · Eliminar un usuario. Pide motivo si tiene historial y, si tiene
+   * trabajo abierto, a quién se lo pasa.
+   */
+  async function eliminarUsuario(u, caja, boton) {
+    const h = u.historial || null;
+    const conHistorial = h ? (h.reportes + h.evidencias + h.propuestas + h.novedades + h.actividades) > 0 : true;
+
+    const previo = caja.querySelector('.eliminar-usuario');
+    if (previo) previo.remove();
+    const cajaAviso = el('div', 'bloque eliminar-usuario');
+
+    let sel = null;
+    if (h && (h.abiertos || h.planes)) {
+      const colegas = usuarios.filter(function (x) {
+        return x.estado === 'ACTIVO' && String(x.id) !== String(u.id);
+      });
+      if (!colegas.length) {
+        cajaAviso.appendChild(el('p', null,
+          'Tiene ' + h.abiertos + ' trabajo(s) abierto(s) y ' + h.planes + ' plan(es), y no hay ' +
+          'otra persona activa a quien pasarlos.'));
+        caja.appendChild(cajaAviso);
+        return;
+      }
+      cajaAviso.appendChild(el('p', null,
+        'Tiene ' + h.abiertos + ' trabajo(s) abierto(s) y ' + h.planes + ' plan(es). Elija a quién pasarlos.'));
+      sel = el('select', 'item-input');
+      colegas.forEach(function (x) {
+        const op = el('option', null, x.nombre || x.email);
+        op.value = x.id;
+        sel.appendChild(op);
+      });
+      cajaAviso.appendChild(sel);
+    }
+
+    let retirar = null;
+    if (h && h.pendientes) {
+      const etiqueta = el('label', 'etiqueta-casilla');
+      retirar = el('input');
+      retirar.type = 'checkbox';
+      etiqueta.appendChild(retirar);
+      etiqueta.appendChild(el('span', null, 'Retirar sus ' + h.pendientes + ' propuesta(s) pendiente(s)'));
+      cajaAviso.appendChild(etiqueta);
+    }
+
+    if (conHistorial) {
+      cajaAviso.appendChild(el('p', 'bajada-tarjeta',
+        'Tiene historial: escriba el motivo (queda en la auditoría).'));
+    }
+
+    const motivo = el('input', 'item-input');
+    motivo.type = 'text';
+    motivo.placeholder = conHistorial ? 'Motivo (mínimo 10 caracteres)' : 'Motivo (opcional)';
+    cajaAviso.appendChild(motivo);
+
+    const confirmar = el('button', 'btn peligro', 'Confirmar eliminación');
+    confirmar.type = 'button';
+    confirmar.addEventListener('click', async function () {
+      if (conHistorial && motivo.value.trim().length < 10) {
+        return aviso('Escribe el motivo (al menos 10 caracteres).', 'error');
+      }
+      if (!window.confirm('¿Eliminar a ' + (u.nombre || u.email) + '? Saldrá de la lista; ' +
+        'su historial de trabajos se conserva. No se puede deshacer.')) return;
+      confirmar.disabled = true;
+      const r = await API.llamar('usuarios.eliminar', {
+        ids: [u.id],
+        motivo: motivo.value.trim(),
+        reasignar_a: sel ? sel.value : undefined,
+        retirar_propuestas: retirar ? retirar.checked : undefined,
+      }, { token: Sesion.token(), idempotente: true });
+      confirmar.disabled = false;
+      if (!r.ok) return aviso(r.message || 'No se pudo eliminar.', 'error');
+      const omitidos = r.data.omitidos || [];
+      if (omitidos.length) return aviso('No se pudo: ' + omitidos[0].razon, 'error');
+      aviso('Usuario eliminado.', 'ok');
+      await cargar();
+      document.getElementById('panelUsuario').classList.add('oculto');
+    });
+    cajaAviso.appendChild(confirmar);
+    caja.appendChild(cajaAviso);
   }
 
   function prepararEmpresa() {

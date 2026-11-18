@@ -80,6 +80,7 @@ function runAllTests() {
     'pruebasQuitarCotizacionYFotoResidente_',
     'pruebasFusionarEmpresas_',
     'pruebasPurgaYNovedadConFoto_',
+    'pruebasEliminarUsuarios_',
     'pruebasReasignarAlDesactivar_',
     'pruebasPropuestasV17_',
     'pruebasFilasPorHoja_',
@@ -845,6 +846,87 @@ function pruebasPropuestasV17_() {
 /**
  * RN-68 y RN-69 · Purga de archivos inactivos y novedad con la foto del residente.
  */
+/**
+ * RN-70 a RN-74 · Eliminar usuarios.
+ */
+function pruebasEliminarUsuarios_() {
+  const ctx = { usuario: { id: 'ADMIN-PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+
+  const crear = function (email, rol) {
+    return insertar('usuarios', {
+      id: newId('USU'), email: email, nombre: 'Prueba ' + email, telefono: '3001112222',
+      rol: rol || 'CONTRATISTA', empresa_id: '', estado: 'ACTIVO', activo: true,
+    }, 'prueba');
+  };
+
+  // 1 · Sin historial: se elimina y se vacían los datos personales
+  const suelto = crear('eliminar-suelto@urbcerroazul.com');
+  const r1 = usuariosEliminar(ctx, { ids: [suelto.id] });
+  verdadero_(r1.eliminados.length === 1, 'RN-70 · se elimina un usuario sin historial');
+  const tras = buscarPorId('usuarios', suelto.id);
+  verdadero_(!!tras.suprimido_en, 'RN-71 · queda suprimido, no borrado');
+  verdadero_(String(tras.nombre) === '' && String(tras.email).indexOf('eliminado-') === 0,
+    'RN-72 · sin historial se vacían los datos personales');
+  const lista = usuariosListar(ctx, {}).usuarios.map(function (u) { return u.id; });
+  verdadero_(lista.indexOf(suelto.id) < 0, 'RN-74 · no sale en la lista de usuarios');
+  verdadero_(usuarioPorEmail_(suelto.email) === null, 'RN-74 · ni se le encuentra por correo');
+
+  // 2 · Con historial: pide motivo y conserva el nombre
+  const conHistorial = crear('eliminar-historial@urbcerroazul.com');
+  const act = insertar('actividades', {
+    id: newId('ACT'), titulo: 'PRUEBA de ' + conHistorial.nombre, descripcion: '',
+    nodo_id: nodo.id, plantilla_id: '', plantilla_version: '', empresa_id: '',
+    responsable_id: conHistorial.id, tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '',
+    recurrencia_id: '', fecha_inicio_plan: hoyIso(), fecha_fin_plan: hoyIso(), dias_plan: 1,
+    prioridad: 'MEDIA', estado: 'CERRADA', vencida: false, en_riesgo: false,
+    avance_reportado_pct: 100, avance_aprobado_pct: 100, fecha_inicio_real: hoyIso(),
+    fecha_reporte_final: hoyIso(), fecha_aprobacion: hoyIso(), obligatoria_legal: false,
+    afecta_uso: false, publicable: false, acta_file_id: '', inicio_sin_foto_motivo: '',
+    propuesta_id: '', activo: true,
+  }, 'prueba');
+
+  const r2 = usuariosEliminar(ctx, { ids: [conHistorial.id] });
+  verdadero_(r2.eliminados.length === 0 && r2.omitidos.length === 1,
+    'RN-70 · con historial y sin motivo se omite');
+  const r3 = usuariosEliminar(ctx, { ids: [conHistorial.id], motivo: 'ya no trabaja en el conjunto' });
+  verdadero_(r3.eliminados.length === 1, 'RN-70 · con motivo sí se elimina');
+  verdadero_(String(buscarPorId('usuarios', conHistorial.id).nombre).indexOf('Prueba') === 0,
+    'RN-72 · con historial el nombre se conserva para las actas');
+
+  // 3 · Con trabajo abierto: hace falta reasignar
+  const ocupado = crear('eliminar-ocupado@urbcerroazul.com');
+  const otro = crear('eliminar-destino@urbcerroazul.com');
+  const abierta = insertar('actividades', {
+    id: newId('ACT'), titulo: 'PRUEBA abierta', descripcion: '', nodo_id: nodo.id,
+    plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: ocupado.id,
+    tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+    fecha_inicio_plan: hoyIso(), fecha_fin_plan: hoyIso(), dias_plan: 1, prioridad: 'MEDIA',
+    estado: 'PROGRAMADA', vencida: false, en_riesgo: false, avance_reportado_pct: 0,
+    avance_aprobado_pct: 0, fecha_inicio_real: '', fecha_reporte_final: '', fecha_aprobacion: '',
+    obligatoria_legal: false, afecta_uso: false, publicable: false, acta_file_id: '',
+    inicio_sin_foto_motivo: '', propuesta_id: '', activo: true,
+  }, 'prueba');
+  const r4 = usuariosEliminar(ctx, { ids: [ocupado.id], motivo: 'se retira de la empresa' });
+  verdadero_(r4.omitidos.length === 1, 'RN-70 · con trabajo abierto se omite sin reasignar');
+  const r5 = usuariosEliminar(ctx, { ids: [ocupado.id], motivo: 'se retira de la empresa', reasignar_a: otro.id });
+  verdadero_(r5.eliminados.length === 1, 'RN-70 · con reasignación sí se elimina');
+  verdadero_(String(buscarPorId('actividades', abierta.id).responsable_id) === String(otro.id),
+    'U2 · el trabajo abierto pasa a la otra persona');
+
+  // 4 · No puede eliminarse a sí mismo
+  const yo = crear('eliminar-yo@urbcerroazul.com', 'ADMIN');
+  const ctxYo = { usuario: { id: yo.id, email: yo.email }, rol: 'ADMIN' };
+  verdadero_(usuariosEliminar(ctxYo, { ids: [yo.id] }).omitidos.length === 1,
+    'RN-70 · nadie se elimina a sí mismo');
+
+  // Limpieza
+  [suelto, conHistorial, ocupado, otro, yo].forEach(function (u) {
+    actualizar('usuarios', u.id, { activo: false }, 'prueba');
+  });
+  [act, abierta].forEach(function (a) { actualizar('actividades', a.id, { activo: false }, 'prueba'); });
+}
+
 function pruebasPurgaYNovedadConFoto_() {
   const ctx = { usuario: { id: 'ADMIN', email: 'admin@urbcerroazul.com' }, rol: 'ADMIN' };
   const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];

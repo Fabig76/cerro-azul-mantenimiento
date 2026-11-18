@@ -42,11 +42,19 @@ function usuariosListar(ctx, payload) {
     .map(function (u) {
       const r = usuarioResumen_(u);
       r.asignaciones = asignacionesDe_(u.id);
+      // Lo que decide si se puede eliminar de una vez.
+      if (String(ctx.rol) === 'ADMIN') {
+        const h = historialUsuario_(u.id);
+        r.historial = h;
+        r.puede_eliminar = !tieneHistorial_(h) && !h.abiertos && !h.planes && !h.pendientes;
+      }
       return r;
     });
 
   const conteo = { PENDIENTE: 0, ACTIVO: 0, INACTIVO: 0 };
   filas('usuarios').forEach(function (u) {
+    // RN-74 · Un eliminado no cuenta en ninguna parte.
+    if (u.suprimido_en) return;
     if (conteo[String(u.estado)] !== undefined) conteo[String(u.estado)] += 1;
   });
 
@@ -560,5 +568,172 @@ function usuariosGuardar(ctx, payload) {
       usuario: buscarPorId('usuarios', id),
       asignados: nodosAsignados_(id).map(function (n) { return n.id; }),
     };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// RN-70 a RN-74 · Eliminar usuarios
+// ---------------------------------------------------------------------------
+
+/** Lo que cuelga de un usuario. Una sola cuenta para listar y para eliminar. */
+function historialUsuario_(id) {
+  const cuenta = function (nombre, campo) {
+    return filtrar(nombre, function (x) {
+      return String(x[campo] || '') === String(id) && x.activo !== false;
+    }).length;
+  };
+  const abiertos = filtrar('actividades', function (a) {
+    return String(a.responsable_id) === String(id) && bool(a.activo) &&
+      ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA', 'RECHAZADA'].indexOf(String(a.estado)) >= 0;
+  }).length;
+  const planes = filtrar('recurrencias', function (r) {
+    return bool(r.activo) && bool(r.activa) && String(r.responsable_id) === String(id);
+  }).length;
+  const pendientes = filtrar('propuestas', function (p) {
+    return bool(p.activo) && String(p.estado) === 'PENDIENTE' && String(p.propuesta_por) === String(id);
+  }).length;
+
+  return {
+    reportes: cuenta('reportes', 'usuario_id'),
+    evidencias: cuenta('evidencias', 'usuario_id'),
+    propuestas: cuenta('propuestas', 'propuesta_por'),
+    novedades: cuenta('novedades', 'reportada_por'),
+    actividades: cuenta('actividades', 'responsable_id'),
+    abiertos: abiertos,
+    planes: planes,
+    pendientes: pendientes,
+  };
+}
+
+/** ¿Tiene historial? (para RN-72 y para pedir motivo) */
+function tieneHistorial_(h) {
+  return (h.reportes + h.evidencias + h.propuestas + h.novedades + h.actividades) > 0;
+}
+
+/** Cuántos administradores activos hay, sin contar a uno. */
+function otrosAdminsActivos_(id) {
+  return filtrar('usuarios', function (u) {
+    return bool(u.activo) && !u.suprimido_en && String(u.rol) === 'ADMIN' &&
+      String(u.id) !== String(id);
+  }).length;
+}
+
+/** Pasa los trabajos abiertos y los planes de una persona a otra. */
+function reasignarTrabajos_(id, destino, quien) {
+  let trabajos = 0;
+  let planes = 0;
+  filtrar('actividades', function (a) {
+    return String(a.responsable_id) === String(id) && bool(a.activo) &&
+      ['PROGRAMADA', 'EN_EJECUCION', 'REPORTADA', 'RECHAZADA'].indexOf(String(a.estado)) >= 0;
+  }).forEach(function (a) {
+    actualizar('actividades', a.id, { responsable_id: destino }, quien);
+    trabajos++;
+  });
+  filtrar('recurrencias', function (r) {
+    return bool(r.activo) && bool(r.activa) && String(r.responsable_id) === String(id);
+  }).forEach(function (r) {
+    actualizar('recurrencias', r.id, { responsable_id: destino }, quien);
+    planes++;
+  });
+  return { trabajos: trabajos, planes: planes };
+}
+
+/**
+ * RN-70 a RN-72 · Eliminar usuarios. No borra la fila: la marca suprimida, para que los
+ * reportes, las actas y la auditoría sigan encontrando el nombre. Si no tiene historial,
+ * además se vacían los datos personales.
+ */
+function usuariosEliminar(ctx, payload) {
+  desdePortal_(payload);
+  const ids = (Array.isArray(payload.ids) ? payload.ids : [payload.id]).filter(Boolean).map(String);
+  if (!ids.length) fallar_('VALIDACION', 'No hay usuarios que eliminar.');
+  if (ids.length > 50) fallar_('VALIDACION', 'Máximo 50 usuarios por vez.');
+
+  const motivo = payload.motivo === undefined ? '' : String(payload.motivo).trim();
+  const reasignarA = payload.reasignar_a ? String(payload.reasignar_a) : '';
+  const retirarPropuestas = !!payload.retirar_propuestas;
+
+  return conBloqueo(function () {
+    limpiarCache('usuarios');
+    const eliminados = [];
+    const omitidos = [];
+
+    ids.forEach(function (id) {
+      const u = buscarPorId('usuarios', id);
+      if (!u || u.suprimido_en) {
+        omitidos.push({ id: id, nombre: '', razon: 'no existe' });
+        return;
+      }
+      if (String(u.id) === String(ctx.usuario.id)) {
+        omitidos.push({ id: id, nombre: u.nombre, razon: 'es su propia cuenta' });
+        return;
+      }
+      if (String(u.rol) === 'ADMIN' && otrosAdminsActivos_(u.id) === 0) {
+        omitidos.push({ id: id, nombre: u.nombre, razon: 'es el último administrador activo' });
+        return;
+      }
+
+      const h = historialUsuario_(id);
+      if ((h.abiertos || h.planes) && !reasignarA) {
+        omitidos.push({
+          id: id, nombre: u.nombre,
+          razon: 'tiene ' + h.abiertos + ' trabajo(s) abierto(s) y ' + h.planes + ' plan(es); elija a quién pasarlos',
+        });
+        return;
+      }
+      if (h.pendientes && !retirarPropuestas) {
+        omitidos.push({
+          id: id, nombre: u.nombre,
+          razon: 'tiene ' + h.pendientes + ' propuesta(s) pendiente(s); retírelas primero',
+        });
+        return;
+      }
+      if (tieneHistorial_(h) && motivo.length < 10) {
+        omitidos.push({ id: id, nombre: u.nombre, razon: 'necesita motivo (10 caracteres) porque tiene historial' });
+        return;
+      }
+
+      if (reasignarA) reasignarTrabajos_(id, reasignarA, ctx.usuario.email);
+      if (h.pendientes) {
+        filtrar('propuestas', function (p) {
+          return bool(p.activo) && String(p.estado) === 'PENDIENTE' && String(p.propuesta_por) === String(id);
+        }).forEach(function (p) {
+          actualizar('propuestas', p.id, { estado: 'RETIRADA' }, ctx.usuario.email);
+        });
+      }
+
+      const parche = {
+        suprimido_en: ahoraIso(),
+        suprimido_por: ctx.usuario.email,
+        motivo_supresion: motivo,
+        estado: 'INACTIVO',
+        activo: false,
+      };
+      // RN-72 · Sin historial se van también los datos personales.
+      if (!tieneHistorial_(h)) {
+        parche.nombre = '';
+        parche.telefono = '';
+        parche.email = 'eliminado-' + id;
+      }
+      actualizar('usuarios', id, parche, ctx.usuario.email);
+
+      // RN-71 · Sesiones, secciones y correos pendientes.
+      revocarSesiones_(id, ctx.usuario.email);
+      filtrar('asignaciones', function (a) {
+        return String(a.usuario_id) === String(id) && bool(a.activo);
+      }).forEach(function (a) { actualizar('asignaciones', a.id, { activo: false }, ctx.usuario.email); });
+      filtrar('notificaciones', function (n) {
+        return String(n.usuario_id) === String(id) && String(n.estado) === 'PENDIENTE';
+      }).forEach(function (n) {
+        actualizar('notificaciones', n.id, { estado: 'ERROR', error: 'usuario eliminado' }, ctx.usuario.email);
+      });
+
+      auditar(ctx.usuario.email, 'USUARIO_ELIMINADO', 'usuario', id, u,
+        { motivo: motivo, historial: h, sin_datos: !tieneHistorial_(h) });
+      eliminados.push(id);
+    });
+
+    marcarCambio('usuarios');
+    return { eliminados: eliminados, omitidos: omitidos };
   });
 }

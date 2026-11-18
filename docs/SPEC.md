@@ -751,6 +751,21 @@ para que un residente reportara un daño desde el equipo; ese reporte ya está a
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
 
+### 10.4 bis. Eliminar usuarios (v1.10)
+
+- **RN-70.** El administrador elimina a cualquier usuario menos: a sí mismo, al último ADMIN
+  activo, a quien tenga trabajos abiertos o planes sin elegir `reasignar_a`, y a quien tenga
+  propuestas PENDIENTE sin `retirar_propuestas`. Motivo obligatorio (10 caracteres) si tiene historial.
+- **RN-71.** La fila **no se borra**: `suprimido_en`, `suprimido_por`, `motivo_supresion`,
+  `estado = 'INACTIVO'`, `activo = FALSE`; sesiones revocadas, secciones desactivadas, notificaciones
+  pendientes descartadas y auditoría `USUARIO_ELIMINADO`.
+- **RN-72.** Sin historial (ni reportes, ni evidencias, ni propuestas, ni novedades, ni actividades)
+  se vacían `nombre`, `telefono` y `email` (queda `eliminado-<id>`).
+- **RN-73.** Hasta 50 a la vez, en un solo bloqueo; los que no se pueden eliminar vuelven en
+  `omitidos` con su razón.
+- **RN-74.** Un usuario suprimido no sale en ninguna lista, no recibe correos, no aparece en los
+  selectores y su sesión responde `SESION_INVALIDA`.
+
 ### 10.3 bis. Las pruebas no dejan datos (v1.10)
 
 - **RN-75.** «Ejecutar pruebas» no deja **ninguna** fila nueva. Cada grupo corre con `try/catch`
