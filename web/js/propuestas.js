@@ -587,6 +587,20 @@
       ver.addEventListener('click', function () { abrirPdf(previos.id, ver); });
       caja.appendChild(ver);
       btnPdf.textContent = 'Cambiar cotización (PDF)';
+
+      // RN-65 · Dejarla sin cotización, no solo reemplazarla.
+      const quitarCot = boton('Quitar cotización', 'btn-mini peligro');
+      quitarCot.addEventListener('click', async function () {
+        if (!window.confirm('¿Quitar la cotización? La propuesta quedará sin PDF.')) return;
+        quitarCot.disabled = true;
+        const r = await API.llamar('propuestas.cotizacion.quitar',
+          { propuesta_id: previos.id }, { token: Sesion.token(), idempotente: true });
+        quitarCot.disabled = false;
+        if (!r.ok) return aviso(r.message || 'No se pudo quitar la cotización.', 'error');
+        aviso('Cotización quitada.', 'ok');
+        formularioPropuesta(r.data.propuesta, r.data.version || previos.version);
+      });
+      caja.appendChild(quitarCot);
     }
     caja.appendChild(btnPdf);
     caja.appendChild(inpPdf);

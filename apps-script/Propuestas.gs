@@ -993,3 +993,38 @@ function propuestasLista(ctx, payload) {
   admin.forEach(function (u) { encolarUnaVez_(u.id, 'PROPUESTA_NUEVA', id); });
   return { avisada: true };
 }
+
+
+/**
+ * RN-65 · Quitar la cotización. El autor, con la propuesta PENDIENTE. Si tenía valor,
+ * queda marcada «Falta la cotización» y aprobar exigirá la casilla de RN-50.
+ */
+function propuestasCotizacionQuitar(ctx, payload) {
+  desdePortal_(payload);
+  const id = exigirTexto(payload.propuesta_id, 'propuesta_id');
+
+  const archivoQuitado = [];
+  const resultado = conBloqueo(function () {
+    limpiarCache('propuestas');
+    const p = buscarPorId('propuestas', id);
+    if (!p || !bool(p.activo)) fallar_('NO_ENCONTRADO', 'La propuesta no existe.');
+    if (String(p.propuesta_por) !== String(ctx.usuario.id) && String(ctx.rol) !== 'ADMIN') {
+      fallar_('PROHIBIDO', 'Esa propuesta no es tuya.');
+    }
+    if (String(p.estado) !== 'PENDIENTE') {
+      fallar_('ESTADO_INVALIDO', 'La administración ya revisó esta propuesta.');
+    }
+    if (!p.cotizacion_file_id) fallar_('NO_ENCONTRADO', 'Esa propuesta no tiene cotización.');
+
+    archivoQuitado.push(p.cotizacion_file_id);
+    const despues = actualizar('propuestas', id, { cotizacion_file_id: '' }, ctx.usuario.email);
+    auditar(ctx.usuario.email, 'COTIZACION_QUITADA', 'propuesta', id,
+      { nombre: p.cotizacion_nombre || '', valor: p.valor_cotizado }, { valor: p.valor_cotizado });
+    return { propuesta: propuestaResumen_(despues, ctx), version: String(despues.actualizado_en || '') };
+  });
+
+  archivoQuitado.filter(Boolean).forEach(function (archivoId) {
+    try { DriveApp.getFileById(archivoId).setTrashed(true); } catch (e) { /* ya no está */ }
+  });
+  return resultado;
+}

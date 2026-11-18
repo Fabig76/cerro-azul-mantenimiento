@@ -286,3 +286,48 @@ function purgarReportesResidentes_() {
   });
   return { purgados: viejos.length, archivos: archivos };
 }
+
+
+/**
+ * RN-67 · Quitar la foto de un reporte de residente. El reporte se conserva con su texto
+ * y el residente sigue consultando su código igual. Sirve cuando la foto muestra una
+ * cara, una placa o algo que no debe quedar publicado.
+ */
+function residentesFotoQuitar(ctx, payload) {
+  desdePortal_(payload);
+  const id = exigirTexto(payload.id, 'id');
+  const motivo = exigirTexto(payload.motivo, 'motivo', 400).trim();
+  if (motivo.length < 10) fallar_('VALIDACION', 'Escribe el motivo (al menos 10 caracteres).');
+
+  const archivos = [];
+  const r = conBloqueo(function () {
+    limpiarCache('reportes_residentes');
+    const rep = buscarPorId('reportes_residentes', id);
+    if (!rep || !bool(rep.activo)) fallar_('NO_ENCONTRADO', 'El reporte no existe.');
+    if (!rep.foto_file_id && !rep.foto_mini_file_id) {
+      fallar_('ESTADO_INVALIDO', 'Ese reporte no tiene foto.');
+    }
+
+    archivos.push(rep.foto_file_id, rep.foto_mini_file_id);
+    const despues = actualizar('reportes_residentes', id, {
+      foto_file_id: '',
+      foto_mini_file_id: '',
+      foto_quitada_por: ctx.usuario.email,
+      foto_quitada_en: ahoraIso(),
+      foto_motivo: motivo,
+    }, ctx.usuario.email);
+    auditar(ctx.usuario.email, 'REPORTE_FOTO_QUITADA', 'reporte_residente', id, null,
+      { motivo: motivo });
+    return {
+      reporte: {
+        id: despues.id, codigo_consulta: despues.codigo_consulta,
+        tiene_foto: false, estado: despues.estado,
+      },
+    };
+  });
+
+  archivos.filter(Boolean).forEach(function (archivoId) {
+    try { DriveApp.getFileById(archivoId).setTrashed(true); } catch (e) { /* ya no está */ }
+  });
+  return r;
+}

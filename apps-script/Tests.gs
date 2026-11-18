@@ -70,6 +70,7 @@ function runAllTests() {
   pruebasEjecutarActividad_();
   pruebasQuitarEvidencia_();
   pruebasEmpresaEliminar_();
+  pruebasQuitarCotizacionYFotoResidente_();
   pruebasReasignarAlDesactivar_();
   pruebasPropuestasV17_();
   pruebasFilasPorHoja_();
@@ -792,6 +793,63 @@ function pruebasPropuestasV17_() {
 /**
  * RN-57 a RN-61 · Eliminar una empresa, el NIT único y la revisión de propuestas.
  */
+/**
+ * RN-65 y RN-67 · Quitar la cotización de una propuesta y la foto de un residente.
+ */
+function pruebasQuitarCotizacionYFotoResidente_() {
+  const ctxAdmin = { usuario: { id: 'ADMIN', email: 'admin@urbcerroazul.com' }, rol: 'ADMIN' };
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · quitar cotización · sin nodos'); return; }
+
+  // RN-65 · cotización
+  const dueno = insertar('usuarios', {
+    id: newId('USU'), email: 'cotizacion-dueno@urbcerroazul.com', nombre: 'Dueño',
+    telefono: '3000000040', rol: 'CONTRATISTA', empresa_id: '', estado: 'ACTIVO', activo: true,
+  }, 'prueba');
+  const prop = insertar('propuestas', {
+    id: newId('PRO'), empresa_id: '', propuesta_por: dueno.id, nodo_id: nodo.id,
+    titulo: 'PRUEBA cotización', hallazgo: 'algo encontrado en la visita', alcance: 'hacer el trabajo',
+    fecha_inicio_sugerida: hoyIso(), fecha_fin_sugerida: hoyIso(), prioridad_sugerida: 'MEDIA',
+    estado: 'PENDIENTE', fotos_json: '[]', valor_cotizado: 500000,
+    cotizacion_file_id: 'archivo-falso', cotizacion_nombre: 'cotizacion.pdf',
+    activo: true,
+  }, 'prueba');
+
+  const ctxDueno = { usuario: { id: dueno.id, email: dueno.email }, rol: 'CONTRATISTA' };
+  propuestasCotizacionQuitar(ctxDueno, { propuesta_id: prop.id });
+  verdadero_(String(buscarPorId('propuestas', prop.id).cotizacion_file_id) === '',
+    'RN-65 · el autor quita la cotización de su propuesta pendiente');
+
+  actualizar('propuestas', prop.id, { estado: 'APROBADA' }, 'prueba');
+  let aprobada = '';
+  try { propuestasCotizacionQuitar(ctxDueno, { propuesta_id: prop.id }); } catch (e) { aprobada = String(e.message); }
+  verdadero_(aprobada.indexOf('ESTADO_INVALIDO') === 0, 'RN-65 · en una aprobada ya no');
+
+  // RN-67 · foto del residente
+  const rep = insertar('reportes_residentes', {
+    id: newId('RRE'), nodo_id: nodo.id, descripcion: 'Se filtra el techo del pasillo',
+    nombre: 'Residente', telefono: '3000000000', codigo_consulta: 'ABC123',
+    estado: 'POR_REVISAR', foto_file_id: 'foto-falsa', foto_mini_file_id: 'mini-falsa',
+    foto_sha256: 'sha-residente', activo: true,
+  }, 'prueba');
+
+  let sinMotivo = '';
+  try { residentesFotoQuitar(ctxAdmin, { id: rep.id }); } catch (e) { sinMotivo = String(e.message); }
+  verdadero_(sinMotivo.indexOf('VALIDACION') === 0, 'RN-67 · quitar la foto exige motivo');
+
+  residentesFotoQuitar(ctxAdmin, { id: rep.id, motivo: 'sale la cara de un vecino' });
+  const despues = buscarPorId('reportes_residentes', rep.id);
+  verdadero_(String(despues.foto_file_id) === '', 'RN-67 · la foto queda fuera');
+  verdadero_(String(despues.descripcion).indexOf('Se filtra') >= 0, 'RN-67 · y el reporte se conserva');
+  const consulta = publicReporteEstado({}, { codigo: 'ABC123' });
+  verdadero_(consulta && String(consulta.estado) !== 'NO_ENCONTRADO',
+    'RN-67 · el residente sigue consultando su código igual');
+
+  actualizar('reportes_residentes', rep.id, { activo: false }, 'prueba');
+  actualizar('propuestas', prop.id, { activo: false }, 'prueba');
+  actualizar('usuarios', dueno.id, { activo: false }, 'prueba');
+}
+
 function pruebasEmpresaEliminar_() {
   const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
   const base = { activo: true, estado: 'ACTIVA' };

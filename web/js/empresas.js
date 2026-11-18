@@ -117,7 +117,9 @@
       acciones.appendChild(cambiar);
 
       // RN-57 · Eliminar: solo para una empresa creada por error o repetida.
-      if (window.__rol === 'ADMIN') {
+      // El servidor solo manda `historial` al administrador; si viene, puede eliminar.
+      const esAdmin = window.__rol === 'ADMIN' || f.historial !== undefined;
+      if (esAdmin) {
         const eliminar = el('button', 'btn sm peligro', 'Eliminar');
         eliminar.type = 'button';
         eliminar.addEventListener('click', function () { eliminarEmpresa(f, caja, eliminar); });
@@ -125,7 +127,7 @@
       }
       caja.appendChild(acciones);
 
-      if (window.__rol === 'ADMIN') {
+      if (esAdmin) {
         caja.appendChild(el('p', 'bajada-tarjeta',
           'Desactivar la saca de las listas para asignar y conserva su historial. ' +
           'Eliminar es para una empresa creada por error o repetida.'));

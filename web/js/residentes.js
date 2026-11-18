@@ -78,6 +78,23 @@
         img.alt = 'Foto del reporte';
         img.loading = 'lazy';
         figura.appendChild(img);
+        // RN-67 · Quitar la foto conservando el reporte.
+        const quitarFoto = el('button', 'btn-mini peligro', 'Quitar la foto');
+        quitarFoto.type = 'button';
+        quitarFoto.addEventListener('click', async function () {
+          const motivo = window.prompt('¿Por qué se quita la foto? (queda en la auditoría y el reporte se conserva)', '');
+          if (motivo === null) return;
+          if (motivo.trim().length < 10) return aviso('Escribe al menos 10 caracteres.', 'error');
+          quitarFoto.disabled = true;
+          const r = await API.llamar('residentes.foto.quitar', { id: x.id, motivo: motivo.trim() },
+            { token: Sesion.token(), idempotente: true });
+          quitarFoto.disabled = false;
+          if (!r.ok) return aviso(r.message || 'No se pudo quitar la foto.', 'error');
+          if (window.FotoCache && FotoCache.olvidar) FotoCache.olvidar('residente:' + x.id);
+          aviso('Foto quitada. El reporte sigue con su texto.', 'ok');
+          cargar();
+        });
+        figura.appendChild(quitarFoto);
         caja.appendChild(figura);
         miniaturizarReporte(img, x.id);
       }

@@ -33,6 +33,7 @@ const ACCIONES = {
   'public.reporte': { fn: publicReporteEstado, publica: true },
   'residentes.listar': { fn: residentesListar, sesion: true, roles: ['ADMIN', 'SUPERVISOR', 'CONSEJO'] },
   'residentes.foto.get': { fn: residentesFotoGet, sesion: true, roles: ['ADMIN', 'SUPERVISOR', 'CONSEJO'] },
+  'residentes.foto.quitar': { fn: residentesFotoQuitar, sesion: true, roles: ['ADMIN'] },
   'residentes.convertir': { fn: residentesConvertir, sesion: true, roles: ['ADMIN'] },
   'residentes.descartar': { fn: residentesDescartar, sesion: true, roles: ['ADMIN'] },
   'auth.google': { fn: authGoogle, publica: true },
@@ -94,6 +95,7 @@ const ACCIONES = {
   'propuestas.foto.quitar': { fn: propuestasFotoQuitarAccion, sesion: true, roles: ['CONTRATISTA', 'ADMIN'] },
   'propuestas.lista': { fn: propuestasLista, sesion: true, roles: ['CONTRATISTA'] },
   // P10: los roles declarados tienen que ser los que la función acepta.
+  'propuestas.cotizacion.quitar': { fn: propuestasCotizacionQuitar, sesion: true, roles: ['CONTRATISTA', 'ADMIN'] },
   'propuestas.cotizacion.subir': { fn: propuestasCotizacionSubir, sesion: true, roles: ['CONTRATISTA'] },
   'propuestas.cotizacion.get': { fn: propuestasCotizacionGet, sesion: true },
   'propuestas.foto.subir': { fn: propuestasFotoSubir, sesion: true, roles: ['CONTRATISTA'] },
