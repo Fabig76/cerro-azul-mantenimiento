@@ -72,6 +72,7 @@ function runAllTests() {
   pruebasEmpresaEliminar_();
   pruebasQuitarCotizacionYFotoResidente_();
   pruebasFusionarEmpresas_();
+  pruebasPurgaYNovedadConFoto_();
   pruebasReasignarAlDesactivar_();
   pruebasPropuestasV17_();
   pruebasFilasPorHoja_();
@@ -800,6 +801,64 @@ function pruebasPropuestasV17_() {
 /**
  * RN-60 · Fusionar: mover todo a la empresa correcta y suprimir la de origen.
  */
+/**
+ * RN-68 y RN-69 · Purga de archivos inactivos y novedad con la foto del residente.
+ */
+function pruebasPurgaYNovedadConFoto_() {
+  const ctx = { usuario: { id: 'ADMIN', email: 'admin@urbcerroazul.com' }, rol: 'ADMIN' };
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · purga · sin nodos'); return; }
+
+  // RN-68 · una vieja se purga, una reciente no
+  const hace = function (dias) {
+    return new Date(Date.now() - dias * 86400000).toISOString();
+  };
+  const vieja = insertar('evidencias', {
+    id: newId('EVI'), reporte_id: '', actividad_id: '', nodo_id: nodo.id, momento: 'ANTES',
+    drive_file_id: '', mini_file_id: '', mime: 'image/jpeg', bytes: 1, sha256: 'sha-vieja',
+    fecha_captura: '', fecha_subida: '', lat: '', lng: '', contiene_personas: false,
+    publicable: false, public_file_id: '', activo: false, quitada_en: hace(31),
+  }, 'prueba');
+  const nueva = insertar('evidencias', {
+    id: newId('EVI'), reporte_id: '', actividad_id: '', nodo_id: nodo.id, momento: 'ANTES',
+    drive_file_id: '', mini_file_id: '', mime: 'image/jpeg', bytes: 1, sha256: 'sha-nueva',
+    fecha_captura: '', fecha_subida: '', lat: '', lng: '', contiene_personas: false,
+    publicable: false, public_file_id: '', activo: false, quitada_en: hace(5),
+  }, 'prueba');
+
+  purgarEvidenciasInactivas_();
+  verdadero_(!!buscarPorId('evidencias', vieja.id).archivo_purgado_en,
+    'RN-68 · la foto inactiva de hace 31 días se purga');
+  verdadero_(!buscarPorId('evidencias', nueva.id).archivo_purgado_en,
+    'RN-68 · la de hace 5 días se conserva');
+
+  // RN-69 · la novedad guarda el vínculo con el reporte del residente
+  const rep = insertar('reportes_residentes', {
+    id: newId('RRE'), nodo_id: nodo.id, descripcion: 'Se filtra el techo del pasillo',
+    codigo_consulta: 'XYZ789', estado: 'POR_REVISAR', foto_file_id: 'foto-falsa',
+    foto_mini_file_id: 'mini-falsa', foto_sha256: 'sha-rep', activo: true,
+  }, 'prueba');
+
+  const r = residentesConvertir(ctx, {
+    id: rep.id, adjuntar_foto: true, publicable: false,
+    titulo: 'Filtración reportada por un residente',
+  });
+  const novedadId = r && r.novedad ? r.novedad.id : (r && r.data && r.data.novedad ? r.data.novedad.id : '');
+  const nov = novedadId ? buscarPorId('novedades', novedadId) : null;
+  verdadero_(!!nov && String(nov.reporte_residente_id) === String(rep.id),
+    'RN-69 · la novedad guarda el reporte del residente');
+  verdadero_(!!nov && !bool(nov.publicable), 'RN-69 · y la novedad no se publica con la foto');
+
+  const snap = construirSnapshot();
+  const texto = JSON.stringify(snap);
+  verdadero_(texto.indexOf(rep.id) < 0, 'RN-69 · el reporte del residente no sale en el portal público');
+
+  actualizar('novedades', novedadId, { activo: false }, 'prueba');
+  actualizar('reportes_residentes', rep.id, { activo: false }, 'prueba');
+  actualizar('evidencias', vieja.id, { activo: false, archivo_purgado_en: '' }, 'prueba');
+  actualizar('evidencias', nueva.id, { activo: false }, 'prueba');
+}
+
 function pruebasFusionarEmpresas_() {
   const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
   const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];

@@ -152,6 +152,8 @@
     const etiquetaAdjuntar = el('label', 'casilla-datos', null);
     etiquetaAdjuntar.appendChild(adjuntar);
     etiquetaAdjuntar.appendChild(el('span', null, 'Adjuntar la foto a la novedad'));
+    etiquetaAdjuntar.appendChild(el('span', 'bajada-tarjeta',
+      'Esta foto la verá solo la administración; nunca se publica en el portal.'));
 
     const sinPersonas = el('input');
     sinPersonas.type = 'checkbox';

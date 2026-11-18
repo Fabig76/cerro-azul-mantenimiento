@@ -79,6 +79,19 @@
 
       if (n.descripcion) caja.appendChild(el('p', null, n.descripcion));
 
+      // RN-69 · La foto que mandó el residente, solo para quien revisa.
+      if (n.tiene_foto_residente && n.reporte_residente_id) {
+        const figura = el('figure', 'residente-foto');
+        const img = el('img', 'foto-mini');
+        img.alt = 'Foto del reporte del residente';
+        img.loading = 'lazy';
+        figura.appendChild(img);
+        miniaturizarFotoResidente(img, n.reporte_residente_id);
+        caja.appendChild(figura);
+        caja.appendChild(el('p', 'bajada-tarjeta aviso-privado',
+          'Esta foto la verá solo la administración. No se publica en el portal.'));
+      }
+
       // N5 · Lo que se reporta como daño casi siempre necesita un trabajo: se crea desde
       // aquí con la sección y la descripción llenas, sin volver a escribirlas.
       if (n.estado !== 'RESUELTA' && !n.actividad_correctiva_id &&
@@ -127,6 +140,16 @@
       }
       cont.appendChild(caja);
     });
+  }
+
+  /** Miniatura de la foto de un reporte de residente (solo panel). */
+  async function miniaturizarFotoResidente(img, reporteId) {
+    try {
+      const r = await API.llamar('residentes.foto.get', { id: reporteId, tam: 'mini' },
+        { token: Sesion.token() });
+      if (!r.ok || !r.data || !r.data.base64) return;
+      img.src = 'data:' + (r.data.mime || 'image/jpeg') + ';base64,' + r.data.base64;
+    } catch (e) { /* sin foto se queda el hueco */ }
   }
 
   function preparar() {

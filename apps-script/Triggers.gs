@@ -74,6 +74,9 @@ function recalcularTodoDiario() {
   try {
     const purga = purgarPropuestas_();
     purgarReportesResidentes_();
+    // RN-68 · Archivos de fotos inactivas: a la papelera pasados 30 días.
+    const evidencias = purgarEvidenciasInactivas_();
+    if (evidencias.archivos) console.log('fotos purgadas: ' + JSON.stringify(evidencias));
     if (purga && purga.purgadas) console.log('Propuestas purgadas: ' + purga.purgadas);
   } catch (e) {
     console.error('purga de propuestas: ' + e.message);

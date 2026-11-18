@@ -283,3 +283,44 @@ function evidenciasQuitar(ctx, payload) {
 function evidenciasQuitarAccion(ctx, payload) {
   return evidenciasQuitar(ctx, payload);
 }
+
+
+/**
+ * RN-68 · Los archivos de fotos inactivas salen de Drive pasado el plazo. Una foto
+ * reemplazada o de una actividad retirada quedaba guardada para siempre: no se veía,
+ * pero seguía existiendo.
+ *
+ * La fila NO se borra: queda con `archivo_purgado_en` para saber que el archivo ya no está.
+ */
+function purgarEvidenciasInactivas_(limite) {
+  const dias = configNumero('evidencias_dias_papelera', 30);
+  const corte = new Date(Date.now() - dias * 86400000);
+  const tope = Number(limite) || 200;
+
+  const viejas = filtrar('evidencias', function (e) {
+    if (bool(e.activo)) return false;          // solo las quitadas o reemplazadas
+    if (e.archivo_purgado_en) return false;    // ya se purgó
+    const fecha = new Date(String(e.quitada_en || e.actualizado_en || e.creado_en || ''));
+    return !isNaN(fecha.getTime()) && fecha < corte;
+  }).slice(0, tope);
+
+  if (!viejas.length) return { purgadas: 0, archivos: 0 };
+
+  let archivos = 0;
+  viejas.forEach(function (e) {
+    [e.drive_file_id, e.mini_file_id, e.public_file_id].forEach(function (id) {
+      if (!id) return;
+      try { DriveApp.getFileById(id).setTrashed(true); archivos++; } catch (err) { /* ya no está */ }
+    });
+    actualizar('evidencias', e.id, {
+      drive_file_id: '',
+      mini_file_id: '',
+      public_file_id: '',
+      archivo_purgado_en: ahoraIso(),
+    }, 'sistema');
+  });
+
+  auditar('sistema', 'EVIDENCIAS_PURGADAS', 'evidencias', '', null,
+    { filas: viejas.length, archivos: archivos, dias: dias });
+  return { purgadas: viejas.length, archivos: archivos, dias: dias };
+}

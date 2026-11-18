@@ -208,6 +208,10 @@ function residentesConvertir(ctx, payload) {
   const tipo = exigirEnEnum(payload.tipo || 'DANO', 'tipo', ['DANO', 'FALLA', 'RIESGO', 'OBSERVACION']);
   const gravedad = exigirEnEnum(payload.gravedad || 'MEDIA', 'gravedad', ['BAJA', 'MEDIA', 'ALTA', 'CRITICA']);
 
+  // RN-69 · Si se pide adjuntar la foto, la novedad guarda el vínculo con el reporte.
+  // La foto se ve en el panel (administración, supervisor, consejo) y NUNCA en el portal.
+  const adjuntar = !!payload.adjuntar_foto && !!r.foto_file_id;
+
   const creada = crearNovedad_(ctx, {
     nodo_id: nodoId,
     titulo: titulo,
@@ -217,14 +221,10 @@ function residentesConvertir(ctx, payload) {
     origen: 'RESIDENTE',
     reportada_por: '',
     publicable: !!payload.publicable,
+    reporte_residente_id: adjuntar ? id : '',
   });
 
   const novedad = creada.novedad;
-  let publicable = false;
-  if (payload.adjuntar_foto && r.foto_file_id) {
-    // Sin la confirmación expresa, la foto no se publica.
-    publicable = !!payload.foto_sin_personas;
-  }
 
   actualizar('reportes_residentes', id, {
     estado: 'CONVERTIDO',
@@ -233,7 +233,7 @@ function residentesConvertir(ctx, payload) {
     revisado_en: ahoraIso(),
   }, ctx.usuario.email);
   auditar(ctx.usuario.email, 'REPORTE_RESIDENTE_CONVERTIDO', 'reporte_residente', id, null,
-    { novedad: novedad.id, foto_publicable: publicable });
+    { novedad: novedad.id, adjuntar_foto: adjuntar });
 
   return { novedad: { id: novedad.id, titulo: novedad.titulo } };
 }

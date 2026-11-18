@@ -4,6 +4,7 @@
  */
 
 function novedadResumen_(n) {
+  if (!n) return null;
   const nodo = buscarPorId('nodos', n.nodo_id);
   return {
     id: n.id,
@@ -15,6 +16,9 @@ function novedadResumen_(n) {
     fecha_deteccion: fechaIso_(n.fecha_deteccion),
     fecha_compromiso: fechaIso_(n.fecha_compromiso),
     nodo: nodo ? { id: nodo.id, codigo: nodo.codigo, nombre: nodo.nombre } : null,
+    // RN-69 · Solo el panel la muestra; el snapshot público no la lee.
+    reporte_residente_id: n.reporte_residente_id || '',
+    tiene_foto_residente: !!n.reporte_residente_id,
     reportada_por: n.reportada_por || '',
   };
 }
@@ -108,6 +112,9 @@ function crearNovedad_(ctx, datos) {
     fecha_resolucion: '',
     publicable: !!datos.publicable,
     texto_publico: datos.texto_publico ? String(datos.texto_publico).slice(0, 300) : '',
+    // RN-69 · La novedad puede venir de un reporte de residente y guardar su vínculo:
+    // la foto se ve en el panel (administración, supervisor, consejo), nunca en el portal.
+    reporte_residente_id: datos.reporte_residente_id || '',
     activo: true,
   }, ctx.usuario.email);
 

@@ -802,3 +802,6 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
   .fila-checklist { grid-template-columns: 1fr 1fr; }
   .fila-checklist .item-input { grid-column: span 2; }
 }
+
+/* RN-69 · Aviso de foto privada en la novedad */
+.aviso-privado { border-left: 3px solid var(--warn, #d9822b); padding-left: 8px; }

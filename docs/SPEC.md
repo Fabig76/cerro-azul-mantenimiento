@@ -751,6 +751,16 @@ para que un residente reportara un daño desde el equipo; ese reporte ya está a
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
 
+### 10.2 duodecies. Purga de archivos y novedad con foto (v1.9)
+
+- **RN-68.** En la limpieza diaria, los archivos de evidencias inactivas (quitadas o reemplazadas)
+  de más de `config.evidencias_dias_papelera` (30 días) van a la papelera de Drive y la fila guarda
+  `archivo_purgado_en`. La fila no se borra.
+- **RN-69 (opción A).** Al convertir el reporte de un residente se puede **adjuntar su foto**: la
+  novedad guarda `reporte_residente_id` y el panel (administración, supervisor y consejo) la muestra
+  con el aviso «Esta foto la verá solo la administración». **Nunca** se publica en el portal: el
+  snapshot público no la lee.
+
 ### 10.2 undecies. Eliminar una empresa (v1.9)
 
 - **RN-57.** Se elimina una empresa **sin historial** (sin trabajos en ningún estado, sin planes, sin
