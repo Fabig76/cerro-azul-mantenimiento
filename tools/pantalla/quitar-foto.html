@@ -68,6 +68,7 @@ window.FotoCache = { configurar: function () {}, mostrar: function () {}, olvida
     await Actividad.abrir('A1', 'CONTRATISTA');
     await esperar(250);
     ok(botones().indexOf('Quitar') >= 0, 'con permiso aparece «Quitar» · libros=' + botones().join('/') + ' · texto=' + document.getElementById('contenidoActividad').textContent.slice(0,120) + ' · evidencias=' + JSON.stringify((window.__ultimo||{}).evidencias||'?'));
+    ok(document.querySelectorAll('.foto-item .peligro').length > 0, 'y también en la miniatura de la foto');
 
     window.confirm = function () { return true; };
     window.__llamadas = [];

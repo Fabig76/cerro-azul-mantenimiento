@@ -46,6 +46,9 @@
           id: e.id,
           kb: Math.round((Number(e.bytes) || 0) / 1024),
           fecha_subida: e.fecha_subida || '',
+          // RN-62/63 · Lo decide el servidor; se conserva para dibujar «Quitar».
+          puede_quitar: e.puede_quitar === true,
+          quitar_motivo: e.puede_quitar === true ? '' : 'El servidor no permite quitar esta foto ahora.',
         };
       });
   }
@@ -84,6 +87,40 @@
    * detalle completo, así que no hace falta volver a pedirlo.
    */
   /** RN-56 · ¿Puede ejecutar este trabajo? Lo dice el servidor, no el rol. */
+  /** ¿Se puede ofrecer «Quitar» en esta foto? */
+  /**
+   * RN-62/64 · Quitar una foto. Vive aquí, no dentro de un bloque, porque la usan la
+   * miniatura de «Fotos de antes/después» y la lista de evidencia.
+   */
+  async function quitarFoto(e) {
+    if (!e || !e.id) return;
+    const esAdmin = rol === 'ADMIN';
+    if (!window.confirm('¿Quitar esta foto? Dejará de verse en el trabajo y en el acta.')) return;
+    let motivo = '';
+    if (esAdmin) {
+      motivo = window.prompt('¿Por qué se quita? (queda en la auditoría)', '') || '';
+      if (motivo.trim().length < 10) {
+        return aviso('Escribe al menos 10 caracteres de motivo.', 'error');
+      }
+    }
+    const r = await API.llamar('evidencias.quitar', { id: e.id, motivo: motivo.trim() },
+      { token: Sesion.token(), idempotente: true });
+    if (!r.ok) return aviso(r.message || 'No se pudo quitar la foto.', 'error');
+    if (window.FotoCache && FotoCache.olvidar) FotoCache.olvidar('evidencia:' + e.id);
+    aviso('Foto quitada.', 'ok');
+    cambiosPendientes = true;
+    if (r.data && r.data.detalle) mostrarDetalle(r.data.detalle); else abrir(datos.actividad.id, rol);
+  }
+
+  function permiteQuitar(foto) {
+    if (!foto || !foto.id) return false;
+    if (foto.puede_quitar === true) return true;
+    if (foto.puede_quitar === false) return false;
+    // Recién subida: todavía no vino del servidor, pero el servidor es la autoridad final.
+    const estado = datos && datos.actividad ? String(datos.actividad.estado) : '';
+    return puedeEjecutar() && ['PROGRAMADA', 'EN_EJECUCION', 'RECHAZADA'].indexOf(estado) >= 0;
+  }
+
   function puedeEjecutar() {
     return !!(datos && datos.permisos && datos.permisos.ejecutar);
   }
@@ -490,25 +527,6 @@
     const ev = datos.evidencias || [];
     const antes = ev.filter(function (e) { return e.momento === 'ANTES'; });
     const despues = ev.filter(function (e) { return e.momento === 'DESPUES'; });
-    // RN-62/64 · Quitar una foto (el servidor decide con puede_quitar).
-    async function quitarFoto(e) {
-      const esAdmin = rol === 'ADMIN';
-      if (!window.confirm('¿Quitar esta foto? Dejará de verse en el trabajo y en el acta.')) return;
-      let motivo = '';
-      if (esAdmin) {
-        motivo = window.prompt('¿Por qué se quita? (queda en la auditoría)', '') || '';
-        if (motivo.trim().length < 10) {
-          return aviso('Escribe al menos 10 caracteres de motivo.', 'error');
-        }
-      }
-      const r = await API.llamar('evidencias.quitar', { id: e.id, motivo: motivo.trim() },
-        { token: Sesion.token(), idempotente: true });
-      if (!r.ok) return aviso(r.message || 'No se pudo quitar la foto.', 'error');
-      if (window.FotoCache && FotoCache.olvidar) FotoCache.olvidar('evidencia:' + e.id);
-      aviso('Foto quitada.', 'ok');
-      cambiosPendientes = true;
-      if (r.data && r.data.detalle) mostrarDetalle(r.data.detalle); else abrir(datos.actividad.id, rol);
-    }
 
     function detalleFoto(e) {
       const subida = (e.fecha_subida || '').replace('T', ' ').slice(0, 16);
@@ -791,7 +809,7 @@
 
     const cont = el('div', 'fotos');
 
-    function miniatura(etiqueta, pie, mini) {
+    function miniatura(etiqueta, pie, mini, foto) {
       const figura = el('figure', 'foto-item');
       const hueco = el('div', 'foto-hueco');
       const img = document.createElement('img');
@@ -802,6 +820,13 @@
       hueco.appendChild(img);
       figura.appendChild(hueco);
       figura.appendChild(el('figcaption', 'foto-pie', pie));
+      // RN-62/63 · Quitar la foto, en la propia miniatura.
+      if (foto && permiteQuitar(foto)) {
+        const quitar = el('button', 'btn-mini peligro', 'Quitar');
+        quitar.type = 'button';
+        quitar.addEventListener('click', function () { quitarFoto(foto); });
+        figura.appendChild(quitar);
+      }
       cont.appendChild(figura);
       return img;
     }
@@ -816,7 +841,7 @@
     // Las de este envío: con su miniatura inmediata.
     nuevas.forEach(function (f, i) {
       const nombre = (momento === 'ANTES' ? 'Antes' : 'Después') + ' ' + (previas.length + i + 1);
-      const img = miniatura(nombre, nombre + ' · ' + f.kb + ' KB', f.mini || null);
+      const img = miniatura(nombre, nombre + ' · ' + f.kb + ' KB', f.mini || null, f);
       if (!f.mini && f.id) {
         miniaturizar(img, { clave: 'evidencia:' + f.id, tipo: 'evidencia', id: f.id });
       }
