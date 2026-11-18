@@ -765,7 +765,9 @@ portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiqu
 ### 10.2 decies. Quitar una foto (v1.9)
 
 - **RN-62.** El contratista que puede ejecutar un trabajo quita sus fotos mientras está PROGRAMADA,
-  EN_EJECUCION o RECHAZADA; en un trabajo aprobado ya no. Si quita la única foto de antes, «Empezar»
+  EN_EJECUCION o RECHAZADA, y también la foto de una etapa ya reportada mientras el reporte siga
+  PENDIENTE de revisión. En un trabajo aprobado ya no. El contratista no escribe motivo; el
+  administrador sí (RN-63). Si quita la única foto de antes, «Empezar»
   vuelve a quedar desactivado.
 - **RN-63.** El administrador quita cualquier foto, en cualquier estado, **con motivo obligatorio**
   (mínimo 10 caracteres).

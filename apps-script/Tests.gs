@@ -948,6 +948,29 @@ function pruebasQuitarEvidencia_() {
   verdadero_(bool(buscarPorId('evidencias', evAprob.id).activo) === false,
     'RN-63 · con motivo, el administrador la quita');
 
+  // REPORTADA con reporte PENDIENTE: la foto de la etapa sí se puede quitar
+  const actRep = crearAct('REPORTADA');
+  const rep = insertar('reportes', {
+    id: newId('REP'), actividad_id: actRep.id, hito_id: '', usuario_id: uno.id,
+    fecha: hoy + 'T08:00:00-05:00', tipo: 'AVANCE', pct_declarado: 50,
+    descripcion: 'avance', horas: 1, estado_revision: 'PENDIENTE',
+    comentario_admin: '', revisado_por: '', revisado_en: '', activo: true,
+  }, 'prueba');
+  const evEtapa = insertar('evidencias', {
+    id: newId('EVI'), reporte_id: rep.id, actividad_id: actRep.id, nodo_id: nodo.id,
+    momento: 'DURANTE', drive_file_id: '', mini_file_id: '', mime: 'image/jpeg', bytes: 10,
+    sha256: 'sha-etapa', fecha_captura: hoy, fecha_subida: hoy, lat: '', lng: '',
+    contiene_personas: false, publicable: false, public_file_id: '', activo: true,
+  }, 'prueba');
+  verdadero_(puedeQuitarEvidencia_(ctxUno, evEtapa, actRep) === true,
+    'RN-62 · la foto de una etapa en revisión sí se puede quitar');
+  actualizar('reportes', rep.id, { estado_revision: 'APROBADO' }, 'prueba');
+  verdadero_(puedeQuitarEvidencia_(ctxUno, evEtapa, actRep) === false,
+    'RN-62 · aprobada la etapa, ya no');
+  actualizar('reportes', rep.id, { activo: false }, 'prueba');
+  actualizar('evidencias', evEtapa.id, { activo: false }, 'prueba');
+  actualizar('actividades', actRep.id, { activo: false }, 'prueba');
+
   // Supervisor y consejo nunca
   for (const rol of ['SUPERVISOR', 'CONSEJO']) {
     verdadero_(puedeQuitarEvidencia_({ usuario: { id: 'X', email: 'x@x.com' }, rol: rol }, evProg, actProg) === false,

@@ -211,7 +211,15 @@ function puedeQuitarEvidencia_(ctx, ev, act) {
   if (rol === 'ADMIN') return true;
   if (rol !== 'CONTRATISTA') return false;
   if (!puedeEjecutarActividad_(ctx, act)) return false;
-  return ['PROGRAMADA', 'EN_EJECUCION', 'RECHAZADA'].indexOf(String(act.estado)) >= 0;
+  if (['PROGRAMADA', 'EN_EJECUCION', 'RECHAZADA'].indexOf(String(act.estado)) >= 0) return true;
+
+  // RN-62 · La foto de una etapa ya reportada y SIN aprobar también se puede quitar:
+  // el trabajo está en revisión, no cerrado.
+  if (String(act.estado) === 'REPORTADA' && ev.reporte_id) {
+    const rep = buscarPorId('reportes', ev.reporte_id);
+    if (rep && bool(rep.activo) && String(rep.estado_revision) === 'PENDIENTE') return true;
+  }
+  return false;
 }
 
 /**
