@@ -64,7 +64,10 @@ function usuariosActivar(ctx, payload) {
 
   const rol = exigirEnEnum(payload.rol || 'CONTRATISTA', 'rol', ['CONTRATISTA', 'SUPERVISOR', 'ADMIN', 'CONSEJO']);
   const empresaId = payload.empresa_id || '';
-  if (empresaId && !buscarPorId('empresas', empresaId)) fallar_('VALIDACION', 'La empresa no existe.');
+  if (empresaId) {
+    const emp = buscarPorId('empresas', empresaId);
+    if (!emp || emp.suprimida_en) fallar_('VALIDACION', 'La empresa no existe.');
+  }
   if (rol === 'CONTRATISTA' && !empresaId) {
     fallar_('VALIDACION', 'Un contratista debe quedar asociado a una empresa.');
   }
@@ -208,7 +211,11 @@ function usuariosDesactivar(ctx, payload) {
 function empresasListar(ctx, payload) {
   const todas = !!(payload && payload.todas);
   return {
-    empresas: filtrar('empresas', function (e) { return todas || bool(e.activo); })
+    // RN-58 · Una empresa eliminada no sale nunca, ni con «Ver también las inactivas».
+    empresas: filtrar('empresas', function (e) {
+      if (e.suprimida_en) return false;
+      return todas || bool(e.activo);
+    })
       .sort(function (a, b) {
         const activaA = bool(a.activo) ? 0 : 1;
         const activaB = bool(b.activo) ? 0 : 1;
@@ -220,7 +227,11 @@ function empresasListar(ctx, payload) {
           return !u.suprimido_en && String(u.empresa_id) === String(e.id);
         });
         const esConsejo = ctx && ctx.rol === 'CONSEJO';
+        // El historial se cuenta solo para quien puede eliminar: es lo que decide el botón.
+        const h = (ctx && ctx.rol === 'ADMIN') ? historialEmpresa_(e.id) : null;
         return {
+          historial: h,
+          puede_eliminar: h ? (h.actividades + h.recurrencias + h.propuestas + h.usuarios) === 0 : false,
           id: e.id, razon_social: e.razon_social, nit: e.nit,
           // RN-42: el consejo no necesita los datos de contacto de las empresas.
           contacto: esConsejo ? undefined : (e.contacto || ''),
@@ -268,10 +279,13 @@ function empresasEstado(ctx, payload) {
         ' plan(es) recurrente(s) activo(s). Páusalos o cámbialos de empresa antes de desactivarla.');
     }
 
+    // La hoja propuestas tiene empresa_id; `usuario_id` no existe y esta revisión
+    // nunca bloqueaba nada.
     const pendientes = filtrar('propuestas', function (p) {
       if (!bool(p.activo) || String(p.estado) !== 'PENDIENTE') return false;
-      const u = buscarPorId('usuarios', p.usuario_id);
-      return u && String(u.empresa_id) === String(id);
+      if (String(p.empresa_id || '') === String(id)) return true;
+      const u = p.propuesta_por ? buscarPorId('usuarios', p.propuesta_por) : null;
+      return !!u && String(u.empresa_id) === String(id);
     });
     if (pendientes.length) {
       fallar_('CONFLICTO', 'La empresa tiene ' + pendientes.length +
@@ -301,9 +315,102 @@ function empresasEstado(ctx, payload) {
   });
 }
 
+/** Solo los dígitos del NIT, sin puntos, espacios ni guion (RN-61). */
+function soloDigitos_(valor) {
+  return String(valor === undefined || valor === null ? '' : valor).replace(/[^0-9]/g, '');
+}
+
+/**
+ * Qué cuelga de una empresa. La usan listar, eliminar y fusionar: una sola cuenta.
+ */
+function historialEmpresa_(id) {
+  const cuenta = function (nombre, campo) {
+    return filtrar(nombre, function (x) {
+      return String(x[campo] || '') === String(id);
+    }).length;
+  };
+  return {
+    actividades: cuenta('actividades', 'empresa_id'),
+    recurrencias: cuenta('recurrencias', 'empresa_id'),
+    propuestas: cuenta('propuestas', 'empresa_id'),
+    usuarios: filtrar('usuarios', function (u) {
+      return String(u.empresa_id || '') === String(id) && !bool(u.suprimido_en);
+    }).length,
+  };
+}
+
+/**
+ * RN-57 a RN-59 · Eliminar una empresa. Solo si no tiene historial; si tiene usuarios
+ * y se pide, se desvinculan. La fila no se borra: queda suprimida y con su motivo.
+ */
+function empresasEliminar(ctx, payload) {
+  desdePortal_(payload);
+  const id = exigirTexto(payload.id, 'id');
+  const motivo = exigirTexto(payload.motivo, 'motivo', 500).trim();
+  if (motivo.length < 10) fallar_('VALIDACION', 'Escribe el motivo (al menos 10 caracteres).');
+
+  return conBloqueo(function () {
+    limpiarCache('empresas');
+    const e = buscarPorId('empresas', id);
+    if (!e) fallar_('NO_ENCONTRADO', 'La empresa no existe.');
+    if (e.suprimida_en) fallar_('ESTADO_INVALIDO', 'Esa empresa ya fue eliminada.');
+
+    const h = historialEmpresa_(id);
+    const conHistorial = h.actividades + h.recurrencias + h.propuestas;
+    if (conHistorial > 0) {
+      fallar_('CONFLICTO', 'Tiene ' + h.actividades + ' trabajos, ' + h.recurrencias + ' plan(es) y ' +
+        h.propuestas + ' propuesta(s) en el historial. Para no perder el historial, desactívela o ' +
+        'fusiónela con otra.');
+    }
+    if (h.usuarios > 0 && !payload.desvincular_usuarios) {
+      fallar_('CONFLICTO', 'Tiene ' + h.usuarios + ' usuario(s) vinculado(s). Desvincúlelos y elimine, ' +
+        'o fusiónela con otra empresa.');
+    }
+
+    if (h.usuarios > 0) {
+      filtrar('usuarios', function (u) {
+        return String(u.empresa_id || '') === String(id) && !bool(u.suprimido_en);
+      }).forEach(function (u) {
+        actualizar('usuarios', u.id, { empresa_id: '', estado: 'PENDIENTE' }, ctx.usuario.email);
+      });
+    }
+
+    const despues = actualizar('empresas', id, {
+      activo: false,
+      estado: 'INACTIVA',
+      suprimida_en: ahoraIso(),
+      suprimida_por: ctx.usuario.email,
+      motivo_supresion: motivo,
+    }, ctx.usuario.email);
+
+    marcarCambio('empresas');
+    auditar(ctx.usuario.email, 'EMPRESA_ELIMINADA', 'empresa', id, e, { motivo: motivo });
+    programarSnapshot_();
+    return {
+      empresa: { id: despues.id, razon_social: despues.razon_social, nit: despues.nit },
+      desvinculados: h.usuarios,
+    };
+  });
+}
+
 function empresasGuardar(ctx, payload) {
   return conBloqueo(function () {
   const razon = exigirTexto(payload.razon_social, 'razon_social', 160);
+
+  // RN-61 · El NIT es único entre las empresas que no están suprimidas.
+  const nitLimpio = soloDigitos_(payload.nit);
+  if (nitLimpio) {
+    const repetida = filtrar('empresas', function (e) {
+      if (!bool(e.activo) && e.suprimida_en) return false;
+      if (payload.id && String(e.id) === String(payload.id)) return false;
+      return soloDigitos_(e.nit) === nitLimpio;
+    })[0];
+    if (repetida) {
+      fallar_('VALIDACION', 'Ya existe una empresa con ese NIT: ' + repetida.razon_social +
+        (bool(repetida.activo) ? '.' : ' (está desactivada: reactívela en vez de crear otra).'));
+    }
+  }
+
   const cambios = {
     razon_social: razon,
     nit: payload.nit ? String(payload.nit).slice(0, 30) : '',
@@ -350,7 +457,10 @@ function usuariosGuardar(ctx, payload) {
     }
     if (payload.empresa_id !== undefined) {
       const empresaId = payload.empresa_id || '';
-      if (empresaId && !buscarPorId('empresas', empresaId)) fallar_('VALIDACION', 'La empresa no existe.');
+      if (empresaId) {
+    const emp = buscarPorId('empresas', empresaId);
+    if (!emp || emp.suprimida_en) fallar_('VALIDACION', 'La empresa no existe.');
+  }
       cambios.empresa_id = empresaId;
     }
     if (payload.estado !== undefined) {

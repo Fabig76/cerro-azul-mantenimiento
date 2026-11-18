@@ -41,6 +41,7 @@ $(correr volver-lista.html)
 $(correr editor-checklist.html)
 $(correr solo-lectura.html)
 $(correr quitar-foto.html)
+$(correr empresa-eliminar.html)
 $(correr contratista-completo.html)"
 
 echo "$SALIDA"

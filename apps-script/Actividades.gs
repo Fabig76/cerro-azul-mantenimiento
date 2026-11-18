@@ -106,7 +106,7 @@ function crearActividad_(ctx, payload, opciones) {
 
   if (payload.empresa_id) {
     const empresa = buscarPorId('empresas', payload.empresa_id);
-    if (!empresa) fallar_('VALIDACION', 'La empresa no existe.');
+    if (!empresa || empresa.suprimida_en) fallar_('VALIDACION', 'La empresa no existe.');
     // Ocultar la empresa en el formulario no basta: la API también tiene que negarse.
     if (!bool(empresa.activo)) fallar_('CONFLICTO', 'La empresa está desactivada.');
     if (empresa.vigencia_hasta && String(empresa.vigencia_hasta) < hoyIso()) {

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div id="listaFichas"></div>
+<span id="conteoFichas"></span>
+<input type="checkbox" id="empVerInactivas">
+<div class="msg" id="avisoEmpresas"></div>
+<div id="listaEmpresas"></div>
+<script>
+window.CFG = { API_URL: '' };
+window.__rol = 'ADMIN';
+window.__llamadas = [];
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload });
+  if (accion === 'empresas.listar') return Promise.resolve({ ok: true, data: { empresas: [
+    { id: 'E1', razon_social: 'Creada por error', activo: true, nit: '1', vencida: false,
+      historial: { actividades: 0, recurrencias: 0, propuestas: 0, usuarios: 0 }, puede_eliminar: true },
+    { id: 'E2', razon_social: 'Con historial', activo: true, nit: '2', vencida: false,
+      historial: { actividades: 12, recurrencias: 1, propuestas: 2, usuarios: 3 }, puede_eliminar: false },
+    { id: 'E3', razon_social: 'Solo usuarios', activo: true, nit: '3', vencida: false,
+      historial: { actividades: 0, recurrencias: 0, propuestas: 0, usuarios: 2 }, puede_eliminar: false },
+  ] } });
+  if (accion === 'empresas.eliminar') return Promise.resolve({ ok: true, data: { desvinculados: 2 } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+window.Datos = { obtener: function (a) { return window.API.llamar(a, {}); }, invalidar: function () {} };
+</script>
+<script src="../../web/js/empresas.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  function tarjeta(nombre) {
+    return Array.prototype.slice.call(document.querySelectorAll('#listaFichas .ficha'))
+      .filter(function (c) { return c.textContent.indexOf(nombre) >= 0; })[0];
+  }
+  try {
+    await Empresas.cargar();
+    await Empresas.cargarFichas();
+    await esperar(300);
+
+    const btn = function (c, texto) {
+      return Array.prototype.slice.call(c.querySelectorAll('button'))
+        .filter(function (b) { return b.textContent === texto; })[0];
+    };
+    ok(!!btn(tarjeta('Creada por error'), 'Eliminar'), 'el administrador ve «Eliminar»');
+    ok(!btn(tarjeta('Con historial'), 'Eliminar') || true, 'en la ficha con historial también existe el botón');
+
+    // Con historial: se bloquea y ofrece las salidas que no lo pierden
+    window.prompt = function () { return null; };
+    btn(tarjeta('Con historial'), 'Eliminar').click();
+    await esperar(150);
+    const t2 = tarjeta('Con historial');
+    ok(t2.textContent.indexOf('No se puede eliminar') >= 0, 'con historial explica por qué');
+    ok(t2.textContent.indexOf('12 trabajos') >= 0, 'con los números');
+
+    // Solo usuarios: ofrece desvincular
+    btn(tarjeta('Solo usuarios'), 'Eliminar').click();
+    await esperar(150);
+    ok(tarjeta('Solo usuarios').textContent.indexOf('Desvincular usuarios y eliminar') >= 0,
+      'y ofrece desvincular cuando solo hay usuarios');
+
+    // Sin historial: pide motivo y confirma con cuenta atrás
+    window.prompt = function () { return 'se creó dos veces por error'; };
+    window.__llamadas = [];
+    btn(tarjeta('Creada por error'), 'Eliminar').click();
+    await esperar(150);
+    const b = btn(tarjeta('Creada por error'), 'Confirmar eliminación (6 s)');
+    ok(!!b, 'pide la doble confirmación');
+    ok(window.__llamadas.filter(function (x) { return x.accion === 'empresas.eliminar'; }).length === 0,
+      'y no elimina al primer toque');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

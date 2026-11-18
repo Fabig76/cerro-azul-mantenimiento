@@ -69,6 +69,7 @@ function runAllTests() {
   pruebasAlertasAutomaticas_();
   pruebasEjecutarActividad_();
   pruebasQuitarEvidencia_();
+  pruebasEmpresaEliminar_();
   pruebasReasignarAlDesactivar_();
   pruebasPropuestasV17_();
   pruebasFilasPorHoja_();
@@ -788,6 +789,98 @@ function pruebasPropuestasV17_() {
 /**
  * RN-62 a RN-64 · Quitar una foto: quién puede, cuándo, y qué deja.
  */
+/**
+ * RN-57 a RN-61 · Eliminar una empresa, el NIT único y la revisión de propuestas.
+ */
+function pruebasEmpresaEliminar_() {
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  const base = { activo: true, estado: 'ACTIVA' };
+
+  // 1 · Sin historial: se elimina y deja de salir
+  const suelta = insertar('empresas', Object.assign({
+    id: newId('EMP'), razon_social: 'PRUEBA sin historial', nit: '999000111',
+    contacto: '', email: '', telefono: '', contrato_numero: '',
+    vigencia_desde: '', vigencia_hasta: '', poliza_vence: '',
+  }, base), 'prueba');
+
+  empresasEliminar(ctx, { id: suelta.id, motivo: 'se creó por error' });
+  const tras = buscarPorId('empresas', suelta.id);
+  verdadero_(!!tras.suprimida_en, 'RN-57 · eliminar marca la empresa como suprimida');
+  verdadero_(bool(tras.activo) === false, 'RN-58 · y la deja inactiva');
+  const lista = empresasListar(ctx, { todas: true }).empresas.map(function (e) { return e.id; });
+  verdadero_(lista.indexOf(suelta.id) < 0, 'RN-58 · no sale ni con «Ver también las inactivas»');
+
+  // 2 · El NIT queda libre y se puede volver a usar
+  let nitLibre = '';
+  try {
+    const otra = empresasGuardar(ctx, {
+      razon_social: 'PRUEBA con el mismo NIT', nit: '999.000.111',
+      vigencia_desde: '', vigencia_hasta: '',
+    });
+    nitLibre = 'ok';
+    actualizar('empresas', otra.empresa.id, { activo: false, suprimida_en: ahoraIso() }, 'prueba');
+  } catch (e) { nitLibre = String(e.message); }
+  verdadero_(nitLibre === 'ok', 'RN-61 · con la empresa eliminada, el NIT se puede volver a usar');
+
+  // 3 · NIT repetido entre dos vivas
+  const una = insertar('empresas', Object.assign({
+    id: newId('EMP'), razon_social: 'PRUEBA NIT uno', nit: '888000222',
+    contacto: '', email: '', telefono: '', contrato_numero: '', vigencia_desde: '', vigencia_hasta: '',
+  }, base), 'prueba');
+  let repetido = '';
+  try {
+    empresasGuardar(ctx, { razon_social: 'PRUEBA NIT repetido', nit: '888-000-222', vigencia_desde: '', vigencia_hasta: '' });
+  } catch (e) { repetido = String(e.message); }
+  verdadero_(repetido.indexOf('VALIDACION') === 0, 'RN-61 · el NIT repetido se rechaza (con o sin puntos)');
+
+  // 4 · Con historial no se elimina, y dice los números
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
+  const act = insertar('actividades', {
+    id: newId('ACT'), titulo: 'PRUEBA historial', descripcion: '', nodo_id: nodo.id,
+    plantilla_id: '', plantilla_version: '', empresa_id: una.id, responsable_id: '',
+    tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+    fecha_inicio_plan: hoyIso(), fecha_fin_plan: hoyIso(), dias_plan: 1, prioridad: 'MEDIA',
+    estado: 'CANCELADA', vencida: false, en_riesgo: false, avance_reportado_pct: 0,
+    avance_aprobado_pct: 0, fecha_inicio_real: '', fecha_reporte_final: '', fecha_aprobacion: '',
+    obligatoria_legal: false, afecta_uso: false, publicable: false, acta_file_id: '',
+    inicio_sin_foto_motivo: '', propuesta_id: '', activo: true,
+  }, 'prueba');
+
+  let conHistorial = '';
+  try { empresasEliminar(ctx, { id: una.id, motivo: 'ya no se usa' }); } catch (e) { conHistorial = String(e.message); }
+  verdadero_(conHistorial.indexOf('CONFLICTO') === 0 && conHistorial.indexOf('1 trabajos') >= 0,
+    'RN-59 · con historial se niega y dice cuántos');
+
+  // 5 · Solo usuarios: se pide desvincular
+  const usuario = insertar('usuarios', {
+    id: newId('USU'), email: 'empresa-usuarios@urbcerroazul.com', nombre: 'De la empresa',
+    telefono: '3000000030', rol: 'CONTRATISTA', empresa_id: una.id, estado: 'ACTIVO', activo: true,
+  }, 'prueba');
+  const soloUsuarios = insertar('empresas', Object.assign({
+    id: newId('EMP'), razon_social: 'PRUEBA solo usuarios', nit: '777000333',
+    contacto: '', email: '', telefono: '', contrato_numero: '', vigencia_desde: '', vigencia_hasta: '',
+  }, base), 'prueba');
+  actualizar('usuarios', usuario.id, { empresa_id: soloUsuarios.id }, 'prueba');
+
+  let sinDesvincular = '';
+  try { empresasEliminar(ctx, { id: soloUsuarios.id, motivo: 'solo tenia usuarios' }); } catch (e) { sinDesvincular = String(e.message); }
+  verdadero_(sinDesvincular.indexOf('CONFLICTO') === 0, 'RN-59 · con usuarios pide confirmación');
+  empresasEliminar(ctx, { id: soloUsuarios.id, motivo: 'solo tenia usuarios', desvincular_usuarios: true });
+  const u = buscarPorId('usuarios', usuario.id);
+  verdadero_(String(u.empresa_id) === '' && String(u.estado) === 'PENDIENTE',
+    'RN-59 · al desvincular, el usuario queda sin empresa y pendiente');
+
+  // 6 · Sin motivo no se elimina
+  let sinMotivo = '';
+  try { empresasEliminar(ctx, { id: una.id, motivo: 'corto' }); } catch (e) { sinMotivo = String(e.message); }
+  verdadero_(sinMotivo.indexOf('VALIDACION') === 0, 'RN-57 · el motivo es obligatorio');
+
+  // Limpieza
+  actualizar('actividades', act.id, { activo: false }, 'prueba');
+  actualizar('empresas', una.id, { activo: false, suprimida_en: ahoraIso() }, 'prueba');
+  actualizar('usuarios', usuario.id, { activo: false }, 'prueba');
+}
+
 function pruebasQuitarEvidencia_() {
   const nodo = filtrar('nodos', function (n) { return bool(n.activo) && String(n.clase) === 'AGRUPADOR'; })[0];
   if (!nodo) { RESULTADOS.detalle.push('OMITE · quitar foto · sin nodos'); return; }

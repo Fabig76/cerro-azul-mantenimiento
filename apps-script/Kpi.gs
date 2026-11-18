@@ -78,6 +78,8 @@ function kpisMes(mes) {
   // o su historial desaparecería del informe al desactivarlas.
   const mesActual = mesDe_(hoyIso());
   const empresas = filtrar('empresas', function (e) {
+    // RN-58 · Una empresa eliminada no cuenta en el cumplimiento.
+    if (e.suprimida_en) return false;
     return bool(e.activo) || String(m) !== mesActual;
   });
 
@@ -310,7 +312,7 @@ function consejoResumen(ctx) {
   }).filter(function (v) { return v !== null; });
 
   // Semáforo de cada empresa con ficha
-  const empresas = filtrar('empresas', function (e) { return bool(e.activo); });
+  const empresas = filtrar('empresas', function (e) { return bool(e.activo) && !e.suprimida_en; });
   const semaforos = empresas.map(function (e) {
     const f = fichaEmpresa_(e.id, sumarMeses_(hoy, -12), hoy);
     return {

@@ -751,6 +751,17 @@ para que un residente reportara un daño desde el equipo; ese reporte ya está a
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
 
+### 10.2 undecies. Eliminar una empresa (v1.9)
+
+- **RN-57.** Se elimina una empresa **sin historial** (sin trabajos en ningún estado, sin planes, sin
+  propuestas y sin usuarios). Pide motivo de 10 caracteres y doble confirmación de 6 segundos.
+- **RN-58.** Eliminar no borra la fila: `activo = FALSE`, `estado = 'INACTIVA'`, `suprimida_en`,
+  `suprimida_por` y `motivo_supresion`. Una empresa suprimida **no sale en ninguna lista** (ni con
+  `todas: true`) y su NIT queda libre.
+- **RN-59.** Con historial no se elimina: el servidor responde CONFLICTO con los números. Si lo único
+  que tiene son usuarios, se ofrece **desvincularlos** (quedan sin empresa y PENDIENTE).
+- **RN-61.** El NIT es **único** entre las empresas no suprimidas, comparando solo los dígitos.
+
 ### 10.2 decies. Quitar una foto (v1.9)
 
 - **RN-62.** El contratista que puede ejecutar un trabajo quita sus fotos mientras está PROGRAMADA,

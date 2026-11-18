@@ -115,10 +115,106 @@
       cambiar.type = 'button';
       cambiar.addEventListener('click', function () { cambiarEstado(f); });
       acciones.appendChild(cambiar);
+
+      // RN-57 · Eliminar: solo para una empresa creada por error o repetida.
+      if (window.__rol === 'ADMIN') {
+        const eliminar = el('button', 'btn sm peligro', 'Eliminar');
+        eliminar.type = 'button';
+        eliminar.addEventListener('click', function () { eliminarEmpresa(f, caja, eliminar); });
+        acciones.appendChild(eliminar);
+      }
       caja.appendChild(acciones);
+
+      if (window.__rol === 'ADMIN') {
+        caja.appendChild(el('p', 'bajada-tarjeta',
+          'Desactivar la saca de las listas para asignar y conserva su historial. ' +
+          'Eliminar es para una empresa creada por error o repetida.'));
+      }
 
       cont.appendChild(caja);
     });
+  }
+
+  /**
+   * RN-57 a RN-59 · Eliminar una empresa. Pide motivo y doble confirmación; si tiene
+   * historial, ofrece desactivarla o fusionarla en vez de perderlo.
+   */
+  async function eliminarEmpresa(f, caja, boton) {
+    const h = f.historial || null;
+
+    // Si no se puede eliminar de una vez (trabajos, planes, propuestas o usuarios),
+    // se ofrecen las salidas que no pierden historial.
+    if (!f.puede_eliminar) {
+      mostrarBloqueoEmpresa(f, caja, h);
+      return;
+    }
+
+    const motivo = window.prompt(
+      '¿Por qué se elimina «' + f.razon_social + '»? (queda en la auditoría)', '');
+    if (motivo === null) return;
+    if (motivo.trim().length < 10) return aviso('Escribe al menos 10 caracteres de motivo.', 'error');
+
+    // Doble confirmación de 6 segundos, como «Retirar del árbol».
+    let armado = false;
+    boton.disabled = true;
+    boton.textContent = 'Confirmar eliminación (6 s)';
+    const reloj = setInterval(function () {
+      const quedan = Number((boton.dataset.quedan || '6')) - 1;
+      boton.dataset.quedan = String(quedan);
+      boton.textContent = quedan > 0 ? 'Confirmar eliminación (' + quedan + ' s)' : 'Eliminar';
+      if (quedan <= 0) { clearInterval(reloj); armado = true; boton.disabled = false; }
+    }, 1000);
+    boton.dataset.quedan = '6';
+
+    boton.addEventListener('click', async function () {
+      if (!armado) return;
+      clearInterval(reloj);
+      boton.disabled = true;
+      const r = await API.llamar('empresas.eliminar',
+        { id: f.id, motivo: motivo.trim() }, { token: Sesion.token(), idempotente: true });
+      if (!r.ok) {
+        boton.disabled = false;
+        return aviso(r.message || 'No se pudo eliminar.', 'error');
+      }
+      aviso('Empresa eliminada.', 'ok');
+      await cargar();
+    }, { once: true });
+  }
+
+  /** Con historial no se elimina: se ofrecen las salidas que no lo pierden. */
+  function mostrarBloqueoEmpresa(f, caja, h) {
+    const previo = caja.querySelector('.bloqueo-empresa');
+    if (previo) previo.remove();
+    const cajaAviso = el('div', 'bloque bloqueo-empresa');
+    cajaAviso.appendChild(el('strong', null, 'No se puede eliminar'));
+    cajaAviso.appendChild(el('p', null,
+      'Tiene ' + h.actividades + ' trabajos, ' + h.recurrencias + ' plan(es), ' +
+      h.propuestas + ' propuesta(s) y ' + h.usuarios + ' usuario(s) en el historial. ' +
+      'Para no perderlo, desactívela o fusiónela con otra.'));
+
+    if (h.usuarios && !(h.actividades + h.recurrencias + h.propuestas)) {
+      const desvincular = el('button', 'btn sm', 'Desvincular usuarios y eliminar');
+      desvincular.type = 'button';
+      desvincular.addEventListener('click', async function () {
+        const motivo = window.prompt('Motivo (queda en la auditoría)', '');
+        if (!motivo || motivo.trim().length < 10) return aviso('Escribe el motivo.', 'error');
+        desvincular.disabled = true;
+        const r = await API.llamar('empresas.eliminar',
+          { id: f.id, motivo: motivo.trim(), desvincular_usuarios: true },
+          { token: Sesion.token(), idempotente: true });
+        desvincular.disabled = false;
+        if (!r.ok) return aviso(r.message || 'No se pudo eliminar.', 'error');
+        aviso('Empresa eliminada y ' + r.data.desvinculados + ' usuario(s) desvinculado(s).', 'ok');
+        await cargar();
+      });
+      cajaAviso.appendChild(desvincular);
+    }
+
+    const cerrar = el('button', 'btn sm', 'Entendido');
+    cerrar.type = 'button';
+    cerrar.addEventListener('click', function () { cajaAviso.remove(); });
+    cajaAviso.appendChild(cerrar);
+    caja.appendChild(cajaAviso);
   }
 
   /** Ficha de desempeño de una empresa, con su semáforo y su tendencia. */

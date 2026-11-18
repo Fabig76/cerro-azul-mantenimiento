@@ -522,7 +522,7 @@ function avisosDiarios_() {
   try {
     const diasAviso = configNumero('dias_aviso_poliza', 30);
     const limite = sumarDias(hoy, diasAviso);
-    filtrar('empresas', function (e) { return bool(e.activo); }).forEach(function (e) {
+    filtrar('empresas', function (e) { return bool(e.activo) && !e.suprimida_en; }).forEach(function (e) {
       const fechas = [e.vigencia_hasta, e.poliza_vence].filter(function (f) {
         return f && fechaIso_(f) >= hoy && fechaIso_(f) <= limite;
       });
