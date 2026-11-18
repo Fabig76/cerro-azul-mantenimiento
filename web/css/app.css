@@ -805,3 +805,8 @@ textarea.item-input { min-height: 84px; resize: vertical; font-family: inherit; 
 
 /* RN-69 · Aviso de foto privada en la novedad */
 .aviso-privado { border-left: 3px solid var(--warn, #d9822b); padding-left: 8px; }
+
+/* Recuadro de «no se puede eliminar»: separación entre lo que se ofrece */
+.bloqueo-empresa > * + * { margin-top: 8px; }
+.bloqueo-empresa .btn { margin-right: 6px; }
+.eliminar-usuario > * + * { margin-top: 8px; }

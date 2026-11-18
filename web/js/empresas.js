@@ -188,14 +188,29 @@
     const previo = caja.querySelector('.bloqueo-empresa');
     if (previo) previo.remove();
     const cajaAviso = el('div', 'bloque bloqueo-empresa');
-    cajaAviso.appendChild(el('strong', null, 'No se puede eliminar'));
-    cajaAviso.appendChild(el('p', null,
-      'Tiene ' + h.actividades + ' trabajos, ' + h.recurrencias + ' plan(es), ' +
-      h.propuestas + ' propuesta(s) y ' + h.usuarios + ' usuario(s) en el historial. ' +
-      'Para no perderlo, desactívela o fusiónela con otra.'));
+    const conHistorial = (h.actividades + h.recurrencias + h.propuestas) > 0;
+    cajaAviso.appendChild(el('strong', null,
+      conHistorial ? 'No se puede eliminar' : 'Falta desvincular a su gente'));
+
+    if (conHistorial) {
+      cajaAviso.appendChild(el('p', null,
+        'Tiene ' + h.actividades + ' trabajos, ' + h.recurrencias + ' plan(es) y ' +
+        h.propuestas + ' propuesta(s) en el historial. Para no perderlo, desactívela o ' +
+        'fusiónela con otra.'));
+    } else if (h.usuarios) {
+      // Solo usuarios: no hay historial que perder, falta decidir qué pasa con ellos.
+      const nombres = (f.usuarios_vinculados || []).map(function (u) {
+        return u.nombre ? u.nombre + ' (' + u.email + ')' : u.email;
+      });
+      cajaAviso.appendChild(el('p', null,
+        'Tiene ' + h.usuarios + ' usuario(s) vinculado(s)' +
+        (nombres.length ? ': ' + nombres.slice(0, 4).join(', ') +
+          (nombres.length > 4 ? ' y ' + (nombres.length - 4) + ' más' : '') : '') +
+        '. Si la elimina sin más, esa persona queda sin empresa y no puede hacer nada.'));
+    }
 
     if (h.usuarios && !(h.actividades + h.recurrencias + h.propuestas)) {
-      const desvincular = el('button', 'btn sm', 'Desvincular usuarios y eliminar');
+      const desvincular = el('button', 'btn sm primary', 'Desvincular usuarios y eliminar');
       desvincular.type = 'button';
       desvincular.addEventListener('click', async function () {
         const motivo = window.prompt('Motivo (queda en la auditoría)', '');

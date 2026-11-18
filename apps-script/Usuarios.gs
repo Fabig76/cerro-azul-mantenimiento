@@ -239,6 +239,11 @@ function empresasListar(ctx, payload) {
         const h = (ctx && ctx.rol === 'ADMIN') ? historialEmpresa_(e.id) : null;
         return {
           historial: h,
+          // RN-59 · Para poder decir «quedará sin empresa: Juan (juan@x.com)».
+          usuarios_vinculados: (ctx && ctx.rol === 'ADMIN')
+            ? usuarios.filter(function (u) { return String(u.empresa_id) === String(e.id); })
+              .map(function (u) { return { id: u.id, nombre: u.nombre || '', email: u.email || '' }; })
+            : undefined,
           puede_eliminar: h ? (h.actividades + h.recurrencias + h.propuestas + h.usuarios) === 0 : false,
           id: e.id, razon_social: e.razon_social, nit: e.nit,
           // RN-42: el consejo no necesita los datos de contacto de las empresas.

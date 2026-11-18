@@ -22,7 +22,8 @@ window.API = { llamar: function (accion, payload) {
     { id: 'E2', razon_social: 'Con historial', activo: true, nit: '2', vencida: false,
       historial: { actividades: 12, recurrencias: 1, propuestas: 2, usuarios: 3 }, puede_eliminar: false },
     { id: 'E3', razon_social: 'Solo usuarios', activo: true, nit: '3', vencida: false,
-      historial: { actividades: 0, recurrencias: 0, propuestas: 0, usuarios: 2 }, puede_eliminar: false },
+      historial: { actividades: 0, recurrencias: 0, propuestas: 0, usuarios: 2 }, puede_eliminar: false,
+      usuarios_vinculados: [{ id: 'U1', nombre: 'Juan', email: 'juan@x.com' }, { id: 'U2', nombre: '', email: 'obra@x.com' }] },
   ] } });
   if (accion === 'empresas.eliminar') return Promise.resolve({ ok: true, data: { desvinculados: 2 } });
   return Promise.resolve({ ok: true, data: {} });
@@ -63,10 +64,12 @@ window.Datos = { obtener: function (a) { return window.API.llamar(a, {}); }, inv
     const t2 = tarjeta('Con historial');
     ok(t2.textContent.indexOf('No se puede eliminar') >= 0, 'con historial explica por qué · texto=' + t2.textContent.slice(-160));
     ok(t2.textContent.indexOf('12 trabajos') >= 0, 'con los números');
+    ok(tarjeta('Solo usuarios').textContent.indexOf('juan@x.com') < 0, 'al principio no nombra usuarios');
 
     // Solo usuarios: ofrece desvincular
     btn(tarjeta('Solo usuarios'), 'Eliminar').click();
     await esperar(150);
+    ok(tarjeta('Solo usuarios').textContent.indexOf('Juan (juan@x.com)') >= 0, 'dice quién queda sin empresa');
     ok(tarjeta('Solo usuarios').textContent.indexOf('Desvincular usuarios y eliminar') >= 0,
       'y ofrece desvincular cuando solo hay usuarios');
 
