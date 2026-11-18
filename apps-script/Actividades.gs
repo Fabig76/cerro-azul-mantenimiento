@@ -371,6 +371,8 @@ function detalleActividad_(ctx, id) {
       contiene_personas: bool(e.contiene_personas), publicable: bool(e.publicable),
       // Cuando la foto es de una etapa, viene con su reporte: el panel la pinta ahí.
       reporte_id: e.reporte_id || '',
+      // RN-62/63 · La pantalla dibuja «Quitar» con esto, no con su propia idea del rol.
+      puede_quitar: puedeQuitarEvidencia_(ctx, e, act),
     };
   });
 

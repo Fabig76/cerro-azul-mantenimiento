@@ -490,6 +490,26 @@
     const ev = datos.evidencias || [];
     const antes = ev.filter(function (e) { return e.momento === 'ANTES'; });
     const despues = ev.filter(function (e) { return e.momento === 'DESPUES'; });
+    // RN-62/64 · Quitar una foto (el servidor decide con puede_quitar).
+    async function quitarFoto(e) {
+      const esAdmin = rol === 'ADMIN';
+      if (!window.confirm('¿Quitar esta foto? Dejará de verse en el trabajo y en el acta.')) return;
+      let motivo = '';
+      if (esAdmin) {
+        motivo = window.prompt('¿Por qué se quita? (queda en la auditoría)', '') || '';
+        if (motivo.trim().length < 10) {
+          return aviso('Escribe al menos 10 caracteres de motivo.', 'error');
+        }
+      }
+      const r = await API.llamar('evidencias.quitar', { id: e.id, motivo: motivo.trim() },
+        { token: Sesion.token(), idempotente: true });
+      if (!r.ok) return aviso(r.message || 'No se pudo quitar la foto.', 'error');
+      if (window.FotoCache && FotoCache.olvidar) FotoCache.olvidar('evidencia:' + e.id);
+      aviso('Foto quitada.', 'ok');
+      cambiosPendientes = true;
+      if (r.data && r.data.detalle) mostrarDetalle(r.data.detalle); else abrir(datos.actividad.id, rol);
+    }
+
     function detalleFoto(e) {
       const subida = (e.fecha_subida || '').replace('T', ' ').slice(0, 16);
       const captura = (e.fecha_captura || '').replace('T', ' ').slice(0, 16);
@@ -501,6 +521,13 @@
       li.appendChild(el('span', 'badge ' + (e.momento === 'ANTES' ? 'warn' : 'ok'), e.momento));
       li.appendChild(el('span', 'fila-foto-fecha', detalleFoto(e)));
       if (e.contiene_personas) li.appendChild(el('span', 'badge danger', 'con personas'));
+      // RN-62/63 · Solo se ofrece quitar donde el servidor lo permite.
+      if (e.puede_quitar) {
+        const quitar = el('button', 'btn-mini peligro', 'Quitar');
+        quitar.type = 'button';
+        quitar.addEventListener('click', function () { quitarFoto(e); });
+        li.appendChild(quitar);
+      }
       lista.appendChild(li);
     });
     caja.appendChild(lista);

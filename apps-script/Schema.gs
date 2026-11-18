@@ -7,7 +7,7 @@ const CAMPOS_AUDITORIA = ['creado_en', 'creado_por', 'actualizado_en', 'actualiz
 
 // Sube este número cada vez que cambie el esquema: la app lo compara con la
 // propiedad de script y crea las pestañas o columnas nuevas sin exigir setup().
-const ESQUEMA_VERSION = 7;
+const ESQUEMA_VERSION = 8;
 
 const SCHEMA = {
   nodos: [
@@ -87,7 +87,7 @@ const SCHEMA = {
     'id', 'reporte_id', 'actividad_id', 'nodo_id', 'momento', 'drive_file_id', 'mini_file_id', 'mime',
     'bytes', 'sha256', 'fecha_captura', 'fecha_subida', 'lat', 'lng', 'contiene_personas', 'publicable',
     'public_file_id',
-  ].concat(CAMPOS_AUDITORIA),
+  , 'quitada_por', 'quitada_en', 'motivo_quitada', 'archivo_purgado_en'].concat(CAMPOS_AUDITORIA),
 
   lecturas_estado: ['id', 'nodo_id', 'fecha', 'condicion_operativa', 'origen', 'reporte_id', 'usuario_id', 'nota']
     .concat(CAMPOS_AUDITORIA),

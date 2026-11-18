@@ -186,7 +186,29 @@
   // Quien usa el módulo dice cómo se pide cada tipo de foto.
   let traer = function () { return Promise.resolve(null); };
 
+  /** Q12 · Borra una miniatura de la memoria y de IndexedDB: la foto se quitó. */
+  async function olvidar(clave) {
+    try {
+      const bd = await abrir();
+      if (bd) {
+        await new Promise(function (resolver) {
+          try {
+            const tx = bd.transaction(ALMACEN, 'readwrite');
+            tx.objectStore(ALMACEN).delete(clave);
+            tx.oncomplete = function () { resolver(); };
+            tx.onerror = function () { resolver(); };
+          } catch (e) { resolver(); }
+        });
+      }
+    } catch (e) { /* sin caché se sigue */ }
+    try {
+      Array.prototype.slice.call(document.querySelectorAll('img[data-clave="' + clave + '"]'))
+        .forEach(function (img) { img.removeAttribute('src'); });
+    } catch (e) { /* nada */ }
+  }
+
   window.FotoCache = {
+    olvidar: olvidar,
     mostrar: mostrar,
     limpiar: limpiar,
     leer: leer,

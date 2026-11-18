@@ -77,6 +77,7 @@ const ACCIONES = {
   'empresas.estado': { fn: empresasEstado, sesion: true, roles: ['ADMIN'] },
   'empresas.guardar': { fn: empresasGuardar, sesion: true, roles: ['ADMIN'] },
   'evidencias.upload': { fn: evidenciasUpload, sesion: true },
+  'evidencias.quitar': { fn: evidenciasQuitarAccion, sesion: true },
   'evidencias.get': { fn: evidenciasGet, sesion: true },
   'reportes.crear': { fn: reportesCrear, sesion: true },
   'reportes.revisar': { fn: reportesRevisar, sesion: true, roles: ['ADMIN'] },

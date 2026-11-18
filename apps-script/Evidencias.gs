@@ -168,7 +168,8 @@ function evidenciasUpload(ctx, payload) {
 function evidenciasGet(ctx, payload) {
   const id = exigirTexto(payload.id, 'id');
   const ev = buscarPorId('evidencias', id);
-  if (!ev) fallar_('NO_ENCONTRADO', 'La evidencia no existe.');
+  // Q8 · Una foto quitada o de una actividad retirada no se sirve, aunque se tenga el id.
+  if (!ev || !bool(ev.activo)) fallar_('NO_ENCONTRADO', 'Esa foto ya no está disponible.');
   const act = buscarPorId('actividades', ev.actividad_id);
   if (!act || !puedeVerActividad_(ctx, act)) fallar_('PROHIBIDO', 'No tienes acceso a esta evidencia.');
 
@@ -196,4 +197,81 @@ function evidenciasDe_(actividadId) {
     durante: lista.filter(function (e) { return String(e.momento) === 'DURANTE'; }),
     despues: lista.filter(function (e) { return String(e.momento) === 'DESPUES'; }),
   };
+}
+
+
+/**
+ * ¿Puede este usuario quitar esta foto? (RN-62 y RN-63)
+ * El contratista que ejecuta, mientras el trabajo no esté cerrado y la foto no esté
+ * aprobada; el administrador, siempre y con motivo.
+ */
+function puedeQuitarEvidencia_(ctx, ev, act) {
+  if (!ctx || !ev || !act) return false;
+  const rol = String(ctx.rol);
+  if (rol === 'ADMIN') return true;
+  if (rol !== 'CONTRATISTA') return false;
+  if (!puedeEjecutarActividad_(ctx, act)) return false;
+  return ['PROGRAMADA', 'EN_EJECUCION', 'RECHAZADA'].indexOf(String(act.estado)) >= 0;
+}
+
+/**
+ * RN-64 · Quitar una foto: se marca inactiva (no se borra la fila), se audita y los
+ * archivos van a la papelera FUERA del bloqueo.
+ */
+function evidenciasQuitar(ctx, payload) {
+  desdePortal_(payload);
+  const id = exigirTexto(payload.id, 'id');
+  const rol = String(ctx.rol);
+  const motivo = payload.motivo === undefined ? '' : String(payload.motivo).trim();
+  if (rol === 'ADMIN' && motivo.length < 10) {
+    fallar_('VALIDACION', 'Escriba el motivo para quitar la foto (al menos 10 caracteres).');
+  }
+
+  const archivos = [];
+  let actividadId = '';
+
+  const detalle = conBloqueo(function () {
+    limpiarCache('evidencias');
+    const ev = buscarPorId('evidencias', id);
+    if (!ev || !bool(ev.activo)) fallar_('NO_ENCONTRADO', 'Esa foto ya no está disponible.');
+    const act = buscarPorId('actividades', ev.actividad_id);
+    if (!act) fallar_('NO_ENCONTRADO', 'La actividad de esa foto no existe.');
+    if (!puedeQuitarEvidencia_(ctx, ev, act)) {
+      fallar_('PROHIBIDO', 'No puedes quitar esa foto en este estado del trabajo.');
+    }
+
+    archivos.push(ev.drive_file_id, ev.mini_file_id, ev.public_file_id);
+    actividadId = act.id;
+
+    actualizar('evidencias', id, {
+      activo: false,
+      publicable: false,
+      quitada_por: ctx.usuario.email,
+      quitada_en: ahoraIso(),
+      motivo_quitada: motivo,
+    }, ctx.usuario.email);
+    auditar(ctx.usuario.email, 'EVIDENCIA_QUITADA', 'evidencia', id,
+      { momento: ev.momento, actividad_id: ev.actividad_id }, { motivo: motivo });
+    marcarCambio('evidencias');
+    return detalleActividad_(ctx, act.id);
+  });
+
+  archivos.filter(Boolean).forEach(function (archivoId) {
+    try { DriveApp.getFileById(archivoId).setTrashed(true); } catch (e) { /* ya no está */ }
+  });
+
+  // El portal público se entera en la próxima regeneración programada.
+  if (actividadId) {
+    try {
+      const act = buscarPorId('actividades', actividadId);
+      if (act && bool(act.publicable)) programarSnapshot_();
+    } catch (e) { /* no frena */ }
+  }
+
+  return { quitada: true, detalle: detalle };
+}
+
+/** Acción del Router para quitar una foto: el permiso lo decide la función. */
+function evidenciasQuitarAccion(ctx, payload) {
+  return evidenciasQuitar(ctx, payload);
 }

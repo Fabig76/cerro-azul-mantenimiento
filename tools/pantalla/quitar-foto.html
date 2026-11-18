@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<article class="card" id="vistaActividad"></article>
+<div id="contenidoActividad"></div>
+<div class="msg" id="avisoActividad"></div>
+<script>
+window.CFG = { API_URL: '' };
+window.Tema = { alternar: function () {}, aplicar: function () {} };
+window.Fotos = { preparar: function () { return Promise.resolve({}); } };
+window.__puedeQuitar = false;
+window.__rol = 'CONTRATISTA';
+window.__llamadas = [];
+</script>
+<script src="../../web/js/cargando.js"></script>
+<script src="../../web/js/api.js"></script>
+<script src="../../web/js/datos.js"></script>
+<script src="../../web/js/asignacion.js"></script>
+<script src="../../web/js/sesion.js"></script>
+<script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/actividad.js"></script>
+<script>
+function datosBase() {
+  return { permisos: { ejecutar: true, ver: true, motivo: '' },
+    actividad: { id: 'A1', titulo: 'Cambio de luminarias', estado: 'PROGRAMADA', nodo_codigo: 'CA-T1',
+      fecha_inicio_plan: '2026-11-20', fecha_fin_plan: '2026-11-20', avance_aprobado_pct: 0 },
+    hitos: [], reportes: [], plantilla: null,
+    evidencias: [{ id: 'EVI_1', momento: 'ANTES', bytes: 1000, mime: 'image/jpeg',
+      fecha_subida: '2026-11-19T10:00:00-05:00', fecha_captura: '2026-11-19T10:00:00-05:00',
+      contiene_personas: false, publicable: false, reporte_id: '',
+      puede_quitar: window.__puedeQuitar }] };
+}
+window.API = { llamar: function (accion, payload) {
+  window.__llamadas.push({ accion: accion, payload: payload });
+  if (accion === 'actividades.get') { const d = datosBase(); window.__ultimo = d; return Promise.resolve({ ok: true, data: d }); }
+  if (accion === 'evidencias.quitar') {
+    const d = datosBase(); d.evidencias = [];
+    return Promise.resolve({ ok: true, data: { quitada: true, detalle: d } });
+  }
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+window.FotoCache = { configurar: function () {}, mostrar: function () {}, olvidar: function (c) { window.__olvidada = c; } };
+</script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  function botones() {
+    return Array.prototype.slice.call(document.querySelectorAll('#contenidoActividad button'))
+      .map(function (b) { return b.textContent; });
+  }
+  try {
+    // 1 · Sin permiso de quitar no hay botón
+    window.__puedeQuitar = false;
+    await Actividad.abrir('A1', 'CONTRATISTA');
+    await esperar(250);
+    ok(botones().indexOf('Quitar') < 0, 'sin permiso no aparece «Quitar»');
+
+    // 2 · Con permiso, sí; al confirmar se llama al servidor
+    window.__puedeQuitar = true;
+    document.getElementById('contenidoActividad').textContent = '';
+    await Actividad.abrir('A1', 'CONTRATISTA');
+    await esperar(250);
+    ok(botones().indexOf('Quitar') >= 0, 'con permiso aparece «Quitar» · libros=' + botones().join('/') + ' · texto=' + document.getElementById('contenidoActividad').textContent.slice(0,120) + ' · evidencias=' + JSON.stringify((window.__ultimo||{}).evidencias||'?'));
+
+    window.confirm = function () { return true; };
+    window.__llamadas = [];
+    Array.prototype.slice.call(document.querySelectorAll('#contenidoActividad button'))
+      .filter(function (b) { return b.textContent === 'Quitar'; })[0].click();
+    await esperar(300);
+    const q = window.__llamadas.filter(function (x) { return x.accion === 'evidencias.quitar'; })[0];
+    ok(!!q && q.payload.id === 'EVI_1', 'quita la foto elegida');
+    ok(window.__olvidada === 'evidencia:EVI_1', 'y olvida su miniatura del equipo');
+    ok(botones().indexOf('Quitar') < 0, 'al terminar, la foto ya no está en la lista');
+
+    // 3 · El administrador tiene que escribir el motivo
+    window.__rol = 'ADMIN';
+    window.prompt = function () { return 'corto'; };
+    document.getElementById('contenidoActividad').textContent = '';
+    await Actividad.abrir('A1', 'ADMIN');
+    await esperar(250);
+    window.__llamadas = [];
+    Array.prototype.slice.call(document.querySelectorAll('#contenidoActividad button'))
+      .filter(function (b) { return b.textContent === 'Quitar'; })[0].click();
+    await esperar(300);
+    ok(window.__llamadas.filter(function (x) { return x.accion === 'evidencias.quitar'; }).length === 0,
+      'con un motivo corto no se quita');
+    ok(document.getElementById('avisoActividad').textContent.indexOf('10 caracteres') >= 0,
+      'y se pide un motivo de verdad');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

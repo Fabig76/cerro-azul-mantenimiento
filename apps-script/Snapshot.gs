@@ -441,7 +441,8 @@ function publicFoto(param) {
   if (enCache) return ContentService.createTextOutput(enCache).setMimeType(ContentService.MimeType.JSON);
 
   const ev = buscarPorId('evidencias', id);
-  if (!ev) return noEncontrada;
+  // Q8 · Y tampoco se sirve una foto quitada: el id puede seguir en un enlace guardado.
+  if (!ev || !bool(ev.activo) || !bool(ev.publicable)) return noEncontrada;
   // Las fotos subidas antes de la v1.6 pueden no tener miniatura: se sirve la principal.
   const archivoId = ev.mini_file_id || ev.drive_file_id;
   if (!archivoId) return noEncontrada;

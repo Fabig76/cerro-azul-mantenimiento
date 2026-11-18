@@ -68,6 +68,7 @@ function runAllTests() {
   pruebasResidentes_();
   pruebasAlertasAutomaticas_();
   pruebasEjecutarActividad_();
+  pruebasQuitarEvidencia_();
   pruebasReasignarAlDesactivar_();
   pruebasPropuestasV17_();
   pruebasFilasPorHoja_();
@@ -784,6 +785,93 @@ function pruebasPropuestasV17_() {
  * RN-55 y RN-56 · Ver y ejecutar salen de la misma regla.
  * El caso que fallaba: responsable de un trabajo en una sección que no tiene asignada.
  */
+/**
+ * RN-62 a RN-64 · Quitar una foto: quién puede, cuándo, y qué deja.
+ */
+function pruebasQuitarEvidencia_() {
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo) && String(n.clase) === 'AGRUPADOR'; })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · quitar foto · sin nodos'); return; }
+
+  const hoy = hoyIso();
+  const uno = insertar('usuarios', {
+    id: newId('USU'), email: 'quitar-uno@urbcerroazul.com', nombre: 'Quitar uno',
+    telefono: '3000000020', rol: 'CONTRATISTA', empresa_id: '', estado: 'ACTIVO', activo: true,
+  }, 'prueba');
+  const otro = insertar('usuarios', {
+    id: newId('USU'), email: 'quitar-dos@urbcerroazul.com', nombre: 'Quitar dos',
+    telefono: '3000000021', rol: 'CONTRATISTA', empresa_id: '', estado: 'ACTIVO', activo: true,
+  }, 'prueba');
+
+  function crearAct(estado) {
+    return insertar('actividades', {
+      id: newId('ACT'), titulo: 'PRUEBA quitar foto', descripcion: '', nodo_id: nodo.id,
+      plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: uno.id,
+      tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+      fecha_inicio_plan: hoy, fecha_fin_plan: hoy, dias_plan: 1, prioridad: 'MEDIA',
+      estado: estado, vencida: false, en_riesgo: false, avance_reportado_pct: 0,
+      avance_aprobado_pct: 0, fecha_inicio_real: '', fecha_reporte_final: '',
+      fecha_aprobacion: '', obligatoria_legal: false, afecta_uso: false, publicable: false,
+      acta_file_id: '', inicio_sin_foto_motivo: '', propuesta_id: '', activo: true,
+    }, 'prueba');
+  }
+  function crearEv(actId, sha) {
+    return insertar('evidencias', {
+      id: newId('EVI'), reporte_id: '', actividad_id: actId, nodo_id: nodo.id,
+      momento: 'ANTES', drive_file_id: '', mini_file_id: '', mime: 'image/jpeg', bytes: 10,
+      sha256: sha, fecha_captura: hoy, fecha_subida: hoy, lat: '', lng: '',
+      contiene_personas: false, publicable: false, public_file_id: '', activo: true,
+    }, 'prueba');
+  }
+
+  const ctxUno = { usuario: { id: uno.id, email: uno.email }, rol: 'CONTRATISTA' };
+  const ctxOtro = { usuario: { id: otro.id, email: otro.email }, rol: 'CONTRATISTA' };
+  const ctxAdmin = { usuario: { id: 'ADMIN', email: 'admin@urbcerroazul.com' }, rol: 'ADMIN' };
+
+  // PROGRAMADA: el responsable quita
+  const actProg = crearAct('PROGRAMADA');
+  const evProg = crearEv(actProg.id, 'sha-programada');
+  verdadero_(puedeQuitarEvidencia_(ctxUno, evProg, actProg) === true,
+    'RN-62 · el responsable quita su foto de antes en un trabajo programado');
+  verdadero_(puedeQuitarEvidencia_(ctxOtro, evProg, actProg) === false,
+    'RN-62 · otro contratista no puede');
+
+  evidenciasQuitar(ctxUno, { id: evProg.id });
+  verdadero_(bool(buscarPorId('evidencias', evProg.id).activo) === false,
+    'RN-64 · la foto queda inactiva, no se borra la fila');
+  let noEncontrada = '';
+  try { evidenciasGet(ctxUno, { id: evProg.id }); } catch (e) { noEncontrada = String(e.message); }
+  verdadero_(noEncontrada.indexOf('NO_ENCONTRADO') === 0,
+    'Q8 · y evidencias.get ya no la entrega');
+
+  // APROBADA: el contratista no, el administrador sí y con motivo
+  const actAprob = crearAct('APROBADA');
+  const evAprob = crearEv(actAprob.id, 'sha-aprobada');
+  verdadero_(puedeQuitarEvidencia_(ctxUno, evAprob, actAprob) === false,
+    'RN-62 · en un trabajo aprobado el contratista ya no quita');
+  let sinMotivo = '';
+  try { evidenciasQuitar(ctxAdmin, { id: evAprob.id }); } catch (e) { sinMotivo = String(e.message); }
+  verdadero_(sinMotivo.indexOf('VALIDACION') === 0, 'RN-63 · el administrador necesita motivo');
+  evidenciasQuitar(ctxAdmin, { id: evAprob.id, motivo: 'muestra la cara de un residente' });
+  verdadero_(bool(buscarPorId('evidencias', evAprob.id).activo) === false,
+    'RN-63 · con motivo, el administrador la quita');
+
+  // Supervisor y consejo nunca
+  for (const rol of ['SUPERVISOR', 'CONSEJO']) {
+    verdadero_(puedeQuitarEvidencia_({ usuario: { id: 'X', email: 'x@x.com' }, rol: rol }, evProg, actProg) === false,
+      'RN-62 · ' + rol + ' no quita fotos');
+  }
+
+  // Q11 · el sha256 queda libre: la misma foto se puede subir en otra actividad
+  const actOtra = crearAct('PROGRAMADA');
+  const evOtra = crearEv(actOtra.id, 'sha-programada');
+  verdadero_(!!evOtra, 'Q11 · la misma foto se puede volver a registrar en otra actividad');
+
+  [actProg, actAprob, actOtra].forEach(function (a) { actualizar('actividades', a.id, { activo: false }, 'prueba'); });
+  [evOtra].forEach(function (e) { actualizar('evidencias', e.id, { activo: false }, 'prueba'); });
+  actualizar('usuarios', uno.id, { activo: false }, 'prueba');
+  actualizar('usuarios', otro.id, { activo: false }, 'prueba');
+}
+
 function pruebasEjecutarActividad_() {
   const nodo = filtrar('nodos', function (n) { return bool(n.activo) && String(n.clase) === 'AGRUPADOR'; })[0];
   const empresa = filtrar('empresas', function (e) { return bool(e.activo); })[0];

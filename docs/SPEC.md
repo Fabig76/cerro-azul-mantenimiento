@@ -751,6 +751,20 @@ para que un residente reportara un daño desde el equipo; ese reporte ya está a
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
 
+### 10.2 decies. Quitar una foto (v1.9)
+
+- **RN-62.** El contratista que puede ejecutar un trabajo quita sus fotos mientras está PROGRAMADA,
+  EN_EJECUCION o RECHAZADA; en un trabajo aprobado ya no. Si quita la única foto de antes, «Empezar»
+  vuelve a quedar desactivado.
+- **RN-63.** El administrador quita cualquier foto, en cualquier estado, **con motivo obligatorio**
+  (mínimo 10 caracteres).
+- **RN-64.** Quitar no borra la fila: `activo = FALSE`, `publicable = FALSE`, `quitada_por`,
+  `quitada_en` y `motivo_quitada`; auditoría `EVIDENCIA_QUITADA`; los archivos van a la papelera fuera
+  del bloqueo; se programa la regeneración del snapshot y el `sha256` queda libre (la misma foto se
+  puede subir en otra actividad). `evidencias.get` y `public.foto` responden NO_ENCONTRADO.
+- **Q12.** El equipo olvida la miniatura (`FotoCache.olvidar`), para que una foto quitada no siga
+  viéndose en ese navegador.
+
 ### 10.2 nonies. Ejecutar una actividad (v1.9)
 
 - **RN-55.** Un contratista **ejecuta** una actividad (fotos, empezar, checklist, etapas, reportar,
