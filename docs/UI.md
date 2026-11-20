@@ -225,3 +225,20 @@ curl -s "$URL/css/app.css" | grep "lo que acabo de cambiar"
 
 Una clase con `display` propio **anula el atributo `hidden`**: para ocultar algo se usa la clase
 `.oculto`, o la regla global `[hidden] { display: none !important; }` de `base.css`.
+
+
+## Resumen del portal público (v1.11)
+
+El Resumen deja de ser cinco cifras y pasa a contar qué pasó:
+
+1. **Una frase** con los conteos de la semana y lo próximo.
+2. **Lo que se hizo**: hasta tres trabajos, el primero abierto con fotos y recomendación. Se toca y abre
+   `#/trabajo/<id>`.
+3. **En curso**: «En ejecución» o «Hecho, en verificación».
+4. **Lo que viene**: el día en grande y «Afecta el uso» cuando corresponde.
+5. **Daños en atención**.
+6. **Las cifras del mes**, al final, cada una con su significado y su enlace.
+
+Al residente no se le muestra nunca un código (`CA-…`): el lugar se dice «Torre 1 · Bombas de agua».
+Las fechas van en palabras («Hoy», «Ayer, jueves»). El aviso de la administración aparece una sola vez.
+Revisado en 390, 768 y 1280 px, en claro y en oscuro.
