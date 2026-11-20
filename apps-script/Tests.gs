@@ -81,6 +81,7 @@ function runAllTests() {
     'pruebasFusionarEmpresas_',
     'pruebasPurgaYNovedadConFoto_',
     'pruebasEliminarUsuarios_',
+    'pruebasResumenPublico_',
     'pruebasReasignarAlDesactivar_',
     'pruebasPropuestasV17_',
     'pruebasFilasPorHoja_',
@@ -849,6 +850,72 @@ function pruebasPropuestasV17_() {
 /**
  * RN-70 a RN-74 · Eliminar usuarios.
  */
+/**
+ * RN-76 a RN-79 · El Resumen público: en curso, lugares con nombre y conteos.
+ */
+function pruebasResumenPublico_() {
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo) && !esSensible(n) && String(n.clase) === 'AGRUPADOR'; })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · resumen · sin nodos'); return; }
+  const hoy = hoyIso();
+
+  const crear = function (estado, extra) {
+    return insertar('actividades', Object.assign({
+      id: newId('ACT'), titulo: 'PRUEBA resumen ' + estado, descripcion: 'descripción interna',
+      nodo_id: nodo.id, plantilla_id: '', plantilla_version: '', empresa_id: '',
+      responsable_id: '', tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
+      fecha_inicio_plan: hoy, fecha_fin_plan: hoy, dias_plan: 1, prioridad: 'MEDIA',
+      estado: estado, vencida: false, en_riesgo: false, avance_reportado_pct: 100,
+      avance_aprobado_pct: 100, fecha_inicio_real: hoy, fecha_reporte_final: hoy,
+      fecha_aprobacion: hoy, obligatoria_legal: false, afecta_uso: false, publicable: true,
+      acta_file_id: '', inicio_sin_foto_motivo: '', propuesta_id: '', activo: true,
+    }, extra || {}), 'prueba');
+  };
+
+  const reportada = crear('REPORTADA');
+  const aprobada = crear('APROBADA', {
+    texto_publico: 'Se fumigaron las zonas comunes.',
+    recomendacion_publica: 'No pasear mascotas hasta mañana.',
+  });
+
+  const snap = construirSnapshot();
+  const enCurso = (snap.en_curso || []).filter(function (x) { return String(x.id) === String(reportada.id); });
+  verdadero_(enCurso.length === 1, 'RN-77 · un trabajo REPORTADO sale en «en curso»');
+  verdadero_(enCurso.length && enCurso[0].estado_publico === 'EN_VERIFICACION',
+    'RN-77 · con el estado en palabras del residente');
+
+  const hecho = (snap.recientes || []).filter(function (x) { return String(x.id) === String(aprobada.id); })[0];
+  verdadero_(!!hecho, 'RN-77 · un trabajo aprobado sale en «lo que se hizo»');
+  verdadero_(!!hecho && hecho.texto_publico.indexOf('fumigaron') >= 0,
+    'RN-80 · y lleva el texto que escribió la administración');
+  verdadero_(!!hecho && hecho.recomendacion.indexOf('mascotas') >= 0, 'RN-80 · y su recomendación');
+
+  // RN-78 · Ningún lugar con forma de código.
+  const lugares = [].concat(snap.recientes || [], snap.en_curso || [], snap.proximos || [], snap.novedades || [])
+    .map(function (x) { return String(x.donde || ''); });
+  verdadero_(lugares.every(function (d) { return !/^CA-/.test(d); }),
+    'RN-78 · ningún lugar del portal tiene forma de código');
+
+  // RN-76 · Los conteos de la frase salen de las listas.
+  const sem = (snap.resumen && snap.resumen.semana) || {};
+  verdadero_(Number(sem.en_curso) === (snap.en_curso || []).length,
+    'RN-76 · el conteo de en curso coincide con la lista');
+  verdadero_(Number(sem.terminados) <= (snap.recientes || []).length,
+    'RN-76 · los terminados salen de los recientes');
+
+  // Un nodo sensible no publica nada suyo.
+  const sensible = filtrar('nodos', function (n) { return bool(n.activo) && esSensible(n); })[0];
+  if (sensible) {
+    const oculta = crear('REPORTADA', { nodo_id: sensible.id });
+    const snap2 = construirSnapshot();
+    verdadero_((snap2.en_curso || []).every(function (x) { return String(x.id) !== String(oculta.id); }),
+      'RN-77 · un trabajo de un sistema sensible no sale en «en curso»');
+    actualizar('actividades', oculta.id, { activo: false }, 'prueba');
+  }
+
+  actualizar('actividades', reportada.id, { activo: false }, 'prueba');
+  actualizar('actividades', aprobada.id, { activo: false }, 'prueba');
+}
+
 function pruebasEliminarUsuarios_() {
   const ctx = { usuario: { id: 'ADMIN-PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
   const nodo = filtrar('nodos', function (n) { return bool(n.activo); })[0];
