@@ -306,6 +306,17 @@ function reportesRevisar(ctx, payload) {
     // Al aprobar, las fotos del trabajo pasan a ser publicables en el portal, salvo
     // las que muestran personas o placas: esas se quedan privadas para siempre.
     if (decision === 'APROBAR') {
+      // RN-80 · La administración escribe o confirma lo que verán los residentes.
+      const textoPublico = payload.texto_publico === undefined ? null : String(payload.texto_publico).trim();
+      const recomendacion = payload.recomendacion_publica === undefined ? null : String(payload.recomendacion_publica).trim();
+      if (textoPublico !== null || recomendacion !== null) {
+        const parche = {};
+        if (textoPublico !== null) parche.texto_publico = textoPublico.slice(0, 280);
+        if (recomendacion !== null) parche.recomendacion_publica = recomendacion.slice(0, 160);
+        actualizar('actividades', reporte.actividad_id, parche, ctx.usuario.email);
+        marcarCambio('actividades');
+      }
+
       filtrar('evidencias', function (e) {
         return String(e.actividad_id) === String(reporte.actividad_id) && bool(e.activo);
       }).forEach(function (e) {

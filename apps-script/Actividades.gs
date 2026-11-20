@@ -171,6 +171,9 @@ function crearActividad_(ctx, payload, opciones) {
       }).length),
     afecta_uso: !!payload.afecta_uso,
     publicable: payload.publicable !== false,
+    // RN-80 · Texto para residentes: lo escribe o lo confirma la administración.
+    texto_publico: recortar_(payload.texto_publico, 280),
+    recomendacion_publica: recortar_(payload.recomendacion_publica, 160),
     propuesta_id: opciones_.propuesta_id || '',
     activo: true,
   }, ctx.usuario.email);

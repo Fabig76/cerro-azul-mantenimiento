@@ -37,6 +37,21 @@ function seccionRaizDe_(nodo, porId) {
   return { id: seccion.id, nombre: seccion.nombre, codigo: seccion.codigo };
 }
 
+/**
+ * RN-78 · El lugar como lo diría una persona: la sección y, si aporta, el elemento.
+ * «Torre 1 · Bombas de agua». Nunca un código. Para un nodo sensible, un nombre genérico.
+ */
+function lugarPublico_(nodo, porId) {
+  if (!nodo) return '';
+  if (esSensible(nodo)) return 'Sistema de seguridad';
+  const seccion = seccionRaizDe_(nodo, porId);
+  const nombreSeccion = seccion ? String(seccion.nombre || '') : '';
+  const nombreNodo = String(nodo.nombre || '');
+  if (!nombreSeccion || nombreSeccion === nombreNodo) return nombreNodo || nombreSeccion;
+  // Solo se añade el elemento cuando dice algo distinto de la sección.
+  return nombreSeccion + ' · ' + nombreNodo;
+}
+
 /** Construye el snapshot completo. Solo datos agregados y publicables. */
 function construirSnapshot() {
   const nodos = filtrar('nodos', function (n) { return bool(n.activo); });
@@ -195,9 +210,11 @@ function construirSnapshot() {
       const n = porId[a.nodo_id];
       const sensible = n ? esSensible(n) : false;
       return {
+        id: a.id,
         fecha: fechaIso_(a.fecha_inicio_plan),
         nodo_codigo: sensible ? '' : (n ? n.codigo : ''),
         nodo_nombre: sensible ? '' : (n ? n.nombre : ''),
+        donde: sensible ? 'Sistema de seguridad' : lugarPublico_(n, porId),
         // Un nodo sensible nunca publica el título: diría qué equipo es y cuándo queda solo.
         titulo: sensible ? 'Mantenimiento programado en sistema sensible' : a.titulo,
         afecta_uso: bool(a.afecta_uso),
@@ -228,13 +245,45 @@ function construirSnapshot() {
         return String(e.actividad_id) === String(a.id) && bool(e.publicable) && bool(e.activo);
       }).map(function (e) { return { id: e.id, momento: e.momento }; });
       return {
+        id: a.id,
         fecha: fechaIso_(a.fecha_aprobacion || a.fecha_reporte_final),
         nodo_codigo: sensible ? '' : (n ? n.codigo : ''),
+        nodo_nombre: sensible ? '' : (n ? n.nombre : ''),
+        // RN-78 · Con nombres, no con el código interno.
+        donde: sensible ? 'Sistema de seguridad' : lugarPublico_(n, porId),
         titulo: sensible ? 'Trabajo terminado en sistema sensible' : a.titulo,
         empresa: empresas[a.empresa_id] || '',
         sensible: sensible,
+        // RN-80 · Lo que escribió la administración para el residente.
+        texto_publico: sensible ? '' : String(a.texto_publico || ''),
+        recomendacion: sensible ? '' : String(a.recomendacion_publica || ''),
         fotos: fotos,
         seccion: sensible ? null : seccionRaizDe_(n, porId),
+      };
+    });
+
+  // --- En curso: ya empezó y todavía no se aprobó ---
+  // D2 · Un trabajo que empezó ayer desaparecía: no era «próximo» ni «reciente».
+  const enCurso = actividades
+    .filter(function (a) {
+      if (!bool(a.publicable)) return false;
+      if (['EN_EJECUCION', 'REPORTADA', 'RECHAZADA'].indexOf(String(a.estado)) < 0) return false;
+      const n = porId[a.nodo_id];
+      return !(n && esSensible(n));
+    })
+    .sort(function (a, b) { return String(a.fecha_inicio_plan) < String(b.fecha_inicio_plan) ? -1 : 1; })
+    .slice(0, 10)
+    .map(function (a) {
+      const n = porId[a.nodo_id];
+      return {
+        id: a.id,
+        titulo: a.titulo,
+        donde: lugarPublico_(n, porId),
+        estado_publico: String(a.estado) === 'EN_EJECUCION' ? 'EN_EJECUCION' : 'EN_VERIFICACION',
+        desde: fechaIso_(a.fecha_inicio_real || a.fecha_inicio_plan),
+        texto_publico: String(a.texto_publico || ''),
+        afecta_uso: bool(a.afecta_uso),
+        seccion: seccionRaizDe_(n, porId),
       };
     });
 
@@ -243,7 +292,11 @@ function construirSnapshot() {
     const nodo = porId[n.nodo_id];
     const sensible = nodo ? esSensible(nodo) : false;
     return {
+      id: n.id,
       nodo_codigo: sensible ? (nodo ? nodo.codigo.split('-').slice(0, 2).join('-') : '') : (nodo ? nodo.codigo : ''),
+      // RN-78 · Con nombres; nunca el código del nodo sensible.
+      donde: sensible ? 'Sistema de seguridad' : lugarPublico_(nodo, porId),
+      reportada_en: fechaIso_(n.creado_en || n.fecha_deteccion),
       texto: sensible ? 'Novedad en sistema sensible — en atención' : (n.texto_publico || n.titulo),
       gravedad: n.gravedad,
       estado: n.estado,
@@ -328,10 +381,22 @@ function construirSnapshot() {
       },
       novedades_abiertas: novedadesAbiertas.length,
       proximos_7d: proximos7,
+      // RN-76 · La frase del Resumen cuenta exactamente lo que muestran las listas.
+      semana: {
+        terminados: recientes.filter(function (x) {
+          return String(x.fecha) >= sumarDias(hoyIso(), -6);
+        }).length,
+        en_curso: enCurso.length,
+        danos: novedades.length,
+        proximo: proximos.length
+          ? { titulo: proximos[0].titulo, fecha: proximos[0].fecha, donde: proximos[0].donde || '' }
+          : null,
+      },
       elementos: elementos.length,
     },
     arbol: arbol,
     meses: meses,
+    en_curso: enCurso,
     proximos: proximos,
     recientes: recientes,
     novedades: novedades,
@@ -618,6 +683,7 @@ function publicNodo(param) {
     },
     hijos: hijos,
     meses: meses,
+    en_curso: enCurso,
     proximos: proximos,
     recientes: recientes,
     mes_actual: mesActual,

@@ -751,6 +751,26 @@ para que un residente reportara un daño desde el equipo; ese reporte ya está a
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
 
+### 10.5. El Resumen público (v1.11)
+
+- **RN-76.** Lo primero del Resumen es una frase con los conteos de la semana (`resumen.semana`):
+  terminados, en curso, daños y lo próximo.
+- **RN-77.** Cinco bloques, en orden: **Lo que se hizo** (últimos días, el primero abierto con fotos),
+  **En curso**, **Lo que viene**, **Daños en atención** y **Las cifras del mes**. Cada uno con «Ver todos».
+- **RN-78.** Al residente nunca se le muestra un código: `donde` sale de `lugarPublico_` («Torre 1 ·
+  Bombas de agua»); un nodo sensible dice «Sistema de seguridad».
+- **RN-79.** Las fechas van en palabras (`fechaEnPalabras`): «Hoy», «Ayer, jueves», «Jueves 19 de noviembre».
+- **RN-80.** `texto_publico` (280) y `recomendacion_publica` (160) los escribe o confirma la
+  administración: campo opcional al crear y bloque «Lo que verán los residentes» con vista previa al
+  aprobar. Nunca se publica el texto del contratista tal cual.
+- **RN-81.** `#/trabajo/<id>`: título, lugar, fecha, empresa, estado, texto, recomendación y fotos. No
+  hace otra petición: usa el snapshot cargado.
+- **RN-82.** Las cifras dicen qué significan y llevan a su pestaña. La salud va con su explicación.
+- **RN-83.** Un aviso se muestra una sola vez: en la franja; la tarjeta solo repite el primero si se
+  cierra la franja o si hay más avisos.
+- **RN-84.** Las cifras fijas de la portada no salen en el Resumen del celular, y en escritorio se leen
+  en los dos temas.
+
 ### 10.4 bis. Eliminar usuarios (v1.10)
 
 - **RN-70.** El administrador elimina a cualquier usuario menos: a sí mismo, al último ADMIN

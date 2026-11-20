@@ -303,6 +303,9 @@
   .hero .stats { display: none; }
   #cifrasFinal .stats { display: grid; grid-template-columns: repeat(2, 1fr); margin-top: 18px; }
   #cifrasFinal .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 12px 14px; }
+  /* D8 · La tarjeta es clara: el número y el rótulo tienen que leerse en los dos temas. */
+  #cifrasFinal .stat .n { color: var(--ink); }
+  #cifrasFinal .stat .l { color: var(--muted); }
 }
 @media (min-width: 768px) {
   #cifrasFinal { display: none; }
@@ -363,3 +366,98 @@
 
 /* Página del equipo (QR) */
 .equipo-acciones { display: grid; gap: 8px; margin-top: 18px; max-width: 420px; }
+
+/* ---------- RESUMEN NUEVO (v1.11) ---------- */
+/* RN-76 · La frase que explica la semana */
+.resumen-frase {
+  margin: 0 0 18px;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink-soft, var(--ink));
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--acento, #4f46e5);
+  border-radius: var(--radius-m);
+  padding: 12px 14px;
+}
+.resumen-frase strong { color: var(--ink); }
+
+/* RN-77 · Los cinco bloques del Resumen */
+.resumen-bloques { display: grid; gap: 22px; }
+.bloque-resumen { display: grid; gap: 10px; }
+.bloque-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.bloque-cab h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+.bloque-ver { font-size: 13px; color: var(--acento, #4f46e5); text-decoration: none; white-space: nowrap; }
+.bloque-ver:hover { text-decoration: underline; }
+.bloque-vacio { margin: 0; font-size: 13.5px; color: var(--muted); }
+
+/* La tarjeta de trabajo: se toca y lleva al detalle */
+.trabajo-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 12px 14px;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+}
+.trabajo-card:hover { border-color: var(--acento, #4f46e5); }
+.trabajo-card:focus-visible { outline: 2px solid var(--acento, #4f46e5); outline-offset: 2px; }
+.trabajo-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.trabajo-titulo { font-size: 14.5px; }
+.trabajo-meta { margin: 0; font-size: 12.5px; color: var(--muted); }
+.trabajo-texto { margin: 0; font-size: 13.5px; line-height: 1.5; }
+.trabajo-reco {
+  margin: 0; font-size: 12.5px; line-height: 1.45;
+  background: var(--warn-soft, #fdf1e3);
+  border-radius: var(--radius-s, 8px);
+  padding: 7px 9px;
+}
+.trabajo-ver { grid-column: 1 / -1; font-size: 12.5px; color: var(--acento, #4f46e5); }
+.trabajo-fotos { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 4px; }
+.trabajo-foto { margin: 0; flex: 1; }
+.trabajo-foto img { width: 100%; height: 96px; object-fit: cover; border-radius: var(--radius-s, 8px); display: block; }
+.trabajo-foto figcaption { font-size: 11px; color: var(--muted); text-align: center; margin-top: 2px; }
+
+/* El día en grande, en «Lo que viene» */
+.trabajo-fecha {
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  border-radius: var(--radius-s, 8px);
+  background: var(--indigo-soft, #eef1ff);
+  color: var(--ink);
+}
+.trabajo-fecha strong { font-size: 17px; line-height: 1; }
+.trabajo-fecha span { font-size: 10px; letter-spacing: .06em; }
+.trabajo-cuerpo { display: grid; gap: 3px; }
+.aviso-uso {
+  font-size: 11.5px; color: var(--ink);
+  background: var(--warn-soft, #fdf1e3);
+  border-radius: 6px; padding: 3px 7px; justify-self: start;
+}
+
+/* RN-82 · Las cifras del mes, cada una con su enlace */
+.resumen-titulo-cifras { margin: 26px 0 10px; font-size: 15px; }
+.cifras { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.cifra-card {
+  display: grid; gap: 3px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius-m); padding: 12px 14px;
+  color: inherit; text-decoration: none;
+}
+.cifra-card:hover { border-color: var(--acento, #4f46e5); }
+.cifra-n { font-size: 21px; letter-spacing: -.02em; color: var(--ink); }
+.cifra-l { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.cifra-ver { font-size: 12px; color: var(--acento, #4f46e5); margin-top: 2px; }
+
+@media (min-width: 768px) {
+  .cifras { grid-template-columns: repeat(4, 1fr); }
+  .trabajo-foto img { height: 140px; }
+}

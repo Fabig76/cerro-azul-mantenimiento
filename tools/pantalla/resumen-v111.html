@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/home.css">
+</head>
+<body>
+<div id="franjaAlertas" class="franja-alertas oculto"></div>
+<section id="estado" data-gpanel="resumen">
+  <p id="actualizado"></p>
+  <p class="resumen-frase" id="resumenFrase"></p>
+  <div class="resumen-bloques" id="resumenBloques"></div>
+  <div class="g2" id="resumenImportante"></div>
+  <div class="cifras" id="resumenCifras"></div>
+</section>
+<section id="pantallaTrabajo" class="wrap oculto" tabindex="-1"></section>
+<script>
+window.CFG = { API_URL: '' };
+window.__snap = {
+  generado_en: new Date().toISOString(),
+  resumen: {
+    salud: { puntaje: 82, estado: 'CRITICO', distribucion: { AL_DIA: 8, ATENCION: 2, CRITICO: 1 }, },
+    mes: { programadas: 15, ejecutadas: 4, reportadas: 2, cumplimiento_pct: 27 },
+    novedades_abiertas: 2, proximos_7d: 2, elementos: 11,
+    semana: { terminados: 3, en_curso: 2, danos: 2,
+      proximo: { titulo: 'Mantenimiento mensual ascensor Torre 1', fecha: '2026-11-18', donde: 'Torre 1 · Ascensores' } },
+  },
+  recientes: [
+    { id: 'ACT_1', titulo: 'Fumigación de zonas comunes', donde: 'Áreas comunes', fecha: '2026-11-17',
+      empresa: 'Hidro Bombas S.A.S.', texto_publico: 'Control de roedores e insectos en zonas verdes, shuts y sótanos.',
+      recomendacion: 'No pasear mascotas por los jardines hasta mañana.', fotos: [{ id: 'EVI_1', momento: 'ANTES' }, { id: 'EVI_2', momento: 'DESPUES' }] },
+    { id: 'ACT_2', titulo: 'Mantenimiento mensual ascensor Torre 2', donde: 'Torre 2 · Ascensores',
+      fecha: '2026-11-16', empresa: 'Ascensores Andinos Ltda.', texto_publico: '', recomendacion: '', fotos: [] },
+  ],
+  en_curso: [
+    { id: 'ACT_3', titulo: 'Lavado y desinfección de tanque alto Torre 1', donde: 'Torre 1 · Tanque alto',
+      estado_publico: 'EN_VERIFICACION', desde: '2026-11-16', afecta_uso: true },
+  ],
+  proximos: [
+    { id: 'ACT_4', titulo: 'Mantenimiento mensual ascensor Torre 1', donde: 'Torre 1 · Ascensores',
+      fecha: '2026-11-18', afecta_uso: true },
+  ],
+  novedades: [
+    { id: 'NOV_1', texto: 'La bomba de presión de la Torre 1 está en revisión.', donde: 'Torre 1 · Bombas de agua',
+      gravedad: 'MEDIA', reportada_en: '2026-11-14' },
+  ],
+  alertas: [
+    { nivel: 'AVISO', titulo: 'Corte de agua el jueves', mensaje: 'De 8:00 a 12:00.' },
+    { nivel: 'INFO', titulo: 'Segundo aviso', mensaje: 'Solo debe salir una vez arriba.' },
+  ],
+  arbol: [], meses: [], normativo: [],
+};
+window.API = { llamar: function (accion, payload) {
+  if (accion === 'public.snapshot') return Promise.resolve({ ok: true, data: window.__snap });
+  if (accion === 'public.foto') return new Promise(function () {});   // se queda «cargando»
+  return Promise.resolve({ ok: true, data: {} });
+} };
+</script>
+<script src="../../web/js/publico.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  function texto(id) { const n = document.getElementById(id); return n ? n.textContent : ''; }
+  try {
+    if (window.Publico && Publico.pintar) Publico.pintar(window.__snap);
+    else if (window.Publico && Publico.cargar) await Publico.cargar();
+    else if (typeof pintar === 'function') pintar(window.__snap);
+    await esperar(400);
+
+    const frase = texto('resumenFrase');
+    ok(/3 trabajos/.test(frase), 'la frase dice los trabajos terminados');
+    ok(/2 en curso/.test(frase), 'y los que están en curso');
+    ok(/ascensor Torre 1/.test(frase), 'y lo próximo');
+
+    const hecho = texto('resumenBloques');
+    ok(/Fumigación de zonas comunes/.test(hecho), 'aparece la fumigación (D1)');
+    ok(/Lavado y desinfección/.test(hecho), 'y lo que está en verificación (D2)');
+    ok(!/CA-[A-Z0-9-]+/.test(hecho), 'sin códigos internos (D5)');
+    ok(!/\d{4}-\d{2}-\d{2}/.test(hecho), 'sin fechas ISO (D6)');
+    ok(/Recomendación/.test(hecho), 'con la recomendación (D7)');
+
+    const tarjetas = document.querySelectorAll('#resumenBloques .trabajo-card');
+    ok(tarjetas.length >= 5, 'las tarjetas son botones («' + tarjetas.length + '»)');
+    tarjetas[0].click();
+    await esperar(300);
+    ok(window.location.hash === '#/trabajo/ACT_1' || !!document.querySelector('#pantallaTrabajo:not(.oculto)'),
+      'tocar la primera tarjeta abre el detalle (D3, D10)');
+    ok(/Fumigación/.test(texto('pantallaTrabajo')), 'el detalle muestra el título');
+
+    const cifras = document.querySelectorAll('#resumenCifras .cifra-card');
+    ok(cifras.length >= 3 && cifras[0].getAttribute('href') === '#/historico',
+      'las cifras llevan a su pestaña (D4)');
+
+    // El aviso, una sola vez
+    const visibles = (document.getElementById('franjaAlertas').textContent || '') + ' ' +
+      (document.getElementById('resumenImportante').textContent || '');
+    const veces = (visibles.match(/Corte de agua el jueves/g) || []).length;
+    ok(veces === 1, 'el aviso aparece una sola vez (D9) · veces=' + veces);
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

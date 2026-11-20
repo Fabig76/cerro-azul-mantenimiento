@@ -112,6 +112,15 @@
     if (r.data && r.data.detalle) mostrarDetalle(r.data.detalle); else abrir(datos.actividad.id, rol);
   }
 
+  /** Fecha corta y en palabras para la vista previa del portal. */
+  function fechaEnPalabrasPanel_(iso) {
+    const p = String(iso || '').slice(0, 10).split('-');
+    if (p.length !== 3) return '';
+    const f = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    if (isNaN(f.getTime())) return '';
+    return f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
   function permiteQuitar(foto) {
     if (!foto || !foto.id) return false;
     if (foto.puede_quitar === true) return true;
@@ -1375,6 +1384,55 @@
     }
 
     if (a.estado === 'REPORTADA' && rol === 'ADMIN') {
+      // RN-80 · Lo que verán los residentes. Se rellena con lo que ya haya o con la
+      // descripción del trabajo, para corregirlo antes de aprobar.
+      // Un trabajo de un sistema sensible nunca se publica: no hay texto que escribir.
+      if (a.publicable && !(datos.nodo && datos.nodo.sensible)) {
+        const cajaTexto = el('div', 'bloque');
+        cajaTexto.appendChild(el('div', 'kicker', 'Lo que verán los residentes'));
+        cajaTexto.appendChild(el('p', 'bajada-tarjeta',
+          'Se publica en el portal con el título y el lugar. Revíselo antes de aprobar: ' +
+          'no se usa el texto del contratista tal cual.'));
+
+        const texto = el('textarea', 'item-input');
+        texto.id = 'textoPublico';
+        texto.maxLength = 280;
+        texto.placeholder = 'Qué se hizo, en una o dos frases';
+        texto.value = String(a.texto_publico || a.descripcion || '');
+        cajaTexto.appendChild(texto);
+
+        const reco = el('textarea', 'item-input');
+        reco.id = 'recomendacionPublica';
+        reco.maxLength = 160;
+        reco.placeholder = 'Recomendación (opcional): «no pasear mascotas hasta mañana»';
+        reco.value = String(a.recomendacion_publica || '');
+        cajaTexto.appendChild(reco);
+
+        // Vista previa de la tarjeta, como la del portal.
+        const previa = el('div', 'trabajo-card vista-previa');
+        previa.appendChild(el('strong', 'trabajo-titulo', a.titulo || ''));
+        previa.appendChild(el('p', 'trabajo-meta',
+          [a.nodo_nombre || a.nodo_codigo || '', fechaEnPalabrasPanel_(a.fecha_fin_plan)].filter(Boolean).join(' · ')));
+        const previaTexto = el('p', 'trabajo-texto', texto.value);
+        const previaReco = el('p', 'trabajo-reco oculto');
+        previa.appendChild(previaTexto);
+        previa.appendChild(previaReco);
+        const refrescarPrevia = function () {
+          previaTexto.textContent = texto.value;
+          if (reco.value.trim()) {
+            previaReco.textContent = 'Recomendación: ' + reco.value;
+            previaReco.classList.remove('oculto');
+          } else {
+            previaReco.classList.add('oculto');
+          }
+        };
+        texto.addEventListener('input', refrescarPrevia);
+        reco.addEventListener('input', refrescarPrevia);
+        refrescarPrevia();
+        cajaTexto.appendChild(previa);
+        caja.appendChild(cajaTexto);
+      }
+
       const nota = el('textarea', 'item-input');
       nota.id = 'comentarioRevision';
       nota.placeholder = 'Observación de la revisión (obligatoria si rechazas)';
@@ -1387,6 +1445,8 @@
           reporte_id: datos.reportes[datos.reportes.length - 1].id,
           decision: 'APROBAR',
           comentario: nota.value,
+          texto_publico: (document.getElementById('textoPublico') || {}).value,
+          recomendacion_publica: (document.getElementById('recomendacionPublica') || {}).value,
         }, { token: Sesion.token(), idempotente: true });
         if (!r.ok) return aviso(r.message || 'No se pudo aprobar.', 'error');
         aviso('Reporte aprobado. El avance ya cuenta y el semáforo se recalculó.', 'ok');

@@ -95,6 +95,8 @@
   }
 
   function pintarTodo(snap) {
+    // Se conserva el último snapshot: el detalle, el selector de torre y «Reportar» lo usan.
+    ultimoSnap = snap;
     prepararFiltro(snap);
     pintarResumen(snap);
     pintarArbol(snap);
@@ -125,71 +127,239 @@
     return f.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' }) + ' a las ' + hora;
   }
 
+  /** RN-79 · «Hoy», «Ayer, jueves», «Jueves 19 de noviembre». */
+  function fechaEnPalabras(iso) {
+    if (!iso) return '';
+    const partes = String(iso).slice(0, 10).split('-');
+    if (partes.length !== 3) return String(iso);
+    const f = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+    if (isNaN(f.getTime())) return String(iso);
+    const hoy = new Date();
+    const dia = function (d) { return d.toDateString(); };
+    const ayer = new Date(hoy.getTime() - 86400000);
+    const manana = new Date(hoy.getTime() + 86400000);
+    const nombreDia = f.toLocaleDateString('es-CO', { weekday: 'long' });
+    if (dia(f) === dia(hoy)) return 'Hoy';
+    if (dia(f) === dia(ayer)) return 'Ayer, ' + nombreDia;
+    if (dia(f) === dia(manana)) return 'Mañana, ' + nombreDia;
+    return f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  /** «18» y «MIÉ» para el cuadro de la agenda. */
+  function diaYMes(iso) {
+    const partes = String(iso || '').slice(0, 10).split('-');
+    if (partes.length !== 3) return { dia: '', mes: '' };
+    const f = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+    if (isNaN(f.getTime())) return { dia: '', mes: '' };
+    return {
+      dia: String(f.getDate()),
+      mes: f.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '').toUpperCase().slice(0, 3),
+    };
+  }
+
+  /** RN-81 · Una tarjeta de trabajo, con el mismo dibujo en todo el portal. */
+  function tarjetaTrabajo(item, opciones) {
+    const op = opciones || {};
+    const abierta = !!op.abierta;
+    const caja = el('button', 'trabajo-card' + (abierta ? ' abierta' : ''));
+    caja.type = 'button';
+    const nombre = item.titulo || 'trabajo';
+    caja.setAttribute('aria-label', 'Ver el detalle de ' + nombre);
+    caja.addEventListener('click', function () { window.location.hash = '#/trabajo/' + item.id; });
+
+    const cab = el('div', 'trabajo-cab');
+    cab.appendChild(el('strong', 'trabajo-titulo', item.titulo || ''));
+
+    // El estado, en palabras de residente.
+    const estados = {
+      EN_EJECUCION: ['En ejecución', 'warn'],
+      EN_VERIFICACION: ['Hecho, en verificación', 'ok'],
+    };
+    const est = estados[item.estado_publico];
+    if (est) cab.appendChild(el('span', 'badge ' + est[1], est[0]));
+    caja.appendChild(cab);
+
+    // RN-78 · El lugar con nombres; nunca el código.
+    const lugar = item.donde || item.nodo_nombre || '';
+    const cuando = fechaEnPalabras(item.fecha || item.desde || '');
+    const linea = [lugar, cuando].filter(Boolean).join(' · ');
+    if (linea) caja.appendChild(el('p', 'trabajo-meta', linea));
+
+    if (item.texto_publico) caja.appendChild(el('p', 'trabajo-texto', item.texto_publico));
+    if (item.recomendacion) {
+      const rec = el('p', 'trabajo-reco');
+      rec.appendChild(el('strong', null, 'Recomendación: '));
+      rec.appendChild(document.createTextNode(item.recomendacion));
+      caja.appendChild(rec);
+    }
+
+    if (abierta && (item.fotos || []).length) {
+      const par = el('div', 'trabajo-fotos');
+      const antes = (item.fotos || []).filter(function (f) { return f.momento === 'ANTES'; })[0];
+      const despues = (item.fotos || []).filter(function (f) { return f.momento === 'DESPUES'; })[0];
+      [[antes, 'ANTES'], [despues, 'DESPUÉS']].forEach(function (par2) {
+        if (!par2[0]) return;
+        const marco = el('figure', 'trabajo-foto');
+        const img = el('img');
+        img.alt = par2[1] + ': ' + nombre;
+        img.loading = 'lazy';
+        marco.appendChild(img);
+        marco.appendChild(el('figcaption', null, par2[1]));
+        cargarFoto(par2[0].id, img);
+        par.appendChild(marco);
+      });
+      if (par.childNodes.length) caja.appendChild(par);
+    }
+
+    caja.appendChild(el('span', 'trabajo-ver', 'Ver el detalle →'));
+    return caja;
+  }
+
+  /** Un bloque del Resumen: título, «Ver todos» y su lista. */
+  function bloqueResumen(titulo, enlace, textoEnlace, lista, vacio) {
+    const caja = el('section', 'bloque-resumen');
+    const cab = el('div', 'bloque-cab');
+    cab.appendChild(el('h3', null, titulo));
+    if (enlace) {
+      const a = el('a', 'bloque-ver', textoEnlace || 'Ver todos');
+      a.href = enlace;
+      cab.appendChild(a);
+    }
+    caja.appendChild(cab);
+    if (!lista || !lista.length) {
+      caja.appendChild(el('p', 'bloque-vacio', vacio || 'Sin novedades.'));
+      return caja;
+    }
+    lista.forEach(function (item) { caja.appendChild(item); });
+    return caja;
+  }
+
+  /** RN-76 · La frase que explica qué pasó esta semana. */
+  function pintarFrase(snap) {
+    const cont = document.getElementById('resumenFrase');
+    if (!cont) return;
+    const sem = (snap.resumen && snap.resumen.semana) || {};
+    const terminados = Number(sem.terminados || 0);
+    const enCurso = Number(sem.en_curso || 0);
+    const danos = Number(sem.danos || 0);
+
+    const partes = [];
+    if (terminados) partes.push(terminados === 1 ? '1 trabajo' : terminados + ' trabajos');
+    if (enCurso) partes.push(enCurso === 1 ? '1 en curso' : enCurso + ' en curso');
+    if (danos) partes.push(danos === 1 ? '1 daño en atención' : danos + ' daños en atención');
+
+    cont.textContent = '';
+    if (!partes.length) {
+      cont.appendChild(document.createTextNode('Esta semana no hay trabajos registrados ni daños en atención.'));
+    } else {
+      cont.appendChild(document.createTextNode('Esta semana: '));
+      cont.appendChild(el('strong', null, partes.join(', ')));
+      cont.appendChild(document.createTextNode('.'));
+    }
+
+    if (sem.proximo) {
+      const p = sem.proximo;
+      cont.appendChild(document.createTextNode(' Lo próximo: ' + p.titulo +
+        (p.donde ? ' (' + p.donde + ')' : '') + ', ' + fechaEnPalabras(p.fecha).toLowerCase() + '.'));
+    }
+  }
+
   function pintarResumen(snap) {
-    const cont = document.getElementById('kpis');
+    pintarFrase(snap);
+
+    const recientes = (snap.recientes || []).slice(0, 3);
+    const enCurso = (snap.en_curso || []).slice(0, 3);
+    const proximos = (snap.proximos || []).slice(0, 3);
+    const novedades = (snap.novedades || []).slice(0, 3);
+    const mes = (snap.resumen && snap.resumen.mes) || {};
+    const salud = (snap.resumen && snap.resumen.salud) || {};
+
+    const bloques = document.getElementById('resumenBloques');
+    if (bloques) {
+      bloques.textContent = '';
+      // 1 · Lo que se hizo
+      bloques.appendChild(bloqueResumen('Lo que se hizo', '#/historico', 'Ver todos',
+        recientes.map(function (r, i) { return tarjetaTrabajo(r, { abierta: i === 0 }); }),
+        'Esta semana no se ha publicado ningún trabajo terminado.'));
+      // 2 · En curso
+      bloques.appendChild(bloqueResumen('En curso', '#/agenda', 'Ver la agenda',
+        enCurso.map(function (r) { return tarjetaTrabajo(r); }),
+        'No hay trabajos en marcha en este momento.'));
+      // 3 · Lo que viene
+      bloques.appendChild(bloqueResumen('Lo que viene', '#/agenda', 'Ver la agenda',
+        proximos.map(function (p) {
+          const caja = el('button', 'trabajo-card');
+          caja.type = 'button';
+          caja.setAttribute('aria-label', 'Ver el detalle de ' + (p.titulo || 'trabajo'));
+          caja.addEventListener('click', function () { window.location.hash = '#/trabajo/' + p.id; });
+          const dm = diaYMes(p.fecha);
+          const fecha = el('div', 'trabajo-fecha');
+          fecha.appendChild(el('strong', null, dm.dia));
+          fecha.appendChild(el('span', null, dm.mes));
+          caja.appendChild(fecha);
+          const cuerpo = el('div', 'trabajo-cuerpo');
+          cuerpo.appendChild(el('strong', null, p.titulo || ''));
+          if (p.donde) cuerpo.appendChild(el('p', 'trabajo-meta', p.donde));
+          if (p.afecta_uso) cuerpo.appendChild(el('span', 'aviso-uso', 'Afecta el uso: planee con tiempo.'));
+          caja.appendChild(cuerpo);
+          return caja;
+        }),
+        'No hay trabajos programados en los próximos días.'));
+      // 4 · Daños en atención
+      bloques.appendChild(bloqueResumen('Daños en atención', '#/novedades', 'Ver todos',
+        novedades.map(function (n) {
+          const caja = el('a', 'trabajo-card');
+          caja.href = '#/novedades';
+          const cuerpo = el('div', 'trabajo-cuerpo');
+          cuerpo.appendChild(el('strong', null, n.texto || ''));
+          const linea = [n.donde, n.reportada_en ? 'reportado ' + fechaEnPalabras(n.reportada_en).toLowerCase() : '']
+            .filter(Boolean).join(' · ');
+          if (linea) cuerpo.appendChild(el('p', 'trabajo-meta', linea));
+          caja.appendChild(cuerpo);
+          if (n.gravedad) caja.appendChild(el('span', 'badge ' + (n.gravedad === 'ALTA' || n.gravedad === 'CRITICA' ? 'danger' : 'warn'), n.gravedad));
+          return caja;
+        }),
+        'No hay daños en atención.'));
+    }
+
+    // 5 · Las cifras del mes, cada una con su significado y su enlace.
+    const cont = document.getElementById('resumenCifras');
     if (!cont) return;
     cont.textContent = '';
-    const r = snap.resumen || {};
-    const salud = r.salud || {};
-    const mes = r.mes || {};
-
-    const acentoSalud = { AL_DIA: 'ok', EN_REVISION: 'warn', ATENCION: 'warn', CRITICO: 'danger' }[salud.estado] || 'neutro';
-    const tarjetas = [
+    const cifras = [
       {
-        n: salud.puntaje === null || salud.puntaje === undefined ? '—' : salud.puntaje,
-        l: 'Salud general',
-        acento: acentoSalud,
-        etiqueta: (ESTADOS[salud.estado] || ['', 'gray'])[0],
-        claseEtiqueta: (ESTADOS[salud.estado] || ['', 'gray'])[1],
+        n: (mes.ejecutadas || 0) + ' de ' + (mes.programadas || 0),
+        l: 'trabajos del mes verificados',
+        enlace: '#/historico', texto: 'Ver cuáles',
       },
-      (function () {
-        // Si hay trabajo entregado y sin aprobar, el 0 % mentiría.
-        const reportadas = Number(mes.reportadas || 0);
-        if (reportadas > 0 && !mes.ejecutadas) {
-          return { n: reportadas, l: 'En revisión de la administración', acento: 'warn' };
-        }
-        return { n: (mes.cumplimiento_pct === null ? '—' : mes.cumplimiento_pct + '%'), l: 'Cumplimiento del mes', acento: 'indigo' };
-      })(),
-      { n: (mes.ejecutadas || 0) + ' de ' + (mes.programadas || 0),
-        l: 'trabajos del mes terminados y aprobados', acento: 'cian' },
       {
-        n: r.novedades_abiertas || 0,
-        l: 'Novedades abiertas',
-        acento: (r.novedades_abiertas || 0) > 0 ? 'danger' : 'ok',
+        n: (snap.resumen && snap.resumen.elementos) || 0,
+        l: 'equipos en el conjunto',
+        enlace: '#/secciones', texto: 'Ver las secciones',
       },
-      { n: r.proximos_7d || 0, l: 'En los próximos 7 días', acento: 'violeta' },
+      {
+        n: (snap.proximos || []).length,
+        l: 'trabajos en los próximos días',
+        enlace: '#/agenda', texto: 'Ver la agenda',
+      },
     ];
-    tarjetas.forEach(function (t) {
-      const caja = el('div', 'kpi acento-' + t.acento);
-      caja.appendChild(el('div', 'kpi-n', String(t.n)));
-      caja.appendChild(el('div', 'kpi-l', t.l));
-      if (t.etiqueta) caja.appendChild(el('span', 'badge ' + t.claseEtiqueta, t.etiqueta));
-
-      // El número solo sirve si se entiende: se explica ahí mismo.
-      if (t.l === 'Salud general') {
-        const ayuda = el('button', 'kpi-ayuda', '¿Qué significa?');
-        ayuda.type = 'button';
-        ayuda.setAttribute('aria-expanded', 'false');
-        const detalle = el('div', 'kpi-explica oculto');
-        [
-          'Mide el estado de los equipos del conjunto con lo último que reportó cada trabajo: ' +
-            'cuenta la condición en que quedó el equipo, el tiempo desde su último mantenimiento y si tiene fallas abiertas.',
-          'Verde: todo al día. Naranja: hay algo que necesita atención. Rojo: hay equipos con fallas o mantenimientos vencidos.',
-          'Se recalcula cada noche y se publica en este portal cada hora.',
-        ].forEach(function (linea) { detalle.appendChild(el('p', null, linea)); });
-        ayuda.addEventListener('click', function () {
-          const abierto = !detalle.classList.contains('oculto');
-          detalle.classList.toggle('oculto', abierto);
-          ayuda.textContent = abierto ? '¿Qué significa?' : 'Ocultar';
-          ayuda.setAttribute('aria-expanded', abierto ? 'false' : 'true');
-        });
-        caja.appendChild(ayuda);
-        caja.appendChild(detalle);
-      }
-
-      cont.appendChild(caja);
+    if (salud.puntaje !== null && salud.puntaje !== undefined) {
+      cifras.push({
+        n: salud.puntaje !== null ? salud.puntaje + ' de 100' : '—',
+        l: 'salud general, en promedio',
+        enlace: '#/secciones', texto: 'Ver el detalle',
+      });
+    }
+    cifras.forEach(function (c) {
+      const a = el('a', 'cifra-card');
+      a.href = c.enlace;
+      a.appendChild(el('strong', 'cifra-n', String(c.n)));
+      a.appendChild(el('span', 'cifra-l', c.l));
+      a.appendChild(el('span', 'cifra-ver', c.texto + ' →'));
+      cont.appendChild(a);
     });
   }
+
 
   function barraDistribucion(dist) {
     const total = (dist.AL_DIA || 0) + (dist.ATENCION || 0) + (dist.CRITICO || 0) + (dist.SIN_DATOS || 0);
@@ -492,6 +662,10 @@
     INFO: { clase: 'info', icono: 'i' },
   };
 
+  // D9 · El primer aviso vive en la franja; la tarjeta solo lo repite si el residente
+  // cerró la franja o si hay más avisos.
+  let franjaCerrada = false;
+
   function pintarAlertas(snap) {
     const franja = document.getElementById('franjaAlertas');
     if (!franja) return;
@@ -517,7 +691,11 @@
       const cerrar = el('button', 'franja-cerrar', '×');
       cerrar.type = 'button';
       cerrar.setAttribute('aria-label', 'Ocultar alerta');
-      cerrar.addEventListener('click', function () { franja.classList.add('oculto'); });
+      cerrar.addEventListener('click', function () {
+        franja.classList.add('oculto');
+        franjaCerrada = true;
+        pintarImportante(snap);
+      });
       franja.appendChild(cerrar);
     }
   }
@@ -527,7 +705,9 @@
     if (!cont) return;
     cont.textContent = '';
 
-    const alertas = (snap.alertas || []).slice(0, 2);
+    const todas = snap.alertas || [];
+    // Con la franja a la vista, la primera ya se leyó arriba: aquí van las siguientes.
+    const alertas = (franjaCerrada ? todas : todas.slice(1)).slice(0, 2);
     if (alertas.length) {
       const caja = el('div', 'card con-acento acento-warn');
       caja.appendChild(el('h3', 'titulo-tarjeta', 'Avisos de la administración'));
@@ -846,6 +1026,62 @@
     cargar();
   }
 
+  /** RN-81 · Detalle de un trabajo, con lo que ya está cargado. */
+  function verTrabajo(id) {
+    const cont = document.getElementById('pantallaTrabajo');
+    if (!cont) return;
+    const snap = ultimoSnap || {};
+    const todos = [].concat(snap.recientes || [], snap.en_curso || [], snap.proximos || []);
+    const t = todos.filter(function (x) { return String(x.id) === String(id); })[0];
+    cont.textContent = '';
+    cont.classList.remove('oculto');
+
+    const volver = el('button', 'btn volver', '← Volver');
+    volver.type = 'button';
+    volver.addEventListener('click', function () {
+      cont.classList.add('oculto');
+      window.history.length > 1 ? window.history.back() : (window.location.hash = '#/resumen');
+    });
+    cont.appendChild(volver);
+
+    if (!t) {
+      cont.appendChild(el('p', 'msg error mostrar', 'Ese trabajo ya no está publicado.'));
+      return;
+    }
+
+    cont.appendChild(el('h2', 'trabajo-detalle-titulo', t.titulo || 'Trabajo'));
+    const meta = [t.donde || t.nodo_nombre, fechaEnPalabras(t.fecha || t.desde), t.empresa]
+      .filter(Boolean).join(' · ');
+    if (meta) cont.appendChild(el('p', 'trabajo-meta', meta));
+
+    const est = { EN_EJECUCION: 'En ejecución', EN_VERIFICACION: 'Hecho, en verificación' }[t.estado_publico];
+    if (est) cont.appendChild(el('span', 'badge warn', est));
+    if (t.texto_publico) cont.appendChild(el('p', 'trabajo-texto', t.texto_publico));
+    if (t.recomendacion) {
+      const rec = el('p', 'trabajo-reco');
+      rec.appendChild(el('strong', null, 'Recomendación: '));
+      rec.appendChild(document.createTextNode(t.recomendacion));
+      cont.appendChild(rec);
+    }
+
+    if ((t.fotos || []).length) {
+      const par = el('div', 'trabajo-fotos-detalle');
+      t.fotos.forEach(function (f) {
+        const marco = el('figure', 'trabajo-foto');
+        const img = el('img');
+        img.alt = f.momento + ': ' + (t.titulo || 'trabajo');
+        marco.appendChild(img);
+        marco.appendChild(el('figcaption', null, f.momento));
+        const hueco = el('p', 'trabajo-meta', 'Cargando foto…');
+        marco.appendChild(hueco);
+        cargarFoto(f.id, img).then(function () { if (hueco.parentNode) hueco.remove(); });
+        par.appendChild(marco);
+      });
+      cont.appendChild(par);
+    }
+    cont.focus();
+  }
+
   function ruta(snap) {
     const h = window.location.hash || '';
     if (h.indexOf('#/reportar') === 0) {
@@ -857,6 +1093,14 @@
     if (pantallaReporte) pantallaReporte.classList.add('oculto');
     const m = h.match(/^#\/nodo\/([A-Z0-9_]+)/i);
     if (m) return verNodo(m[1]);
+    const mTrabajo = h.match(/^#\/trabajo\/([A-Z0-9_]+)/i);
+    if (mTrabajo) {
+      const detalle = document.getElementById('pantallaTrabajo');
+      if (detalle) detalle.classList.remove('oculto');
+      return verTrabajo(mTrabajo[1]);
+    }
+    const detallePrevio = document.getElementById('pantallaTrabajo');
+    if (detallePrevio) detallePrevio.classList.add('oculto');
     if (h.indexOf('#/alertas') === 0) return verAlertas(snap);
     const t = h.replace('#/', '');
     mostrarTab(TABS.indexOf(t) >= 0 ? t : 'resumen');
@@ -864,6 +1108,9 @@
 
   let ultimoSnap = null;
   window.addEventListener('hashchange', function () { ruta(ultimoSnap); });
+
+  // Para las pruebas de pantalla y para volver a pintar sin recargar.
+  window.Publico = { pintar: pintarTodo, cargar: cargar, ruta: ruta };
 
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('#pestanasPublico .pestana').forEach(function (b) {

@@ -43,6 +43,7 @@ $(correr solo-lectura.html)
 $(correr quitar-foto.html)
 $(correr empresa-eliminar.html)
 $(correr usuarios-seleccion.html)
+$(correr resumen-v111.html 12000)
 $(correr contratista-completo.html)"
 
 echo "$SALIDA"
