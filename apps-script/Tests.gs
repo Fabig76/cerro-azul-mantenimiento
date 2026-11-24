@@ -375,10 +375,12 @@ function pruebasAvisos_() {
   const admin = filtrar('usuarios', function (u) {
     return String(u.rol) === 'ADMIN' && bool(u.activo);
   })[0];
+  if (!admin) { RESULTADOS.detalle.push('OMITE · avisos · sin administrador activo'); return; }
 
+  // Con responsable propio: así no depende de que `admin_emails` esté configurado.
   const act = insertar('actividades', {
     id: newId('ACT'), titulo: 'PRUEBA aviso', descripcion: '', nodo_id: nodo.id,
-    plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: '',
+    plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: admin.id,
     tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
     fecha_inicio_plan: sumarDias(hoy, dias), fecha_fin_plan: sumarDias(hoy, dias + 2),
     dias_plan: 3, prioridad: 'MEDIA', estado: 'PROGRAMADA', vencida: false, en_riesgo: false,
