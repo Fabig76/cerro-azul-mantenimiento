@@ -66,6 +66,7 @@
       }
       panel.classList.toggle('oculto', !visible);
     });
+    if (id === 'actividades' && window.Propuestas && Propuestas.alEntrar) Propuestas.alEntrar();
     // El detalle de una actividad solo vive dentro de su pestaña y nunca se duplica con la lista.
     const detalle = document.getElementById('vistaActividad');
     const lista = document.getElementById('tarjetaActividades');

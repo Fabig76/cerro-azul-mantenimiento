@@ -13,6 +13,7 @@
   };
 
   let rolActual = 'CONTRATISTA';
+  let cargado = false;
   let propuestas = [];
   let nodos = [];
   let fotosNuevas = [];
@@ -133,6 +134,7 @@
     const tarjetaAdmin = document.getElementById('tarjetaPropuestas');
     if (bloqueContratista) bloqueContratista.classList.toggle('oculto', rolActual !== 'CONTRATISTA');
     if (tarjetaAdmin) tarjetaAdmin.classList.toggle('oculto', rolActual === 'CONTRATISTA');
+    cargado = true;
 
     if (rolActual === 'CONTRATISTA' && !nodos.length && window.App) {
       // Sin árbol cargado no se puede elegir sección: se pide aparte.
@@ -1026,5 +1028,16 @@
     cont.appendChild(form);
   }
 
-  window.Propuestas = { cargar: cargar };
+  /**
+   * Al volver a la pestaña de actividades. El cambio de pestaña cierra esta tarjeta y no la
+   * abre (error aprendido 8), así que la reabre quien sabe para qué rol es: sin esto, el
+   * administrador salía de la pestaña y al volver ya no veía las propuestas por aprobar.
+   */
+  function alEntrar() {
+    if (!cargado || rolActual === 'CONTRATISTA') return;
+    const tarjeta = document.getElementById('tarjetaPropuestas');
+    if (tarjeta) tarjeta.classList.remove('oculto');
+  }
+
+  window.Propuestas = { cargar: cargar, alEntrar: alEntrar };
 })();
