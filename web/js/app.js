@@ -199,6 +199,9 @@
 
     rolActual = me.usuario.rol;
     window.__rol = rolActual;
+    // Antes de construir las pestañas: al abrir la primera ya se cargan sus módulos, y
+    // estos deciden por `data-rol` qué botones mostrar.
+    document.body.dataset.rol = rolActual || '';
     construirPestanas(rolActual);
     // El árbol y las actividades salen a la vez; las propuestas esperan solo al árbol.
     // Al cargar: limpiar borradores viejos y volver al trabajo que estaba abierto.
