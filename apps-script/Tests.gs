@@ -956,6 +956,16 @@ function pruebasResumenPublico_() {
   verdadero_(Number(sem.terminados) <= (snap.recientes || []).length,
     'RN-76 · los terminados salen de los recientes');
 
+  // La ficha de una sección es otra función (publicNodo): falló en producción con
+  // «enCurso is not defined» mientras el resumen general pasaba todas las pruebas.
+  marcarCambio();   // versión nueva: que no responda una copia guardada
+  let ficha = null;
+  try { ficha = JSON.parse(publicNodo({ id: nodo.id }).getContent()); } catch (e) { ficha = { error: String(e.message) }; }
+  verdadero_(!!ficha && !ficha.error && Array.isArray(ficha.en_curso),
+    'RN-77 · la ficha pública de una sección abre y trae «en curso»');
+  verdadero_((ficha.en_curso || []).some(function (x) { return String(x.id) === String(reportada.id); }),
+    'RN-77 · y muestra el trabajo en curso de esa sección');
+
   // Un nodo sensible no publica nada suyo.
   const sensible = filtrar('nodos', function (n) { return bool(n.activo) && esSensible(n); })[0];
   if (sensible) {
