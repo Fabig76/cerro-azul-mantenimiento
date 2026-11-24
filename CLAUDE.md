@@ -81,3 +81,8 @@ Cada uno costó un fallo en producción. No repetirlos.
     duplicados mientras la fila está PENDIENTE; para los avisos diarios hay que buscar en **cualquier
     estado** (`yaAvisado_`). Y todo envío necesita `LockService`: dos ejecuciones simultáneas leen las
     mismas filas y mandan el correo dos veces.
+
+14. **Un nombre que no existe solo falla cuando alguien toca ese botón.** `enCurso` en `publicNodo`,
+    `campo` en usuarios, `aviso` en pruebas, `recortar_` al crear una actividad y una constante
+    reasignada en `api.js` pasaron `revisar-funciones.mjs`, que busca nombres con expresiones
+    regulares y no entiende el alcance. Antes de publicar: `node tools/revisar-indefinidos.mjs`.
