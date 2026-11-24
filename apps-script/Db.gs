@@ -148,7 +148,10 @@ function filas(nombre) {
 /** Marca que los datos cambiaron: invalida las cachés entre peticiones. */
 function marcarCambio(nombre) {
   if (nombre && HOJAS_CACHEADAS.indexOf(nombre) < 0) return;
-  try { cachePut('datos:version', String(Date.now()), 7200); } catch (e) { /* sin caché se sigue */ }
+  // El contador evita que dos escrituras en el mismo milisegundo compartan versión y la
+  // segunda lectura reciba la copia anterior.
+  marcarCambio._n = (marcarCambio._n || 0) + 1;
+  try { cachePut('datos:version', Date.now() + '-' + marcarCambio._n, 7200); } catch (e) { /* sin caché se sigue */ }
 }
 
 /** Invalida la caché de una hoja (o de todas) dentro de la misma ejecución. */
