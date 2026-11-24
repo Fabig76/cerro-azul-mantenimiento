@@ -1587,7 +1587,7 @@
       if (!r.ok) return aviso(r.message || 'No se pudo guardar.', 'error');
       const avisos = (r.data && r.data.advertencias) || [];
       if (avisos.indexOf('SIN_ASIGNACION') >= 0) {
-        aviso('Actividad actualizada. El responsable no tiene asignada esta sección: la verá, pero no podrá iniciarla.', 'info');
+        aviso('Actividad actualizada. El responsable no tiene asignada esta sección: podrá hacer este trabajo porque es su responsable, pero no verá los demás trabajos de la sección.', 'info');
       } else {
         aviso('Actividad actualizada.', 'ok');
       }

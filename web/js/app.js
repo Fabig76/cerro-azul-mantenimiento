@@ -1039,8 +1039,14 @@
         avisoCrear.className = 'msg mostrar error';
         return;
       }
-      avisoCrear.textContent = 'Actividad creada.';
-      avisoCrear.className = 'msg mostrar ok';
+      // El servidor avisa si el responsable no tiene la sección: no impide crear, pero hay
+      // que decirlo para que no sorprenda que esa persona vea el trabajo.
+      const sinSeccion = ((r.data && r.data.advertencias) || []).indexOf('SIN_ASIGNACION') >= 0;
+      avisoCrear.textContent = sinSeccion
+        ? 'Actividad creada. El responsable no tiene asignada esta sección: podrá hacer este ' +
+          'trabajo porque es su responsable, pero no verá los demás trabajos de la sección.'
+        : 'Actividad creada.';
+      avisoCrear.className = 'msg mostrar ' + (sinSeccion ? 'info' : 'ok');
       document.getElementById('actTitulo').value = '';
       cargarActividades(Sesion.token());
     });
