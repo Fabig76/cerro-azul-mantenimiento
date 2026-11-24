@@ -1324,7 +1324,7 @@
       btnAvance.addEventListener('click', async function () {
         const respuestas = [];
         document.querySelectorAll('.item-input[data-item]').forEach(function (i) {
-          if (i.value) respuestas.push({ item_id: i.dataset.item, valor: i.value });
+          if (i.dataset.item && i.value) respuestas.push({ item_id: i.dataset.item, valor: i.value });
         });
         btnAvance.disabled = true;
         btnAvance.textContent = 'Guardando…';
@@ -1349,7 +1349,7 @@
       btn.addEventListener('click', async function () {
         const respuestas = [];
         document.querySelectorAll('.item-input').forEach(function (i) {
-          if (i.value) respuestas.push({ item_id: i.dataset.item, valor: i.value });
+          if (i.dataset.item && i.value) respuestas.push({ item_id: i.dataset.item, valor: i.value });
         });
         const cond = document.getElementById('condicionFinal');
         btn.disabled = true;
@@ -1647,12 +1647,14 @@
     caja.appendChild(el('div', 'kicker', 'Cómo queda el elemento'));
     const sel = el('select', 'item-input');
     sel.id = 'condicionFinal';
-    const tipo = datos.plantilla && datos.plantilla.items ? null : null;
     ['', 'Operativo', 'Con falla', 'Con novedad', 'Fuera de servicio'].forEach(function (o) {
       const op = el('option', null, o || 'Selecciona…');
       op.value = o;
       sel.appendChild(op);
     });
+    // Subir una foto repinta la pantalla: sin borrador, la condición elegida se perdía.
+    aplicarBorrador(sel);
+    sel.addEventListener('change', function () { guardarBorrador(sel); });
     caja.appendChild(sel);
     return caja;
   }
