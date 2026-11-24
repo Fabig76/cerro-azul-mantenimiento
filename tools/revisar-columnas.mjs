@@ -120,7 +120,12 @@ if (problemas.length) {
   const problemas = [];
   Object.keys(esquema).forEach(function (hoja) {
     const lista = esquema[hoja];
-    const huecos = lista.filter(function (x) { return x === undefined || x === null || x === ''; }).length;
+    // Con un bucle por índice: filter() y forEach() NO visitan los huecos de un arreglo,
+    // así que «, ,» pasaba sin que nadie lo contara.
+    let huecos = 0;
+    for (let i = 0; i < lista.length; i++) {
+      if (!(i in lista) || lista[i] === undefined || lista[i] === null || lista[i] === '') huecos += 1;
+    }
     const repetidas = lista.filter(function (x, i) { return lista.indexOf(x) !== i; });
     if (huecos) problemas.push(hoja + ': ' + huecos + ' hueco(s) en el esquema');
     if (repetidas.length) problemas.push(hoja + ': columnas repetidas ' + [...new Set(repetidas)].join(', '));
