@@ -34,6 +34,9 @@
   async function cargar() {
     const cont = document.getElementById('listaResidentes');
     if (!cont) return;
+    // El servidor solo lo permite a estos roles: al contratista no se le hace gastar una
+    // petición que siempre vuelve PROHIBIDO.
+    if (['ADMIN', 'SUPERVISOR', 'CONSEJO'].indexOf(document.body.dataset.rol) < 0) return;
     const r = await API.llamar('residentes.listar', { estado: 'POR_REVISAR' }, { token: Sesion.token() });
     if (!r.ok) {
       cont.textContent = '';
