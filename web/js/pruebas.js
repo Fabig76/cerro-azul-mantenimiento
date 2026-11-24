@@ -170,9 +170,15 @@
       boton.textContent = 'Borrando…';
       const r = await API.llamar('sistema.restos.limpiar', {}, { token: Sesion.token(), idempotente: true });
       boton.disabled = false;
-      if (!r.ok) return aviso('No se pudo limpiar: ' + (r.message || ''), 'error');
-      aviso('Listo: ' + r.data.borradas + ' fila(s) borradas.', 'ok');
-      revisarRestos();
+      // El resultado se escribe junto al botón: es donde está mirando quien lo tocó.
+      const caja = document.getElementById('restosPruebas');
+      if (!r.ok) {
+        boton.textContent = 'Borrar datos de pruebas anteriores';
+        if (caja) caja.textContent = 'No se pudo limpiar: ' + (r.message || 'intente de nuevo.');
+        return;
+      }
+      await revisarRestos();
+      if (caja) caja.textContent = 'Listo: se borraron ' + Number((r.data && r.data.borradas) || 0) + ' fila(s). ' + caja.textContent;
     });
     revisarRestos();
   }
