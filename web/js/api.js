@@ -17,6 +17,9 @@
   // Cuánto se espera antes de darse por vencido, y cuánto antes de reintentar.
   const ESPERA_LECTURA = 30000;
   const ESPERA_FOTO = 90000;
+  // La batería de pruebas y la regeneración del snapshot tardan; con la espera corta el
+  // navegador se rendía y volvía a pedirlas, duplicando el trabajo.
+  const ESPERA_LARGA = 180000;
   const REINTENTOS = [2000, 5000];
 
   function esLectura(accion) {
@@ -72,7 +75,9 @@
       'residentes.reportar', 'residentes.foto.get',
       'public.foto',
     ];
-    const espera = PESADAS.indexOf(accion) >= 0 ? ESPERA_FOTO : ESPERA_LECTURA;
+    let espera = PESADAS.indexOf(accion) >= 0 ? ESPERA_FOTO : ESPERA_LECTURA;
+    if (opt.espera) espera = Math.max(espera, Number(opt.espera));
+    if (opt.sinReintento) conReintento = false;
     let resultado = await intento(cuerpo, espera);
 
     for (let i = 0; conReintento && i < REINTENTOS.length; i++) {

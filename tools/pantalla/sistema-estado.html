@@ -50,7 +50,7 @@ window.Sesion = { token: function () { return 'x'; }, usuario: function () { ret
     await esperar(1600);
     const btn = document.getElementById('btnPruebas');
     ok(/Ejecutando… \d+ s/.test(btn.textContent), 'mientras corren las pruebas se ve el tiempo (' + btn.textContent + ')');
-    ok(document.getElementById('resumenPruebas').textContent.indexOf('30 segundos') >= 0, 'y avisa que tarda');
+    ok(document.getElementById('resumenPruebas').textContent.indexOf('dos minutos') >= 0, 'y avisa que tarda');
     await esperar(5200);
     ok(document.getElementById('resumenPruebas').textContent.indexOf('124') >= 0, 'al terminar muestra el resultado');
     ok(btn.textContent === 'Ejecutar pruebas', 'y el botón vuelve a su sitio');

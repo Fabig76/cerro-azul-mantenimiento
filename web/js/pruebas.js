@@ -20,14 +20,16 @@
       btn.textContent = 'Ejecutando… 0 s';
       if (resumen0) {
         resumen0.className = 'msg mostrar info';
-        resumen0.textContent = 'Corriendo las verificaciones. Tarda unos 30 segundos; no cierre la pantalla.';
+        resumen0.textContent = 'Corriendo las verificaciones. Puede tardar hasta dos minutos; no cierre la pantalla.';
       }
       const reloj = setInterval(function () {
         segundos.t++;
         btn.textContent = 'Ejecutando… ' + segundos.t + ' s';
       }, 1000);
 
-      const r = await API.llamar('tests.ejecutar', {}, { token: Sesion.token() });
+      // La batería tarda; se le da su tiempo y no se reintenta si se pasa.
+      const r = await API.llamar('tests.ejecutar', {},
+        { token: Sesion.token(), espera: 180000, sinReintento: true });
       clearInterval(reloj);
       btn.disabled = false;
       btn.textContent = 'Ejecutar pruebas';
@@ -35,6 +37,13 @@
       const resumen = document.getElementById('resumenPruebas');
       const lista = document.getElementById('detallePruebas');
       if (!resumen || !lista) return;
+      // Si se agotó la espera, el servidor puede seguir trabajando: no conviene repetir.
+      if (!r.ok && r.code === 'TIEMPO') {
+        resumen.className = 'msg mostrar info';
+        resumen.textContent = 'El servidor sigue trabajando. Espere un minuto y mire las ' +
+          'cifras; no hace falta repetir la batería.';
+        return;
+      }
       lista.textContent = '';
 
       if (!r.ok) {
@@ -86,14 +95,16 @@
       btn.textContent = 'Ejecutando… 0 s';
       if (resumen0) {
         resumen0.className = 'msg mostrar info';
-        resumen0.textContent = 'Corriendo las verificaciones. Tarda unos 30 segundos; no cierre la pantalla.';
+        resumen0.textContent = 'Corriendo las verificaciones. Puede tardar hasta dos minutos; no cierre la pantalla.';
       }
       const reloj = setInterval(function () {
         segundos.t++;
         btn.textContent = 'Ejecutando… ' + segundos.t + ' s';
       }, 1000);
 
-      const r = await API.llamar('tests.ejecutar', {}, { token: Sesion.token() });
+      // La batería tarda; se le da su tiempo y no se reintenta si se pasa.
+      const r = await API.llamar('tests.ejecutar', {},
+        { token: Sesion.token(), espera: 180000, sinReintento: true });
       clearInterval(reloj);
       btn.disabled = false;
       btn.textContent = 'Ejecutar pruebas';
@@ -101,6 +112,13 @@
       const resumen = document.getElementById('resumenPruebas');
       const lista = document.getElementById('detallePruebas');
       if (!resumen || !lista) return;
+      // Si se agotó la espera, el servidor puede seguir trabajando: no conviene repetir.
+      if (!r.ok && r.code === 'TIEMPO') {
+        resumen.className = 'msg mostrar info';
+        resumen.textContent = 'El servidor sigue trabajando. Espere un minuto y mire las ' +
+          'cifras; no hace falta repetir la batería.';
+        return;
+      }
       lista.textContent = '';
 
       if (!r.ok) {
