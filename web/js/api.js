@@ -63,7 +63,7 @@
 
     // El mismo requestId en todos los intentos: el servidor reconoce la repetición
     // y no aplica dos veces la escritura.
-    const conReintento = esLectura(accion) || !!opt.idempotente;
+    const conReintento = !opt.sinReintento && (esLectura(accion) || !!opt.idempotente);
     if (opt.idempotente) cuerpo.requestId = uuid();
 
     // Acciones pesadas: llevan archivos o devuelven un archivo. Con una lista explícita,
@@ -77,7 +77,6 @@
     ];
     let espera = PESADAS.indexOf(accion) >= 0 ? ESPERA_FOTO : ESPERA_LECTURA;
     if (opt.espera) espera = Math.max(espera, Number(opt.espera));
-    if (opt.sinReintento) conReintento = false;
     let resultado = await intento(cuerpo, espera);
 
     for (let i = 0; conReintento && i < REINTENTOS.length; i++) {
