@@ -47,10 +47,10 @@ function runAllTests() {
 
   // R3 · Cada grupo va aparte: si uno lanza, se anota y la batería sigue. Antes una
   // excepción tumbaba todo y dejaba sin correr la limpieza de los grupos a medias.
-  // RN-75 · Se anotan la hora y la última fila de cada hoja: al terminar se borra
-  // exactamente lo que añadió la batería, sin tocar nada anterior.
-  const inicio = ahoraIso();
-  const marcas = marcarFilas_();
+  // RN-75 · Desde aquí, cada fila que inserte ESTA ejecución queda anotada por su id
+  // (Db.gs, FILAS_DE_PRUEBA). Al terminar se borran esas filas y ninguna otra: lo que
+  // otra persona o un disparador escriba mientras corre la batería no se toca.
+  FILAS_DE_PRUEBA = {};
   const grupos = [
     'pruebasFechas_',
     'pruebasSalud_',
@@ -101,8 +101,9 @@ function runAllTests() {
 
   // RN-75 · Las pruebas no dejan filas.
   try {
-    borrarFilasNuevas_(marcas);
-    const limpieza = borrarRestosDePruebas_(inicio);
+    const propias = FILAS_DE_PRUEBA;
+    FILAS_DE_PRUEBA = null;   // la limpieza no debe anotarse a sí misma
+    const limpieza = borrarRestosDePruebas_(propias);
     if (limpieza && limpieza.filas) {
       RESULTADOS.detalle.push('OK   · limpieza · ' + limpieza.filas + ' fila(s) de prueba borradas');
     }
@@ -374,10 +375,12 @@ function pruebasAvisos_() {
   const admin = filtrar('usuarios', function (u) {
     return String(u.rol) === 'ADMIN' && bool(u.activo);
   })[0];
+  if (!admin) { RESULTADOS.detalle.push('OMITE · avisos · sin administrador activo'); return; }
 
+  // Con responsable propio: así no depende de que `admin_emails` esté configurado.
   const act = insertar('actividades', {
     id: newId('ACT'), titulo: 'PRUEBA aviso', descripcion: '', nodo_id: nodo.id,
-    plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: '',
+    plantilla_id: '', plantilla_version: '', empresa_id: '', responsable_id: admin.id,
     tipo: 'UNICA', origen: 'PRUEBA', novedad_id: '', recurrencia_id: '',
     fecha_inicio_plan: sumarDias(hoy, dias), fecha_fin_plan: sumarDias(hoy, dias + 2),
     dias_plan: 3, prioridad: 'MEDIA', estado: 'PROGRAMADA', vencida: false, en_riesgo: false,
@@ -952,6 +955,16 @@ function pruebasResumenPublico_() {
     'RN-76 · el conteo de en curso coincide con la lista');
   verdadero_(Number(sem.terminados) <= (snap.recientes || []).length,
     'RN-76 · los terminados salen de los recientes');
+
+  // La ficha de una sección es otra función (publicNodo): falló en producción con
+  // «enCurso is not defined» mientras el resumen general pasaba todas las pruebas.
+  marcarCambio();   // versión nueva: que no responda una copia guardada
+  let ficha = null;
+  try { ficha = JSON.parse(publicNodo({ id: nodo.id }).getContent()); } catch (e) { ficha = { error: String(e.message) }; }
+  verdadero_(!!ficha && !ficha.error && Array.isArray(ficha.en_curso),
+    'RN-77 · la ficha pública de una sección abre y trae «en curso»');
+  verdadero_((ficha.en_curso || []).some(function (x) { return String(x.id) === String(reportada.id); }),
+    'RN-77 · y muestra el trabajo en curso de esa sección');
 
   // Un nodo sensible no publica nada suyo.
   const sensible = filtrar('nodos', function (n) { return bool(n.activo) && esSensible(n); })[0];
@@ -1609,36 +1622,6 @@ function pruebasSuperficiePublica_() {
  * Se hace de abajo hacia arriba para que los índices no se corran.
  * No toca nada creado por personas.
  */
-/** Última fila con datos de cada hoja, para saber qué añadió la batería. */
-function marcarFilas_() {
-  const marcas = {};
-  Object.keys(SCHEMA).forEach(function (nombre) {
-    try { marcas[nombre] = hoja(nombre).getLastRow(); } catch (e) { /* hoja inexistente */ }
-  });
-  return marcas;
-}
-
-/**
- * Borra las filas añadidas por encima de la marca, de abajo hacia arriba.
- * Es la red de seguridad: cubre lo que firman las funciones internas como 'sistema'.
- */
-function borrarFilasNuevas_(marcas) {
-  if (!marcas) return { filas: 0 };
-  let filas = 0;
-  Object.keys(marcas).forEach(function (nombre) {
-    let sh;
-    try { sh = hoja(nombre); } catch (e) { return; }
-    const ultima = sh.getLastRow();
-    const desde = Number(marcas[nombre]) || 1;
-    for (let fila = ultima; fila > desde; fila--) {
-      sh.deleteRow(fila);
-      filas++;
-    }
-  });
-  limpiarCache();
-  return { filas: filas };
-}
-
 /** Ids de usuarios creados por una prueba (antes de borrarlos). */
 function idsDePruebaUsuarios_() {
   try {
@@ -1652,40 +1635,55 @@ function esDePrueba_(valor) {
   return /^prueba/i.test(String(valor || '').trim());
 }
 
-/**
- * ¿Esta fila la pudo crear la batería? Las pruebas llaman funciones internas que firman
- * como 'sistema'; una persona nunca firma así. Se combina con la hora de inicio de la
- * corrida para no tocar nada anterior.
- */
-function esFirmaDeBateria_(valor) {
-  const v = String(valor || '').trim();
-  return esDePrueba_(v) || v === 'sistema' || v === '';
+/** Manda a la papelera los archivos de una fila de evidencias. Devuelve cuántos. */
+function papeleraDeEvidencia_(cab, fila) {
+  let n = 0;
+  ['drive_file_id', 'mini_file_id', 'public_file_id'].forEach(function (k) {
+    if (cab[k] === undefined) return;
+    const archivoId = String(fila[cab[k]] || '');
+    if (!archivoId) return;
+    try { DriveApp.getFileById(archivoId).setTrashed(true); n++; } catch (e) { /* ya no está */ }
+  });
+  return n;
 }
 
-function borrarRestosDePruebas_(desdeIso) {
-  const desde = desdeIso ? new Date(desdeIso).getTime() : 0;
+/**
+ * Borra filas de prueba.
+ *  - Con `idsPropios` ({ hoja: { id: true } }): exactamente las filas que insertó esta
+ *    corrida de la batería (ver FILAS_DE_PRUEBA en Db.gs). No mira firmas ni fechas.
+ *  - Sin argumentos: los restos de corridas anteriores, es decir, lo firmado 'prueba…'.
+ */
+function borrarRestosDePruebas_(idsPropios) {
   // Se apuntan ANTES de borrar los usuarios: sus notificaciones y sesiones quedan huérfanas.
   const idsPrueba = idsDePruebaUsuarios_();
   let filas = 0;
   let archivos = 0;
 
-  /** Fecha de la fila como número (Sheets devuelve Date, no texto). */
-  function cuando_(valor) {
-    if (!valor) return 0;
-    if (Object.prototype.toString.call(valor) === '[object Date]') return valor.getTime();
-    const t = new Date(String(valor)).getTime();
-    if (!isNaN(t)) return t;
-    const soloFecha = fechaIso_(valor);
-    return soloFecha ? new Date(soloFecha).getTime() : 0;
+  // Modo batería: se borran las filas cuyo id anotó esta ejecución, en cualquier hoja.
+  if (idsPropios) {
+    Object.keys(idsPropios).forEach(function (nombre) {
+      let cab;
+      try { cab = cabeceras(nombre); } catch (e) { return; }
+      if (cab.id === undefined) return;
+      const propios = idsPropios[nombre];
+      const sh = hoja(nombre);
+      const ultima = sh.getLastRow();
+      if (ultima < 2) return;
+      const datos = sh.getRange(2, 1, ultima - 1, sh.getLastColumn()).getValues();
+      for (let i = datos.length - 1; i >= 0; i--) {
+        const fila = datos[i];
+        if (!propios[String(fila[cab.id])]) continue;
+        if (nombre === 'evidencias') archivos += papeleraDeEvidencia_(cab, fila);
+        sh.deleteRow(i + 2);
+        filas++;
+      }
+    });
+    limpiarCache();
+    return { filas: filas, archivos: archivos };
   }
 
-  /** ¿Se borra esta fila? */
-  function esResto_(firma, fecha) {
-    if (desde) {
-      return esFirmaDeBateria_(firma) && cuando_(fecha) >= desde;
-    }
-    return esDePrueba_(firma);
-  }
+  // Modo «restos de corridas anteriores»: solo lo que está firmado como prueba.
+  function esResto_(firma) { return esDePrueba_(firma); }
 
   // Hojas con creado_por / creado_en.
   Object.keys(SCHEMA).forEach(function (nombre) {
@@ -1699,27 +1697,16 @@ function borrarRestosDePruebas_(desdeIso) {
 
     const ancho = sh.getLastColumn();
     const datos = sh.getRange(2, 1, ultima - 1, ancho).getValues();
-    const colFecha = cab.creado_en !== undefined ? cab.creado_en : cab.actualizado_en;
-
     for (let i = datos.length - 1; i >= 0; i--) {
       const fila = datos[i];
-      const fecha = colFecha === undefined ? '' : fila[colFecha];
-      if (!esResto_(fila[colFirma], fecha)) continue;
-
-      if (nombre === 'evidencias') {
-        ['drive_file_id', 'mini_file_id', 'public_file_id'].forEach(function (k) {
-          if (cab[k] === undefined) return;
-          const archivoId = String(fila[cab[k]] || '');
-          if (!archivoId) return;
-          try { DriveApp.getFileById(archivoId).setTrashed(true); archivos++; } catch (e) { /* ya no está */ }
-        });
-      }
+      if (!esResto_(fila[colFirma])) continue;
+      if (nombre === 'evidencias') archivos += papeleraDeEvidencia_(cab, fila);
       sh.deleteRow(i + 2);
       filas++;
     }
   });
 
-  // Hojas sin creado_por: se miran por su firma (usuario) y su fecha.
+  // Hojas sin creado_por: se miran por su firma (usuario).
   ['auditoria', 'notificaciones', 'sesiones'].forEach(function (nombre) {
     let cab;
     try { cab = cabeceras(nombre); } catch (e) { return; }
@@ -1727,9 +1714,6 @@ function borrarRestosDePruebas_(desdeIso) {
       : (cab.usuario !== undefined ? cab.usuario
         : (cab.usuario_id !== undefined ? cab.usuario_id : cab.creado_por));
     if (colFirma === undefined) return;
-    const colFecha = cab.fecha !== undefined ? cab.fecha
-      : (cab.creado_en !== undefined ? cab.creado_en : undefined);
-
     const sh = hoja(nombre);
     const ultima = sh.getLastRow();
     if (ultima < 2) return;
@@ -1737,12 +1721,10 @@ function borrarRestosDePruebas_(desdeIso) {
 
     for (let i = datos.length - 1; i >= 0; i--) {
       const fila = datos[i];
-      const fecha = colFecha === undefined ? '' : fila[colFecha];
       const firma = String(fila[colFirma] || '');
       // En notificaciones y sesiones la firma es un id: vale si era de un usuario de prueba.
       const deUsuarioPrueba = idsPrueba.indexOf(firma) >= 0;
-      const resto = deUsuarioPrueba ||
-        (fecha && desde ? cuando_(fecha) >= desde && (esFirmaDeBateria_(firma) || deUsuarioPrueba) : esDePrueba_(firma));
+      const resto = deUsuarioPrueba || esDePrueba_(firma);
       if (!resto) continue;
       sh.deleteRow(i + 2);
       filas++;

@@ -16,6 +16,16 @@
     return n;
   }
 
+  /** Un control con su etiqueta encima (la misma forma que en propuestas.js). */
+  function campo(etiqueta, control) {
+    const c = el('div', 'campo');
+    const l = el('label', null, etiqueta);
+    if (control.id) l.htmlFor = control.id;
+    c.appendChild(l);
+    c.appendChild(control);
+    return c;
+  }
+
   function aviso(texto, tipo) {
     const caja = document.getElementById('avisoUsuarios');
     if (!caja) return;

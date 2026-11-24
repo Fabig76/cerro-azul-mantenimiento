@@ -91,35 +91,30 @@
       caja.appendChild(datos);
 
       const acciones = el('div', 'ficha-acciones');
-      const soloLectura = document.body.dataset.rol === 'CONSEJO';
-      if (soloLectura) {
-        // Solo mirar: ni corregir, ni activar, ni desactivar.
-        if (!f.contacto && !f.email && !f.telefono) {
-          caja.appendChild(el('p', 'bajada-tarjeta', 'Los datos de contacto no se muestran al consejo.'));
-        }
-        cont.appendChild(caja);
-        return;
+      // Los permisos son los del servidor (Router.gs): mirar la ficha y el desempeño pueden
+      // el administrador, el supervisor y el consejo; escribir, solo el administrador.
+      const esAdmin = document.body.dataset.rol === 'ADMIN';
+      if (document.body.dataset.rol === 'CONSEJO' && !f.contacto && !f.email && !f.telefono) {
+        caja.appendChild(el('p', 'bajada-tarjeta', 'Los datos de contacto no se muestran al consejo.'));
       }
       const desempeno = el('button', 'btn sm', 'Ver desempeño');
       desempeno.type = 'button';
       desempeno.addEventListener('click', function () { abrirFicha(f, desempeno); });
       acciones.appendChild(desempeno);
 
-      const editar = el('button', 'btn sm', 'Corregir');
-      editar.type = 'button';
-      editar.addEventListener('click', function () { abrirFormulario(f); });
-      acciones.appendChild(editar);
-
-      const cambiar = el('button', 'btn sm' + (f.activo ? '' : ' primary'),
-        f.activo ? 'Desactivar' : 'Activar');
-      cambiar.type = 'button';
-      cambiar.addEventListener('click', function () { cambiarEstado(f); });
-      acciones.appendChild(cambiar);
-
-      // RN-57 · Eliminar: solo para una empresa creada por error o repetida.
-      // El servidor solo manda `historial` al administrador; si viene, puede eliminar.
-      const esAdmin = window.__rol === 'ADMIN' || f.historial !== undefined;
       if (esAdmin) {
+        const editar = el('button', 'btn sm', 'Corregir');
+        editar.type = 'button';
+        editar.addEventListener('click', function () { abrirFormulario(f); });
+        acciones.appendChild(editar);
+
+        const cambiar = el('button', 'btn sm' + (f.activo ? '' : ' primary'),
+          f.activo ? 'Desactivar' : 'Activar');
+        cambiar.type = 'button';
+        cambiar.addEventListener('click', function () { cambiarEstado(f); });
+        acciones.appendChild(cambiar);
+
+        // RN-57 · Eliminar: solo para una empresa creada por error o repetida.
         const eliminar = el('button', 'btn sm peligro', 'Eliminar');
         eliminar.type = 'button';
         eliminar.addEventListener('click', function () { eliminarEmpresa(f, caja, eliminar); });
@@ -504,8 +499,8 @@
   }
 
   function preparar() {
-    // El consejo no administra empresas: ve la ficha, sin botones de escritura.
-    const soloLectura = document.body.dataset.rol === 'CONSEJO';
+    // Solo el administrador administra empresas; los demás ven la ficha, sin escritura.
+    const soloLectura = document.body.dataset.rol !== 'ADMIN';
     if (soloLectura) {
       const form = document.getElementById('formEmpresa');
       const nueva = document.getElementById('btnNuevaEmpresa');

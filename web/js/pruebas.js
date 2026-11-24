@@ -9,63 +9,6 @@
     return n;
   }
 
-  function preparar() {
-    const btn = document.getElementById('btnPruebas');
-    if (!btn) return;
-    btn.addEventListener('click', async function () {
-      btn.disabled = true;
-      const resumen0 = document.getElementById('resumenPruebas');
-      const segundos = { t: 0 };
-      // SI1 · Las pruebas tardan unos 30 s. Se cuenta el tiempo para que se vea vivo.
-      btn.textContent = 'Ejecutando… 0 s';
-      if (resumen0) {
-        resumen0.className = 'msg mostrar info';
-        resumen0.textContent = 'Corriendo las verificaciones. Puede tardar hasta dos minutos; no cierre la pantalla.';
-      }
-      const reloj = setInterval(function () {
-        segundos.t++;
-        btn.textContent = 'Ejecutando… ' + segundos.t + ' s';
-      }, 1000);
-
-      // La batería tarda; se le da su tiempo y no se reintenta si se pasa.
-      const r = await API.llamar('tests.ejecutar', {},
-        { token: Sesion.token(), espera: 180000, sinReintento: true });
-      clearInterval(reloj);
-      btn.disabled = false;
-      btn.textContent = 'Ejecutar pruebas';
-
-      const resumen = document.getElementById('resumenPruebas');
-      const lista = document.getElementById('detallePruebas');
-      if (!resumen || !lista) return;
-      // Si se agotó la espera, el servidor puede seguir trabajando: no conviene repetir.
-      if (!r.ok && r.code === 'TIEMPO') {
-        resumen.className = 'msg mostrar info';
-        resumen.textContent = 'El servidor sigue trabajando. Espere un minuto y mire las ' +
-          'cifras; no hace falta repetir la batería.';
-        return;
-      }
-      lista.textContent = '';
-
-      if (!r.ok) {
-        resumen.textContent = r.message || 'No se pudieron ejecutar.';
-        resumen.className = 'msg mostrar error';
-        return;
-      }
-
-      const d = r.data;
-      resumen.textContent = d.fallidas === 0
-        ? 'Todo bien: ' + d.pasadas + ' verificaciones pasaron.'
-        : d.fallidas + ' de ' + (d.pasadas + d.fallidas) + ' fallaron.';
-      resumen.className = 'msg mostrar ' + (d.fallidas === 0 ? 'ok' : 'error');
-
-      (d.detalle || []).forEach(function (linea) {
-        const fila = el('div', 'linea-prueba' + (linea.indexOf('FALLA') === 0 ? ' falla' : ''));
-        fila.textContent = linea;
-        lista.appendChild(fila);
-      });
-    });
-  }
-
   function prepararRefresco() {
     const btn = document.getElementById('btnRefrescarPortal');
     if (!btn) return;
@@ -170,9 +113,15 @@
       boton.textContent = 'Borrando…';
       const r = await API.llamar('sistema.restos.limpiar', {}, { token: Sesion.token(), idempotente: true });
       boton.disabled = false;
-      if (!r.ok) return aviso('No se pudo limpiar: ' + (r.message || ''), 'error');
-      aviso('Listo: ' + r.data.borradas + ' fila(s) borradas.', 'ok');
-      revisarRestos();
+      // El resultado se escribe junto al botón: es donde está mirando quien lo tocó.
+      const caja = document.getElementById('restosPruebas');
+      if (!r.ok) {
+        boton.textContent = 'Borrar datos de pruebas anteriores';
+        if (caja) caja.textContent = 'No se pudo limpiar: ' + (r.message || 'intente de nuevo.');
+        return;
+      }
+      await revisarRestos();
+      if (caja) caja.textContent = 'Listo: se borraron ' + Number((r.data && r.data.borradas) || 0) + ' fila(s). ' + caja.textContent;
     });
     revisarRestos();
   }

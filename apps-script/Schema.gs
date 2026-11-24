@@ -40,7 +40,8 @@ const SCHEMA = {
   usuarios: [
     'id', 'email', 'nombre', 'telefono', 'rol', 'empresa_id', 'estado', 'acepto_datos_en',
     'acepto_datos_version', 'ultimo_acceso', 'inactivo_desde', 'suprimido_en',
-  , 'suprimido_por', 'motivo_supresion'].concat(CAMPOS_AUDITORIA),
+    'suprimido_por', 'motivo_supresion',
+  ].concat(CAMPOS_AUDITORIA),
 
   empresas: [
     'id', 'razon_social', 'nit', 'contacto', 'email', 'telefono', 'contrato_numero', 'vigencia_desde',
@@ -63,7 +64,8 @@ const SCHEMA = {
     'propuesta_id',
     // v1.6: el valor aprobado y su cotización viven también en la actividad.
     'valor_aprobado', 'cotizacion_file_id',
-  , 'texto_publico', 'recomendacion_publica'].concat(CAMPOS_AUDITORIA),
+    'texto_publico', 'recomendacion_publica',
+  ].concat(CAMPOS_AUDITORIA),
 
   // v1.6: reportes de daños hechos por residentes desde el portal público.
   // Hoja aparte: es un flujo que termina en aprobación (CLAUDE.md, error 1).

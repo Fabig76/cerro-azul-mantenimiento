@@ -7,6 +7,7 @@ Herramientas para verificar el sistema antes de una entrega o después de un cam
 ```bash
 node tools/revisar-columnas.mjs     # escrituras del código contra el esquema de la hoja
 node tools/revisar-funciones.mjs    # llamadas a funciones que no existen
+node tools/revisar-indefinidos.mjs  # funciones y variables que no existen (ESLint, respeta el alcance)
 node tools/probar-puras.js          # lógica de salud, fechas, checklist y ritmo
 node tools/auditar-frontend.mjs     # acciones, archivos y campos que el panel espera
 ./tools/prueba-pantalla.sh          # dibuja el detalle en cada estado y comprueba que haya input[type=file]

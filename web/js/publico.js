@@ -592,7 +592,7 @@
       const cuando = el('span', 'fila-fecha', r.fecha);
       const que = el('span', 'fila-texto');
       que.textContent = r.titulo;
-      const donde = el('span', 'fila-meta', r.empresa || (r.sensible ? 'Sistema sensible' : r.nodo_codigo));
+      const donde = el('span', 'fila-meta', r.empresa || (r.sensible ? 'Sistema de seguridad' : (r.donde || '')));
       li.appendChild(cuando);
       li.appendChild(que);
       li.appendChild(donde);
@@ -736,7 +736,7 @@
         const texto = el('div');
         texto.appendChild(el('span', null, n.texto));
         const meta = el('p', 'meta-novedad');
-        meta.textContent = n.nodo_codigo + (n.fecha_compromiso ? ' · compromiso ' + n.fecha_compromiso : '');
+        meta.textContent = [n.donde, n.fecha_compromiso ? 'compromiso ' + n.fecha_compromiso : ''].filter(Boolean).join(' · ');
         texto.appendChild(meta);
         fila.appendChild(texto);
         cajaN.appendChild(fila);
@@ -781,7 +781,7 @@
       cab.appendChild(el('h3', null, n.texto));
       cab.appendChild(el('span', 'badge ' + (n.gravedad === 'CRITICA' || n.gravedad === 'ALTA' ? 'danger' : 'warn'), n.gravedad));
       caja.appendChild(cab);
-      const meta = n.nodo_codigo + (n.fecha_compromiso ? ' · compromiso ' + n.fecha_compromiso : '');
+      const meta = [n.donde, n.fecha_compromiso ? 'compromiso ' + n.fecha_compromiso : ''].filter(Boolean).join(' · ');
       caja.appendChild(el('p', null, meta));
       cont.appendChild(caja);
     });
@@ -836,7 +836,8 @@
       mostrarError('No pudimos cargar esta sección. Revisa tu conexión.');
       return;
     }
-    if (!d || d.error) {
+    // El servidor puede responder { ok:false } si algo falla: tampoco hay nada que dibujar.
+    if (!d || d.error || d.ok === false || !d.nombre) {
       mostrarError('Esa sección no está disponible.');
       window.location.hash = '#/secciones';
       return;
@@ -990,7 +991,7 @@
       caja.appendChild(cab);
       if (a.mensaje) caja.appendChild(el('p', null, a.mensaje));
       const meta = el('p', 'seccion-codigo');
-      meta.textContent = (a.nodo_codigo || 'Todo el conjunto') + ' · desde ' + a.inicio + (a.fin ? ' hasta ' + a.fin : '');
+      meta.textContent = (a.donde || (a.nodo_codigo ? 'Una sección del conjunto' : 'Todo el conjunto')) + ' · desde ' + a.inicio + (a.fin ? ' hasta ' + a.fin : '');
       caja.appendChild(meta);
       (a.actualizaciones || []).forEach(function (u) {
         const linea = el('div', 'linea-alerta');

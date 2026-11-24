@@ -66,6 +66,7 @@
       }
       panel.classList.toggle('oculto', !visible);
     });
+    if (id === 'actividades' && window.Propuestas && Propuestas.alEntrar) Propuestas.alEntrar();
     // El detalle de una actividad solo vive dentro de su pestaña y nunca se duplica con la lista.
     const detalle = document.getElementById('vistaActividad');
     const lista = document.getElementById('tarjetaActividades');
@@ -199,6 +200,9 @@
 
     rolActual = me.usuario.rol;
     window.__rol = rolActual;
+    // Antes de construir las pestañas: al abrir la primera ya se cargan sus módulos, y
+    // estos deciden por `data-rol` qué botones mostrar.
+    document.body.dataset.rol = rolActual || '';
     construirPestanas(rolActual);
     // El árbol y las actividades salen a la vez; las propuestas esperan solo al árbol.
     // Al cargar: limpiar borradores viejos y volver al trabajo que estaba abierto.
@@ -1039,8 +1043,14 @@
         avisoCrear.className = 'msg mostrar error';
         return;
       }
-      avisoCrear.textContent = 'Actividad creada.';
-      avisoCrear.className = 'msg mostrar ok';
+      // El servidor avisa si el responsable no tiene la sección: no impide crear, pero hay
+      // que decirlo para que no sorprenda que esa persona vea el trabajo.
+      const sinSeccion = ((r.data && r.data.advertencias) || []).indexOf('SIN_ASIGNACION') >= 0;
+      avisoCrear.textContent = sinSeccion
+        ? 'Actividad creada. El responsable no tiene asignada esta sección: podrá hacer este ' +
+          'trabajo porque es su responsable, pero no verá los demás trabajos de la sección.'
+        : 'Actividad creada.';
+      avisoCrear.className = 'msg mostrar ' + (sinSeccion ? 'info' : 'ok');
       document.getElementById('actTitulo').value = '';
       cargarActividades(Sesion.token());
     });
