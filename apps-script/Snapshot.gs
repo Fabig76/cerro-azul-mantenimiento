@@ -331,6 +331,8 @@ function construirSnapshot() {
       titulo: a.titulo,
       mensaje: a.mensaje_publico || '',
       nodo_codigo: sensible ? '' : (nodo ? nodo.codigo : ''),
+      // RN-78 · Al residente se le dice el lugar con su nombre, no con el código interno.
+      donde: nodo ? (sensible ? 'Sistema de seguridad' : lugarPublico_(nodo, porId)) : '',
       inicio: fechaIso_(a.inicio),
       fin: fechaIso_(a.fin),
       fijada: bool(a.fijada),
