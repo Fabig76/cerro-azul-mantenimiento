@@ -621,6 +621,18 @@
         img.className = 'foto-mini';
         img.alt = 'Foto guardada ' + (i + 1);
         figura.appendChild(img);
+        // La miniatura se trae igual que en la tarjeta del administrador: sin esto el
+        // recuadro salía vacío y no se sabía qué foto se estaba quitando.
+        if (window.FotoCache) {
+          FotoCache.configurar(function (tipo, d) {
+            return API.llamar('propuestas.foto.get', { propuesta_id: d.propuesta, foto_id: d.id, tam: 'mini' },
+              { token: Sesion.token() }).then(function (rf) {
+              return rf.ok ? { base64: rf.data.base64, mime: rf.data.mime } : null;
+            });
+          });
+          FotoCache.mostrar(img, { clave: 'propuesta:' + previos.id + ':' + fotoId,
+            tipo: 'propuesta', id: fotoId, propuesta: previos.id });
+        }
         figura.appendChild(el('figcaption', 'foto-pie', 'Guardada ' + (i + 1)));
         const quitar = boton('Quitar', 'btn-mini peligro');
         quitar.addEventListener('click', async function () {
