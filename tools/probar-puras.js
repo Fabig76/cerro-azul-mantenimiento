@@ -39,7 +39,7 @@ ctx.globalThis = ctx;
 vm.createContext(ctx);
 
 for (const f of ['Utils.gs', 'Salud.gs', 'Reportes.gs', 'Hitos.gs']) {
-  vm.runInContext(fs.readFileSync('/Users/hguaza/Documents/deepseek-harness/default-workspace/cerro-azul-mantenimiento/apps-script/' + f, 'utf8'), ctx, { filename: f });
+  vm.runInContext(fs.readFileSync(require('path').join(__dirname, '..', 'apps-script', f), 'utf8'), ctx, { filename: f });
 }
 
 const T = (nombre, esperado, obtenido) => {
