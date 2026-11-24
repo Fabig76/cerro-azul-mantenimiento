@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+<link rel="stylesheet" href="../../web/css/app.css">
+</head>
+<body>
+<div class="msg" id="resumenPruebas"></div>
+<div class="lista-pruebas oculto" id="detallePruebas"></div>
+<button class="btn oculto" id="btnUltimoResultado" type="button">Ver el último resultado</button>
+<button id="btnEjecutarPruebas" hidden></button>
+<span id="relojPruebas"></span>
+<div class="msg" id="avisoPruebas"></div>
+<div id="restosPruebas"></div>
+<button id="btnRestosPruebas" class="oculto" hidden></button>
+<script>
+window.CFG = { API_URL: '' };
+window.__llamadas = [];
+window.API = { llamar: function (accion) {
+  window.__llamadas.push(accion);
+  if (accion === 'tests.ultimo') return Promise.resolve({ ok: true, data: {
+    hay: true, pasadas: 203, fallidas: 0, ms: 214000, terminado_en: '2026-11-24T15:01:00-05:00',
+    tiempos: { pruebasSuperficiePublica_: 90000, pruebasFilasPorHoja_: 40000, pruebasFechas_: 2 },
+    detalle: ['OK   · fechas', 'OK   · salud'],
+  } });
+  return Promise.resolve({ ok: true, data: {} });
+} };
+window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
+</script>
+<script src="../../web/js/pruebas.js"></script>
+<script>
+(async function () {
+  const r = [];
+  function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  try {
+    await Pruebas.verUltimoResultado();
+    await esperar(200);
+    const resumen = document.getElementById('resumenPruebas').textContent;
+    ok(/203 pruebas/.test(resumen), 'muestra las pruebas del último resultado');
+    ok(/0 fallas/.test(resumen), 'y las fallas');
+    ok(/terminó en 214 s/.test(resumen), 'y cuánto tardó');
+    ok(/SuperficiePublica/.test(document.getElementById('detallePruebas').textContent),
+      'dice cuál grupo fue el más lento');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

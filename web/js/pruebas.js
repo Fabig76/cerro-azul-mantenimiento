@@ -58,8 +58,10 @@
       // Si se agotó la espera, el servidor puede seguir trabajando: no conviene repetir.
       if (!r.ok && r.code === 'TIEMPO') {
         resumen.className = 'msg mostrar info';
-        resumen.textContent = 'El servidor sigue trabajando. Espere un minuto y mire las ' +
-          'cifras; no hace falta repetir la batería.';
+        resumen.textContent = 'La batería sigue corriendo en el servidor. En un minuto, ' +
+          'pulse «Ver el último resultado»; no hace falta repetirla.';
+        const ver = document.getElementById('btnUltimoResultado');
+        if (ver) ver.classList.remove('oculto');
         return;
       }
       lista.textContent = '';
@@ -102,6 +104,13 @@
     boton.textContent = 'Borrar datos de pruebas anteriores (' + total + ')';
   }
 
+  function prepararUltimo() {
+    const boton = document.getElementById('btnUltimoResultado');
+    if (!boton || boton.dataset.listo) return;
+    boton.dataset.listo = '1';
+    boton.addEventListener('click', verUltimoResultado);
+  }
+
   function prepararRestos() {
     const boton = document.getElementById('btnRestosPruebas');
     if (!boton || boton.dataset.listo) return;
@@ -124,6 +133,38 @@
       if (caja) caja.textContent = 'Listo: se borraron ' + Number((r.data && r.data.borradas) || 0) + ' fila(s). ' + caja.textContent;
     });
     revisarRestos();
+  }
+
+  /** Lee el último resultado guardado, sin volver a correr la batería. */
+  async function verUltimoResultado() {
+    const resumen = document.getElementById('resumenPruebas');
+    const lista = document.getElementById('detallePruebas');
+    if (!resumen || !lista) return;
+    resumen.className = 'msg mostrar info';
+    resumen.textContent = 'Buscando el último resultado…';
+    const r = await API.llamar('tests.ultimo', {}, { token: Sesion.token() });
+    if (!r.ok) { resumen.textContent = 'No se pudo leer.'; return; }
+    if (!r.data || !r.data.hay) {
+      resumen.textContent = 'Todavía no hay ningún resultado guardado.';
+      return;
+    }
+    resumen.className = 'msg mostrar ' + (Number(r.data.fallidas) ? 'error' : 'ok');
+    const segundos = Math.round(Number(r.data.ms || 0) / 1000);
+    resumen.textContent = r.data.pasadas + ' pruebas · ' + r.data.fallidas + ' fallas · ' +
+      'terminó en ' + segundos + ' s (' + String(r.data.terminado_en || '').slice(11, 16) + ')';
+
+    lista.textContent = '';
+    const lento = Object.keys(r.data.tiempos || {})
+      .map(function (k) { return { grupo: k, ms: Number(r.data.tiempos[k]) }; })
+      .filter(function (x) { return x.ms > 0; })
+      .sort(function (a, b) { return b.ms - a.ms; })
+      .slice(0, 5);
+    if (lento.length) {
+      lista.appendChild(el('p', 'bajada-tarjeta', 'Los grupos más lentos: ' +
+        lento.map(function (x) { return x.grupo.replace('pruebas', '').replace('_', '') + ' ' + x.ms + ' ms'; }).join(' · ')));
+    }
+    (r.data.detalle || []).forEach(function (linea) { lista.appendChild(el('p', null, linea)); });
+    lista.classList.remove('oculto');
   }
 
   /** Cola de correos y disparadores: si algo se atasca, se ve aquí. */
@@ -210,7 +251,10 @@
   }
 
   window.Pruebas = {
-    preparar: function () { prepararPruebas(); prepararRefresco(); cargarEstado(); prepararRestos(); },
+    preparar: function () {
+      prepararPruebas(); prepararRefresco(); cargarEstado(); prepararRestos(); prepararUltimo();
+    },
+    verUltimoResultado: verUltimoResultado,
     cargarEstado: cargarEstado,
     revisarRestos: revisarRestos,
     prepararRestos: prepararRestos,

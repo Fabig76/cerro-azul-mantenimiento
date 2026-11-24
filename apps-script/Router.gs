@@ -114,6 +114,7 @@ const ACCIONES = {
   'sistema.rendimiento': { fn: sistemaRendimiento, sesion: true, roles: ['ADMIN'] },
   'sistema.disparadores.reparar': { fn: sistemaDisparadoresReparar, sesion: true, roles: ['ADMIN'] },
   'sistema.estado': { fn: sistemaEstado, sesion: true, roles: ['ADMIN'] },
+  'tests.ultimo': { fn: testsUltimo, sesion: true, roles: ['ADMIN'] },
   'tests.ejecutar': { fn: accionTests, sesion: true, roles: ['ADMIN'] },
   'config.get': { fn: configGet, sesion: true, roles: ['ADMIN'] },
   'auditoria.listar': { fn: auditoriaListar, sesion: true, roles: ['ADMIN'] },

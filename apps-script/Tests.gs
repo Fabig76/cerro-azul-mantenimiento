@@ -51,6 +51,8 @@ function runAllTests() {
   // (Db.gs, FILAS_DE_PRUEBA). Al terminar se borran esas filas y ninguna otra: lo que
   // otra persona o un disparador escriba mientras corre la batería no se toca.
   FILAS_DE_PRUEBA = {};
+  const inicioMs = Date.now();
+  const inicio = ahoraIso();
   const grupos = [
     'pruebasFechas_',
     'pruebasSalud_',
@@ -88,12 +90,16 @@ function runAllTests() {
     'pruebasFilasPorHoja_',
   ];
 
+  const tiempos = {};
   grupos.forEach(function (nombre) {
     try {
       const fn = globalThis[nombre];
       if (typeof fn !== 'function') throw new Error('no existe');
+      const desde = Date.now();
       fn();
+      tiempos[nombre] = Date.now() - desde;
     } catch (e) {
+      tiempos[nombre] = -1;
       RESULTADOS.fallidas++;
       RESULTADOS.detalle.push('FALLA · ' + nombre + ' · ' + (e && e.message ? e.message : e));
     }
@@ -128,6 +134,13 @@ function runAllTests() {
     const fb = b.indexOf('FALLA') === 0 ? 0 : 1;
     return fa - fb;
   });
+  RESULTADOS.tiempos = tiempos;
+  RESULTADOS.terminado_en = ahoraIso();
+  RESULTADOS.ms = Date.now() - inicioMs;
+  try {
+    cachePut('tests:ultimo', JSON.stringify(RESULTADOS), 7200);
+  } catch (e) { /* si no cabe, no importa: el resultado se devuelve igual */ }
+
   console.log('PASADAS: ' + RESULTADOS.pasadas + ' · FALLIDAS: ' + RESULTADOS.fallidas);
   console.log(RESULTADOS.detalle.join('\n'));
   return RESULTADOS;
@@ -1763,3 +1776,20 @@ function limpiarRestosDePruebas(ctx) {
   return { borradas: r.filas, archivos: r.archivos, por_hoja: antes.por_hoja };
 }
 
+
+
+/**
+ * El último resultado guardado. Sirve cuando el navegador se rinde esperando: la batería
+ * siguió corriendo y su resultado se puede leer sin repetirla.
+ */
+function testsUltimo(ctx) {
+  const guardado = cacheGet('tests:ultimo');
+  if (!guardado) return { hay: false };
+  try {
+    const r = JSON.parse(guardado);
+    r.hay = true;
+    return r;
+  } catch (e) {
+    return { hay: false };
+  }
+}
