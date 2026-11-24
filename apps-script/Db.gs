@@ -218,10 +218,26 @@ function insertar(nombre, obj, usuario) {
   if (cabeceras(nombre).actualizado_por !== undefined) datos.actualizado_por = usuario || '';
   if (cabeceras(nombre).activo !== undefined && datos.activo === undefined) datos.activo = true;
   sh.appendRow(aFila(nombre, datos));
+  anotarFilaDePrueba_(nombre, datos.id);
   medir('escritura', 1);
   marcarCambio(nombre);
   limpiarCache(nombre);
   return datos;
+}
+
+/**
+ * RN-75 · Registro de las filas que inserta la batería de pruebas.
+ *
+ * Mientras FILAS_DE_PRUEBA no es null, cada inserción de ESTA ejecución anota el id de
+ * su fila. Las variables globales de Apps Script viven solo durante una ejecución, así
+ * que aquí nunca entra una fila creada por otra persona o por un disparador mientras
+ * corre la batería. La limpieza borra exactamente estos ids y nada más.
+ */
+var FILAS_DE_PRUEBA = null;
+
+function anotarFilaDePrueba_(nombre, id) {
+  if (!FILAS_DE_PRUEBA || !id) return;
+  (FILAS_DE_PRUEBA[nombre] = FILAS_DE_PRUEBA[nombre] || {})[String(id)] = true;
 }
 
 /** Inserta muchas filas de una vez (setValues), evitando appendRow en bucle. */
@@ -238,6 +254,7 @@ function insertarVarias(nombre, objetos, usuario) {
     if (cab.actualizado_en !== undefined) d.actualizado_en = ahora;
     if (cab.actualizado_por !== undefined) d.actualizado_por = usuario || '';
     if (cab.activo !== undefined && d.activo === undefined) d.activo = true;
+    anotarFilaDePrueba_(nombre, d.id);
     return aFila(nombre, d);
   });
   sh.getRange(sh.getLastRow() + 1, 1, salida.length, salida[0].length).setValues(salida);
