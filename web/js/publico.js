@@ -836,7 +836,8 @@
       mostrarError('No pudimos cargar esta sección. Revisa tu conexión.');
       return;
     }
-    if (!d || d.error) {
+    // El servidor puede responder { ok:false } si algo falla: tampoco hay nada que dibujar.
+    if (!d || d.error || d.ok === false || !d.nombre) {
       mostrarError('Esa sección no está disponible.');
       window.location.hash = '#/secciones';
       return;

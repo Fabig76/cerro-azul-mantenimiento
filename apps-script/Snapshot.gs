@@ -264,28 +264,7 @@ function construirSnapshot() {
 
   // --- En curso: ya empezó y todavía no se aprobó ---
   // D2 · Un trabajo que empezó ayer desaparecía: no era «próximo» ni «reciente».
-  const enCurso = actividades
-    .filter(function (a) {
-      if (!bool(a.publicable)) return false;
-      if (['EN_EJECUCION', 'REPORTADA', 'RECHAZADA'].indexOf(String(a.estado)) < 0) return false;
-      const n = porId[a.nodo_id];
-      return !(n && esSensible(n));
-    })
-    .sort(function (a, b) { return String(a.fecha_inicio_plan) < String(b.fecha_inicio_plan) ? -1 : 1; })
-    .slice(0, 10)
-    .map(function (a) {
-      const n = porId[a.nodo_id];
-      return {
-        id: a.id,
-        titulo: a.titulo,
-        donde: lugarPublico_(n, porId),
-        estado_publico: String(a.estado) === 'EN_EJECUCION' ? 'EN_EJECUCION' : 'EN_VERIFICACION',
-        desde: fechaIso_(a.fecha_inicio_real || a.fecha_inicio_plan),
-        texto_publico: String(a.texto_publico || ''),
-        afecta_uso: bool(a.afecta_uso),
-        seccion: seccionRaizDe_(n, porId),
-      };
-    });
+  const enCurso = enCursoPublico_(actividades, porId);
 
   // --- Novedades públicas ---
   const novedades = novedadesAbiertas.map(function (n) {
@@ -533,6 +512,36 @@ function publicFoto(param) {
 }
 
 /**
+ * RN-77 · Trabajos «en curso» para el portal: ya empezaron y todavía no se aprobaron.
+ * La usan el snapshot general y el detalle de una sección (public.nodo): una sola regla.
+ * Nunca incluye trabajos de un nodo sensible.
+ */
+function enCursoPublico_(actividades, porId) {
+  return actividades
+    .filter(function (a) {
+      if (!bool(a.publicable)) return false;
+      if (['EN_EJECUCION', 'REPORTADA', 'RECHAZADA'].indexOf(String(a.estado)) < 0) return false;
+      const n = porId[a.nodo_id];
+      return !(n && esSensible(n));
+    })
+    .sort(function (a, b) { return String(a.fecha_inicio_plan) < String(b.fecha_inicio_plan) ? -1 : 1; })
+    .slice(0, 10)
+    .map(function (a) {
+      const n = porId[a.nodo_id];
+      return {
+        id: a.id,
+        titulo: a.titulo,
+        donde: lugarPublico_(n, porId),
+        estado_publico: String(a.estado) === 'EN_EJECUCION' ? 'EN_EJECUCION' : 'EN_VERIFICACION',
+        desde: fechaIso_(a.fecha_inicio_real || a.fecha_inicio_plan),
+        texto_publico: String(a.texto_publico || ''),
+        afecta_uso: bool(a.afecta_uso),
+        seccion: seccionRaizDe_(n, porId),
+      };
+    });
+}
+
+/**
  * GET ?action=public.nodo&id=… — detalle precalculado de un nodo (3.4).
  * Un nodo sensible devuelve solo su fila agregada, sin hijos ni actividades.
  */
@@ -610,6 +619,9 @@ function publicNodo(param) {
         afecta_uso: bool(a.afecta_uso),
       };
     });
+
+  // En curso dentro de esta rama. En una sección sensible no se listan.
+  const enCurso = sensible ? [] : enCursoPublico_(propias, porId);
 
   const empresas = {};
   filas('empresas').forEach(function (e) { empresas[e.id] = e.razon_social; });
