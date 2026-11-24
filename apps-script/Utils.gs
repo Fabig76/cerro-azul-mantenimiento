@@ -191,3 +191,11 @@ function desdePortal_(payload) {
       'Para las pruebas, selecciona runAllTests en la lista de funciones.');
   }
 }
+
+
+/** Un texto corto y limpio, o vacío. Se usa para lo que se publica (RN-80). */
+function recortar_(valor, maximo) {
+  const t = String(valor === undefined || valor === null ? '' : valor).trim();
+  if (!t) return '';
+  return maximo ? t.slice(0, maximo) : t;
+}

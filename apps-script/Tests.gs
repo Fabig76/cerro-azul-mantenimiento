@@ -82,6 +82,7 @@ function runAllTests() {
     'pruebasPurgaYNovedadConFoto_',
     'pruebasEliminarUsuarios_',
     'pruebasResumenPublico_',
+    'pruebasCrearActividad_',
     'pruebasReasignarAlDesactivar_',
     'pruebasPropuestasV17_',
     'pruebasFilasPorHoja_',
@@ -853,6 +854,56 @@ function pruebasPropuestasV17_() {
 /**
  * RN-76 a RN-79 · El Resumen público: en curso, lugares con nombre y conteos.
  */
+/**
+ * Crear una actividad de punta a punta, por la acción real.
+ * Existe porque se llamó a `recortar_` sin definirla y «Crear actividad» respondía
+ * ERROR_INTERNO sin que ninguna prueba lo notara.
+ */
+function pruebasCrearActividad_() {
+  const ctx = { usuario: { id: 'PRUEBA', email: 'prueba@urbcerroazul.com' }, rol: 'ADMIN' };
+  const nodo = filtrar('nodos', function (n) { return bool(n.activo) && !esSensible(n); })[0];
+  if (!nodo) { RESULTADOS.detalle.push('OMITE · crear actividad · sin nodos'); return; }
+
+  const hoy = hoyIso();
+  const r = actividadesCrear(ctx, {
+    nodo_id: nodo.id,
+    titulo: 'PRUEBA crear actividad',
+    descripcion: 'Descripción de la prueba',
+    tipo: 'UNICA',
+    prioridad: 'MEDIA',
+    fecha_inicio_plan: hoy,
+    fecha_fin_plan: sumarDias(hoy, 1),
+    afecta_uso: false,
+    publicable: true,
+    texto_publico: '  Lo que verán los residentes.  ',
+    recomendacion_publica: 'Una recomendación breve.',
+  });
+
+  const creada = r && r.actividad ? r.actividad : null;
+  verdadero_(!!creada && !!creada.id, 'crear · la actividad se crea y devuelve su id');
+  if (!creada) return;
+
+  const fila = buscarPorId('actividades', creada.id);
+  verdadero_(!!fila, 'crear · la fila queda en la hoja');
+  verdadero_(String(fila.texto_publico) === 'Lo que verán los residentes.',
+    'RN-80 · el texto para residentes se guarda recortado');
+  verdadero_(String(fila.recomendacion_publica) === 'Una recomendación breve.',
+    'RN-80 · y la recomendación también');
+
+  // Un texto larguísimo no puede pasar entero.
+  const largo = actividadesCrear(ctx, {
+    nodo_id: nodo.id, titulo: 'PRUEBA texto largo', tipo: 'UNICA', prioridad: 'BAJA',
+    fecha_inicio_plan: hoy, fecha_fin_plan: hoy, publicable: true,
+    texto_publico: new Array(400).join('a'),
+  });
+  const filaLarga = buscarPorId('actividades', largo.actividad.id);
+  verdadero_(String(filaLarga.texto_publico).length <= 280,
+    'RN-80 · el texto se corta en 280 caracteres');
+
+  actualizar('actividades', creada.id, { activo: false }, 'prueba');
+  actualizar('actividades', largo.actividad.id, { activo: false }, 'prueba');
+}
+
 function pruebasResumenPublico_() {
   const nodo = filtrar('nodos', function (n) { return bool(n.activo) && !esSensible(n) && String(n.clase) === 'AGRUPADOR'; })[0];
   if (!nodo) { RESULTADOS.detalle.push('OMITE · resumen · sin nodos'); return; }

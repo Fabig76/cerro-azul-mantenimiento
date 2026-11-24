@@ -3,6 +3,11 @@
 # No necesita sesión: usa dobles de las dependencias.
 set -e
 cd "$(dirname "$0")/.."
+# Antes de probar pantallas, el servidor debe estar sano: una función llamada y no definida
+# tumba una acción entera (pasó con recortar_ y «Crear actividad»).
+node tools/revisar-funciones.mjs > /dev/null || { echo "El servidor no pasa revisar-funciones.mjs:"; node tools/revisar-funciones.mjs; exit 1; }
+node tools/revisar-columnas.mjs > /dev/null || { echo "El esquema no pasa revisar-columnas.mjs:"; node tools/revisar-columnas.mjs; exit 1; }
+
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 [ -x "$CHROME" ] || { echo "No se encontró Chrome"; exit 1; }
 
