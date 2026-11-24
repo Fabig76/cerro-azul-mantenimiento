@@ -12,7 +12,7 @@
 <div id="listaEmpresas"></div>
 <script>
 window.CFG = { API_URL: '' };
-window.__rol = 'ADMIN';
+window.__rol = 'ADMIN'; document.body.dataset.rol = 'ADMIN';
 window.__llamadas = [];
 window.API = { llamar: function (accion, payload) {
   window.__llamadas.push({ accion: accion, payload: payload });

@@ -53,6 +53,8 @@ window.Datos = { invalidar: function () {} };
 <script src="../../web/js/empresas.js"></script>
 <script>
 (async function () {
+  // La pantalla decide con el rol que publica la app; aquí se simula un administrador.
+  document.body.dataset.rol = 'ADMIN';
   const r = [];
   function esperar(ms) { return new Promise(function (x) { setTimeout(x, ms); }); }
   function textos(sel) {
