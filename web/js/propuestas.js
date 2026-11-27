@@ -394,7 +394,7 @@
       alElegir: agregarFotoVisita,
     });
     async function agregarFotoVisita(file) {
-      if (fotosNuevas.length >= 3) return;
+      if (fotosNuevas.length >= cupo) return;
       btnFoto.ocupar('Comprimiendo…');
       try {
         const prep = await Fotos.preparar(file);
@@ -413,7 +413,8 @@
         aviso('No se pudo preparar la foto.', 'error');
       }
       btnFoto.liberar();
-      if (fotosNuevas.length >= 3) btnFoto.ocupar('Ya hay 3 fotos');
+      // El cupo descuenta las fotos ya guardadas: con 2 guardadas solo cabe 1 más.
+      if (fotosNuevas.length >= cupo) btnFoto.ocupar('Ya hay 3 fotos');
     }
 
     const acciones = el('div', 'acciones-form');
