@@ -422,3 +422,6 @@ footer.pie b { color: #334155; }
   font-size: 13px; font-weight: 600;
   padding: 9px 16px; text-align: center;
 }
+
+/* Tomar foto o elegirla de la galería: dos botones lado a lado, que bajan en pantallas angostas. */
+.elegir-foto { display: flex; flex-wrap: wrap; gap: 8px; }

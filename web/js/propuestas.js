@@ -228,18 +228,14 @@
       }
 
       if (p.estado === 'PENDIENTE' && !sinAcciones && p.fotos.length < 3) {
-        const agregar = boton('Agregar foto', 'btn-mini');
-        const inp = el('input');
-        inp.type = 'file';
-        inp.accept = 'image/*';
-        inp.setAttribute('capture', 'environment');
-        inp.className = 'oculto';
-        agregar.addEventListener('click', function () { inp.click(); });
-        inp.addEventListener('change', async function () {
-          const file = inp.files && inp.files[0];
-          if (!file) return;
-          agregar.disabled = true;
-          agregar.textContent = 'Subiendo…';
+        const agregar = Fotos.selector({
+          camara: 'Tomar foto',
+          galeria: 'Elegir de la galería',
+          clase: 'btn-mini',
+          alElegir: subirFoto,
+        });
+        async function subirFoto(file) {
+          agregar.ocupar('Subiendo…');
           try {
             const prep = await Fotos.preparar(file);
             const r = await API.llamar('propuestas.foto.subir', {
@@ -253,12 +249,10 @@
             cargar(rolActual);
           } catch (e) {
             aviso(e.message || 'No se pudo subir la foto.', 'error');
-            agregar.disabled = false;
-            agregar.textContent = 'Agregar foto';
+            agregar.liberar();
           }
-        });
-        card.appendChild(agregar);
-        card.appendChild(inp);
+        }
+        card.appendChild(agregar.caja);
       }
       if (p.estado === 'PENDIENTE' && !sinAcciones) {
         const retirar = boton('Retirar', 'btn-mini');
@@ -393,18 +387,15 @@
     });
 
     const fotos = el('div', 'fotos');
-    const inp = el('input');
-    inp.type = 'file';
-    inp.accept = 'image/*';
-    inp.setAttribute('capture', 'environment');
-    inp.className = 'oculto';
-    const btnFoto = boton('Añadir foto de la visita');
-    btnFoto.addEventListener('click', function () { inp.click(); });
-    inp.addEventListener('change', async function () {
-      const file = inp.files && inp.files[0];
-      if (!file || fotosNuevas.length >= 3) return;
-      btnFoto.disabled = true;
-      btnFoto.textContent = 'Comprimiendo…';
+    // La foto de la visita puede ser nueva o una que ya esté en la galería del teléfono.
+    const btnFoto = Fotos.selector({
+      camara: 'Tomar foto de la visita',
+      galeria: 'Elegir de la galería',
+      alElegir: agregarFotoVisita,
+    });
+    async function agregarFotoVisita(file) {
+      if (fotosNuevas.length >= 3) return;
+      btnFoto.ocupar('Comprimiendo…');
       try {
         const prep = await Fotos.preparar(file);
         fotosNuevas.push(prep);
@@ -421,9 +412,9 @@
       } catch (e) {
         aviso('No se pudo preparar la foto.', 'error');
       }
-      btnFoto.disabled = false;
-      btnFoto.textContent = fotosNuevas.length >= 3 ? 'Ya hay 3 fotos' : 'Añadir foto de la visita';
-    });
+      btnFoto.liberar();
+      if (fotosNuevas.length >= 3) btnFoto.ocupar('Ya hay 3 fotos');
+    }
 
     const acciones = el('div', 'acciones-form');
     const enviar = boton(editando ? 'Guardar cambios' : 'Enviar propuesta', 'btn primary');
@@ -651,9 +642,8 @@
       });
       caja.appendChild(listaFotos);
     }
-    if (cupo === 0) btnFoto.classList.add('oculto');
-    caja.appendChild(btnFoto);
-    caja.appendChild(inp);
+    if (cupo === 0) btnFoto.ocultar();
+    caja.appendChild(btnFoto.caja);
     caja.appendChild(acciones);
     cont.appendChild(caja);
   }

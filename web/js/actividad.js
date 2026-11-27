@@ -862,55 +862,43 @@
     // RN-56 · Sin permiso de ejecución no se ofrece subir fotos.
     if (!puedeEjecutar()) return caja;
 
-    const inp = el('input');
-    inp.type = 'file';
-    inp.accept = 'image/*';
-    inp.setAttribute('capture', 'environment');
-    inp.className = 'oculto';
-    inp.id = 'file_' + momento;
-
     const esPrimerPaso = momento === 'ANTES' && total === 0 && !previas.length;
-    const btn = el('button', esPrimerPaso ? 'btn primary' : 'btn',
-      esPrimerPaso ? '1. Tomar la foto de antes' : 'Tomar foto');
+    const sel = Fotos.selector({
+      camara: esPrimerPaso ? '1. Tomar la foto de antes' : 'Tomar foto',
+      galeria: 'Elegir de la galería',
+      clase: esPrimerPaso ? 'btn primary' : 'btn',
+      alElegir: async function (file) {
+        sel.ocupar('Comprimiendo la foto…');
+        try {
+          const prep = await Fotos.preparar(file);
+          // C5 · La subida puede tardar varios segundos con mala señal: se dice qué pasa.
+          sel.ocupar('Subiendo ' + (prep.kb || Math.round((prep.base64 || '').length / 1365)) + ' KB…');
+          const r = await API.llamar('evidencias.upload', {
+            actividad_id: a.id,
+            momento: momento,
+            base64: prep.base64,
+            base64_mini: prep.base64_mini,
+            mime: 'image/jpeg',
+          }, { token: Sesion.token(), idempotente: true });
+          if (!r.ok) throw new Error(r.message || 'No se pudo subir la foto.');
 
-    btn.type = 'button';
-    btn.addEventListener('click', function () { inp.click(); });
-
-    inp.addEventListener('change', async function () {
-      const file = inp.files && inp.files[0];
-      if (!file) return;
-      btn.disabled = true;
-      btn.textContent = 'Comprimiendo la foto…';
-      try {
-        const prep = await Fotos.preparar(file);
-        // C5 · La subida puede tardar varios segundos con mala señal: se dice qué pasa.
-        btn.textContent = 'Subiendo ' + (prep.kb || Math.round((prep.base64 || '').length / 1365)) + ' KB…';
-        const r = await API.llamar('evidencias.upload', {
-          actividad_id: a.id,
-          momento: momento,
-          base64: prep.base64,
-          base64_mini: prep.base64_mini,
-          mime: 'image/jpeg',
-        }, { token: Sesion.token(), idempotente: true });
-        if (!r.ok) throw new Error(r.message || 'No se pudo subir la foto.');
-
-        destino.push({
-          id: r.data.evidencia_id,
-          kb: prep.kb,
-          mini: prep.base64_mini,
-          fecha_subida: new Date().toISOString(),
-        });
-        aviso('Foto de ' + momento.toLowerCase() + ' cargada (' + prep.kb + ' KB).', 'ok');
-        pintar();
-      } catch (err) {
-        aviso(err.message || 'No se pudo subir la foto.', 'error');
-        btn.disabled = false;
-        btn.textContent = esPrimerPaso ? '1. Tomar la foto de antes' : 'Tomar foto';
-      }
+          destino.push({
+            id: r.data.evidencia_id,
+            kb: prep.kb,
+            mini: prep.base64_mini,
+            fecha_subida: new Date().toISOString(),
+          });
+          aviso('Foto de ' + momento.toLowerCase() + ' cargada (' + prep.kb + ' KB).', 'ok');
+          pintar();
+        } catch (err) {
+          aviso(err.message || 'No se pudo subir la foto.', 'error');
+          sel.liberar();
+        }
+      },
     });
+    sel.caja.id = 'file_' + momento;
 
-    caja.appendChild(btn);
-    caja.appendChild(inp);
+    caja.appendChild(sel.caja);
     return caja;
   }
 
@@ -1019,38 +1007,31 @@
     nota.placeholder = 'Qué se hizo en esta etapa (opcional)';
     caja.appendChild(nota);
 
-    const foto = el('input');
-    foto.type = 'file';
-    foto.accept = 'image/*';
-    foto.capture = 'environment';
-    foto.className = 'oculto';
-    caja.appendChild(foto);
-
     let archivo = null;
-    const elegir = el('button', 'btn sm', 'Adjuntar una foto (opcional)');
-    elegir.type = 'button';
     const quitar = el('button', 'btn sm oculto', 'Quitar la foto');
     quitar.type = 'button';
     const verFoto = el('p', 'etapa-form-foto');
-
-    elegir.addEventListener('click', function () { foto.click(); });
-    foto.addEventListener('change', function () {
-      archivo = (foto.files && foto.files[0]) || null;
-      if (!archivo) return;
-      verFoto.textContent = 'Foto lista: ' + archivo.name;
-      elegir.classList.add('oculto');
-      quitar.classList.remove('oculto');
+    // Foto opcional: de la cámara o de la galería del teléfono.
+    const elegir = Fotos.selector({
+      camara: 'Tomar foto (opcional)',
+      galeria: 'Elegir de la galería',
+      clase: 'btn sm',
+      alElegir: function (file) {
+        archivo = file;
+        verFoto.textContent = 'Foto lista: ' + archivo.name;
+        elegir.ocultar();
+        quitar.classList.remove('oculto');
+      },
     });
     quitar.addEventListener('click', function () {
       archivo = null;
-      foto.value = '';
       verFoto.textContent = '';
       quitar.classList.add('oculto');
-      elegir.classList.remove('oculto');
+      elegir.mostrar();
     });
 
     const botonesFoto = el('div', 'etapa-form-botones');
-    botonesFoto.appendChild(elegir);
+    botonesFoto.appendChild(elegir.caja);
     botonesFoto.appendChild(quitar);
     caja.appendChild(botonesFoto);
     caja.appendChild(verFoto);
@@ -1068,7 +1049,7 @@
     enviar.addEventListener('click', async function () {
       enviar.disabled = true;
       cancelar.disabled = true;
-      elegir.disabled = true;
+      elegir.ocupar('Tomar foto (opcional)');
 
       const texto = (nota.value || '').trim();
       const r = await API.llamar('reportes.crear', {
@@ -1081,7 +1062,7 @@
 
       if (!r.ok) {
         aviso(r.message || 'No se pudo reportar la etapa.', 'error');
-        enviar.disabled = false; cancelar.disabled = false; elegir.disabled = false;
+        enviar.disabled = false; cancelar.disabled = false; elegir.liberar();
         return;
       }
 
