@@ -66,35 +66,24 @@
     texto.maxLength = 500;
     texto.placeholder = '¿Qué pasó? Desde cuándo, dónde está.';
 
-    const foto = el('input');
-    foto.type = 'file';
-    foto.accept = 'image/*';
-    foto.setAttribute('capture', 'environment');
-    foto.className = 'oculto';
-    foto.id = 'repFoto';
-
     let preparada = null;
-    const elegir = el('button', 'btn', 'Tomar o elegir foto');
-    elegir.type = 'button';
     const ver = el('div', 'reporte-foto');
     const quitar = el('button', 'btn sm oculto', 'Quitar la foto');
     quitar.type = 'button';
+    // El residente puede tomar la foto ahora o escoger una que ya tenga en el teléfono.
+    const elegir = Fotos.selector({ camara: 'Tomar foto', galeria: 'Elegir de la galería', alElegir: prepararFoto });
+    elegir.caja.id = 'repFoto';
 
-    elegir.addEventListener('click', function () { foto.click(); });
     quitar.addEventListener('click', function () {
       preparada = null;
-      foto.value = '';
       ver.textContent = '';
       quitar.classList.add('oculto');
-      elegir.classList.remove('oculto');
+      elegir.mostrar();
       enviar.disabled = true;
     });
 
-    foto.addEventListener('change', async function () {
-      const archivo = foto.files && foto.files[0];
-      if (!archivo) return;
-      elegir.disabled = true;
-      elegir.textContent = 'Preparando la foto…';
+    async function prepararFoto(archivo) {
+      elegir.ocupar('Preparando la foto…');
       try {
         preparada = await Fotos.preparar(archivo);
         ver.textContent = '';
@@ -104,15 +93,14 @@
         img.className = 'foto-mini';
         ver.appendChild(img);
         ver.appendChild(el('p', 'foto-pie', 'Foto lista (' + preparada.kb + ' KB)'));
-        elegir.classList.add('oculto');
+        elegir.ocultar();
         quitar.classList.remove('oculto');
         enviar.disabled = false;
       } catch (e) {
         ver.textContent = 'No se pudo preparar la foto. Intente con otra.';
       }
-      elegir.disabled = false;
-      elegir.textContent = 'Tomar o elegir foto';
-    });
+      elegir.liberar();
+    }
 
     const trampa = el('input');
     trampa.type = 'text';
@@ -194,8 +182,7 @@
     caja.lastChild.appendChild(sel);
     caja.appendChild(el('label', 'campo', '¿Qué pasó?'));
     caja.lastChild.appendChild(texto);
-    caja.appendChild(elegir);
-    caja.appendChild(foto);
+    caja.appendChild(elegir.caja);
     caja.appendChild(quitar);
     caja.appendChild(ver);
     caja.appendChild(el('p', 'bajada', 'No incluya personas ni placas en la foto.'));
