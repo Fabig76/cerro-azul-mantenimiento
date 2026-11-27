@@ -146,7 +146,8 @@ window.Sesion = { token: function () { return 'token-de-prueba'; }, limpiar: fun
     r.push((textosFoto.length === 2 && /Tomar foto/.test(textosFoto[0]) && /galería/i.test(textosFoto[1])
       ? 'OK   ' : 'FALLA') + ' · con foto opcional (cámara y galería)');
 
-    const inputFoto = form.querySelectorAll('input[type=file]')[1];
+    // La foto llega por el campo de la galería (el que no lleva `capture`).
+    const inputFoto = form.querySelector('.elegir-foto input:not([capture])');
     Object.defineProperty(inputFoto, 'files', { value: [new File(['x'], 'ev.jpg', { type: 'image/jpeg' })] });
     inputFoto.dispatchEvent(new Event('change'));
     await esperar(200);
@@ -159,10 +160,11 @@ window.Sesion = { token: function () { return 'token-de-prueba'; }, limpiar: fun
 
     const reporte = window.__llamadas.filter(function (x) { return x.accion === 'reportes.crear'; })[0];
     r.push((reporte && reporte.payload.hito_id === 'HIT_1' ? 'OK   ' : 'FALLA') + ' · reporta la etapa elegida');
-    // La subida de la foto de la etapa no se puede simular aquí: el formulario se
-    // reconstruye y el archivo elegido queda en una instancia anterior. Se comprueba en
-    // el teléfono (§5 del documento del analista), no en este banco.
-    r.push('OMITE · la subida de la foto de la etapa se prueba en el teléfono');
+    // La foto elegida se sube después de crear el reporte de la etapa, ligada a él.
+    const foto = window.__llamadas.filter(function (x) { return x.accion === 'evidencias.upload'; })[0];
+    r.push((foto && foto.payload.momento === 'DURANTE' ? 'OK   ' : 'FALLA') + ' · la foto entra como DURANTE');
+    r.push((foto && foto.payload.reporte_id === 'REP_NUEVO' ? 'OK   ' : 'FALLA') +
+      ' · y queda ligada al reporte de esa etapa');
 
     // 3 · Proponer con cotización
     await Propuestas.cargar('CONTRATISTA', [{ id: 'NOD_01M69S4WSSC87B9F93C0C247F8', codigo: 'CA-AC-CAM', nombre: 'Cámaras (CCTV)' }]);

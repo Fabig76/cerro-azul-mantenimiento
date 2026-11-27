@@ -599,7 +599,7 @@ Rutas públicas: `#/` · `#/nodo/:id` · `#/alertas` · `#/alerta/:id` · `#/cal
 
 ### 7.4 Flujo de fotos (`fotos.js` + `Evidencias.gs`)
 
-1. `<input type="file" accept="image/*" capture="environment">`.
+1. **(v1.13)** Dos caminos para cada foto, con `Fotos.selector()`: «Tomar foto» (`<input type="file" accept="image/*" capture="environment">`) y «Elegir de la galería» (el mismo campo **sin** `capture`). Ver RN-85 a RN-88.
 2. Leer la fecha EXIF (`DateTimeOriginal`) y el GPS si existen, antes de comprimir; pedir `navigator.geolocation` si el usuario lo permite.
 3. Generar en el celular **dos versiones** con `canvas` (Apps Script no redimensiona imágenes, por eso se hace aquí):
    - principal de 1600 px en el lado mayor, JPEG calidad 0,7, objetivo menor de 500 KB; se rechaza si supera 2 MB;
@@ -750,6 +750,29 @@ pegar y mantener etiquetas es trabajo que nadie pidió y no aporta a la operaci�
 para que un residente reportara un daño desde el equipo; ese reporte ya está a un botón en el
 portal, sin etiqueta de por medio. Se retiraron el codificador, la hoja de etiquetas y la ruta
 `#/equipo/<id>`.
+
+### 10.6. Fotos desde la cámara o la galería (v1.13)
+
+- **RN-85.** Todo lugar donde se sube una foto ofrece dos botones: **«Tomar foto»** abre la cámara
+  (campo con `capture="environment"`) y **«Elegir de la galería»** abre las fotos guardadas en el
+  teléfono (campo sin `capture`). Ningún campo de foto lleva `capture` por su cuenta: se construyen
+  solo con `Fotos.selector({ camara, galeria, clase, alElegir })`, que devuelve
+  `{ caja, ocupar(texto), liberar(), ocultar(), mostrar() }`. Con `capture` solo, el teléfono va
+  directo a la cámara y no deja escoger una foto ya tomada.
+- **RN-86.** Los lugares son cinco: fotos de antes y de después (`#file_ANTES`, `#file_DESPUES`),
+  reporte de una etapa (`#etapaForm`), formulario de propuesta nueva o corregida, «Agregar foto» de
+  una propuesta PENDIENTE y reporte de daños del residente (`#repFoto`). Los `id` quedan en la caja
+  de los botones, no en un campo.
+- **RN-87.** Las dos vías usan la misma compresión (`Fotos.preparar`) y la misma acción del servidor.
+  El servidor no cambia: `FOTO_DUPLICADA` sigue rechazando una foto ya cargada (sec. 7.4, paso 6).
+- **RN-88.** Al corregir una propuesta, el cupo de fotos nuevas es 3 menos las ya guardadas.
+- **Pendiente (decide el administrador).** Desde la galería se puede subir una foto vieja. El paso 2
+  de la sec. 7.4 (fecha EXIF) no está implementado; si se quiere, se compara la fecha de captura con
+  la del trabajo antes de aceptar la foto de antes o de después.
+- **Pruebas.** Los bancos de `tools/pantalla/` cargan el `fotos.js` real y solo reemplazan
+  `Fotos.preparar`. Para simular una foto se usa el campo de la galería:
+  `caja.querySelector('input:not([capture])')`. `fotos-selector.html` prueba el selector solo, y
+  `contratista-completo.html` comprueba que la foto de una etapa sube como DURANTE ligada a su reporte.
 
 ### 10.5. El Resumen público (v1.11)
 
