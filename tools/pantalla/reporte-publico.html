@@ -21,7 +21,12 @@ window.fetch = async function (url, opciones) {
   window.__enviados.push(JSON.parse(opciones.body));
   return { json: async function () { return { ok: true, data: { codigo_consulta: 'R7K2QM' } }; } };
 };
-window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'QUJD', base64_mini: 'QUJD', kb: 120 }); } };
+
+</script>
+<script src="../../web/js/fotos.js"></script>
+<script>
+// El selector es el real; solo se falsifica la compresión de la foto.
+window.Fotos.preparar = function () { return Promise.resolve({ base64: 'QUJD', base64_mini: 'QUJD', kb: 120 }); };
 </script>
 <script src="../../web/js/reporte.js"></script>
 <script>
@@ -44,7 +49,8 @@ window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'QUJD'
     r.push((enviar && enviar.disabled ? 'OK   ' : 'FALLA') + ' · sin foto el botón está apagado');
 
     // La foto llega y se activa
-    const foto = document.getElementById('repFoto');
+    // El campo de foto ahora son dos botones (cámara y galería): se usa el de la galería.
+    const foto = document.querySelector('#repFoto input[type=file]');
     Object.defineProperty(foto, 'files', { value: [new File(['x'], 'f.jpg', { type: 'image/jpeg' })] });
     foto.dispatchEvent(new Event('change'));
     await esperar(200);

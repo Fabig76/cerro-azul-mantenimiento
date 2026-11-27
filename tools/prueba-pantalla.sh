@@ -50,6 +50,7 @@ $(correr empresa-eliminar.html)
 $(correr usuarios-seleccion.html)
 $(correr resumen-v111.html 12000)
 $(correr ultimo-resultado.html)
+$(correr fotos-selector.html 8000)
 $(correr contratista-completo.html)"
 
 echo "$SALIDA"

@@ -36,8 +36,9 @@ window.API = { llamar: function (accion, payload) {
 } };
 window.Sesion = { token: function () { return 'x'; } };
 window.Datos = { obtener: function (a) { return window.API.llamar(a); }, invalidar: function () {} };
-window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'x', base64_mini: 'y', kb: 10 }); } };
+
 </script>
+<script src="../../web/js/fotos.js"></script>
 <script src="../../web/js/propuestas.js"></script>
 <script>
 (async function () {

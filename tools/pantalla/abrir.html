@@ -47,12 +47,11 @@ window.API = { llamar: function (accion, payload) {
       ? { comentario_admin: 'Falta la foto', revisado_en: '2026-11-12T09:00:00-05:00' } : null,
     propuesta: null,
   } });
-} };
-window.Fotos = { preparar: function () { return Promise.resolve({}); } };
-window.App = { pestana: function () {}, refrescar: function () {} };
+} };window.App = { pestana: function () {}, refrescar: function () {} };
 </script>
 <script src="../../web/js/fotocache.js"></script>
 <script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/fotos.js"></script>
 <script src="../../web/js/actividad.js"></script>
 <script>
 (async function () {
@@ -118,8 +117,10 @@ window.App = { pestana: function () {}, refrescar: function () {} };
       await esperar(150);
       const form = document.getElementById('etapaForm');
       r.push((form ? 'OK   ' : 'FALLA') + ' · abre el formulario de la etapa');
-      r.push((form && form.textContent.indexOf('Adjuntar una foto (opcional)') >= 0 ? 'OK   ' : 'FALLA') +
-        ' · la foto es opcional y se puede adjuntar');
+      // La foto de la etapa se elige con dos botones: cámara o galería.
+      const botonesFoto = form ? form.querySelectorAll('.elegir-foto button') : [];
+      r.push((botonesFoto.length === 2 ? 'OK   ' : 'FALLA') +
+        ' · la foto es opcional y se puede adjuntar (cámara y galería)');
       const enviar = form && Array.prototype.slice.call(form.querySelectorAll('button'))
         .filter(function (b) { return b.textContent.indexOf('Enviar reporte de la etapa') >= 0; })[0];
       r.push((enviar ? 'OK   ' : 'FALLA') + ' · se puede enviar sin foto');

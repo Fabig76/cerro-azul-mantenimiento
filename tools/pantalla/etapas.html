@@ -10,11 +10,10 @@ window.API = { llamar: function (accion, payload) {
   window.__llamadas.push({ accion: accion, payload: payload });
   if (accion === 'hitos.guardar') return Promise.resolve({ ok: true, data: { hitos: (payload.hitos || []).length, peso_total: 3 } });
   return Promise.resolve({ ok: true, data: {} });
-} };
-window.Fotos = { preparar: function () { return Promise.resolve({}); } };
-window.App = { pestana: function () {}, refrescar: function () {} };
+} };window.App = { pestana: function () {}, refrescar: function () {} };
 </script>
 <script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/fotos.js"></script>
 <script src="../../web/js/actividad.js"></script>
 <script>
 (function () {

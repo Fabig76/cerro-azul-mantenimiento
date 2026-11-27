@@ -17,9 +17,7 @@
 <div id="vistaActividad" hidden></div>
 <script>
 window.CFG = { API_URL: '' };
-window.Tema = { alternar: function () {}, aplicar: function () {} };
-window.Fotos = { preparar: function () { return Promise.resolve({}); } };
-window.__pedidos = [];
+window.Tema = { alternar: function () {}, aplicar: function () {} };window.__pedidos = [];
 const FILAS = [];
 for (let i = 1; i <= 40; i++) {
   FILAS.push({ id: 'A' + i, titulo: 'Trabajo ' + i, nodo_codigo: 'CA-T1', estado: 'PROGRAMADA',
@@ -32,6 +30,7 @@ for (let i = 1; i <= 40; i++) {
 <script src="../../web/js/asignacion.js"></script>
 <script src="../../web/js/sesion.js"></script>
 <script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/fotos.js"></script>
 <script src="../../web/js/actividad.js"></script>
 <script src="../../web/js/propuestas.js"></script>
 <script src="../../web/js/novedades.js"></script>

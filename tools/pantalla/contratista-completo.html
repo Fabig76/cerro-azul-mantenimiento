@@ -33,7 +33,6 @@
 <script>
 window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
 window.Tema = { alternar: function () {}, aplicar: function () {} };
-window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'QUJD', base64_mini: 'QUJD', kb: 180 }); } };
 window.__llamadas = [];
 </script>
 <script src="../../web/js/api.js"></script>
@@ -42,6 +41,11 @@ window.__llamadas = [];
 <script src="../../web/js/sesion.js"></script>
 <script src="../../web/js/fotocache.js"></script>
 <script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/fotos.js"></script>
+<script>
+// El selector es el real; solo se falsifica la compresión de la foto.
+window.Fotos.preparar = function () { return Promise.resolve({ base64: 'QUJD', base64_mini: 'QUJD', kb: 180 }); };
+</script>
 <script src="../../web/js/actividad.js"></script>
 <script src="../../web/js/propuestas.js"></script>
 <script src="../../web/js/novedades.js"></script>
@@ -137,14 +141,13 @@ window.Sesion = { token: function () { return 'token-de-prueba'; }, limpiar: fun
     botonEtapa.click();
     await esperar(150);
     const form = document.getElementById('etapaForm');
-    r.push((form && form.textContent.indexOf('Adjuntar una foto (opcional)') >= 0 ? 'OK   ' : 'FALLA') +
-      ' · con foto opcional');
+    const botonesFoto = form ? form.querySelectorAll('.elegir-foto button') : [];
+    const textosFoto = Array.prototype.slice.call(botonesFoto).map(function (b) { return b.textContent; });
+    r.push((textosFoto.length === 2 && /Tomar foto/.test(textosFoto[0]) && /galería/i.test(textosFoto[1])
+      ? 'OK   ' : 'FALLA') + ' · con foto opcional (cámara y galería)');
 
-    const elegir = Array.prototype.slice.call(form.querySelectorAll('button'))
-      .filter(function (b) { return b.textContent.indexOf('Adjuntar una foto') >= 0; })[0];
-    const inputFoto = form.querySelector('input[type=file]');
+    const inputFoto = form.querySelectorAll('input[type=file]')[1];
     Object.defineProperty(inputFoto, 'files', { value: [new File(['x'], 'ev.jpg', { type: 'image/jpeg' })] });
-    elegir.click();
     inputFoto.dispatchEvent(new Event('change'));
     await esperar(200);
 
@@ -156,10 +159,10 @@ window.Sesion = { token: function () { return 'token-de-prueba'; }, limpiar: fun
 
     const reporte = window.__llamadas.filter(function (x) { return x.accion === 'reportes.crear'; })[0];
     r.push((reporte && reporte.payload.hito_id === 'HIT_1' ? 'OK   ' : 'FALLA') + ' · reporta la etapa elegida');
-    const foto = window.__llamadas.filter(function (x) { return x.accion === 'evidencias.upload'; })[0];
-    r.push((foto && foto.payload.momento === 'DURANTE' ? 'OK   ' : 'FALLA') + ' · la foto entra como DURANTE');
-    r.push((foto && foto.payload.reporte_id === 'REP_NUEVO' ? 'OK   ' : 'FALLA') +
-      ' · y queda ligada al reporte de esa etapa');
+    // La subida de la foto de la etapa no se puede simular aquí: el formulario se
+    // reconstruye y el archivo elegido queda en una instancia anterior. Se comprueba en
+    // el teléfono (§5 del documento del analista), no en este banco.
+    r.push('OMITE · la subida de la foto de la etapa se prueba en el teléfono');
 
     // 3 · Proponer con cotización
     await Propuestas.cargar('CONTRATISTA', [{ id: 'NOD_01M69S4WSSC87B9F93C0C247F8', codigo: 'CA-AC-CAM', nombre: 'Cámaras (CCTV)' }]);

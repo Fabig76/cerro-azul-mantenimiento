@@ -9,7 +9,7 @@
 <script>
 // Dobles: la prueba solo mira lo que se dibuja y qué mensaje queda a la vista.
 window.Sesion = { token: function () { return 'x'; } };
-window.Fotos = { preparar: function () { return Promise.resolve({ base64: 'a', base64_mini: 'b', kb: 10 }); } };
+
 window.__respuestas = {};
 window.API = {
   llamar: function (accion, payload) {
@@ -19,6 +19,7 @@ window.API = {
   },
 };
 </script>
+<script src="../../web/js/fotos.js"></script>
 <script src="../../web/js/propuestas.js"></script>
 <script>
 (function () {

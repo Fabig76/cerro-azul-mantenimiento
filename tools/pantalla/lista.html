@@ -19,8 +19,6 @@
 window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
 window.Tema = { alternar: function () {}, aplicar: function () {} };
 window.Sesion = { token: function () { return 'x'; }, limpiar: function () {}, usuario: function () { return null; } };
-window.Fotos = { preparar: function () { return Promise.resolve({}); } };
-
 // 30 actividades: 12 pendientes, 3 reportadas, 14 aprobadas, 1 cancelada
 var TODAS = [];
 for (var i = 1; i <= 30; i++) {

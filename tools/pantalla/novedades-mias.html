@@ -19,9 +19,7 @@
 <script>
 window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
 try { localStorage.removeItem('ca_ultima_visita'); } catch (e) {}
-window.Tema = { alternar: function () {}, aplicar: function () {} };
-window.Fotos = { preparar: function () { return Promise.resolve({}); } };
-window.__visita = 0;
+window.Tema = { alternar: function () {}, aplicar: function () {} };window.__visita = 0;
 window.__api = function (accion) {
   if (accion === 'auth.me') return Promise.resolve({ ok: true, data: { usuario: {
     id: 'U1', email: 'a@b.c', nombre: 'Contratista', rol: 'CONTRATISTA' }, permisos: [] } });

@@ -3,11 +3,10 @@
 <body><div id="contenidoActividad"></div><div class="msg" id="avisoActividad"></div>
 <script>
 window.Sesion = { token: function () { return 'x'; }, usuario: function () { return { id: 'U1' }; } };
-window.API = { llamar: function () { return Promise.resolve({ ok: true, data: {} }); } };
-window.Fotos = { preparar: function () { return Promise.resolve({}); } };
-window.App = { pestana: function () {}, refrescar: function () {} };
+window.API = { llamar: function () { return Promise.resolve({ ok: true, data: {} }); } };window.App = { pestana: function () {}, refrescar: function () {} };
 </script>
 <script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/fotos.js"></script>
 <script src="../../web/js/actividad.js"></script>
 <script>
 (function () {

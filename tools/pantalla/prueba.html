@@ -6,11 +6,10 @@
 <script>
 // Dobles de las dependencias: la prueba solo mira lo que se dibuja.
 window.Sesion = { token: function () { return 'x'; } };
-window.API = { llamar: function () { return Promise.resolve({ ok: false }); } };
-window.Fotos = { preparar: function () { return Promise.resolve({}); } };
-window.Etapas = { crear: function () { return function () { return []; }; } };
+window.API = { llamar: function () { return Promise.resolve({ ok: false }); } };window.Etapas = { crear: function () { return function () { return []; }; } };
 window.App = { pestana: function () {} };
 </script>
+<script src="../../web/js/fotos.js"></script>
 <script src="../../web/js/actividad.js"></script>
 <script>
 (function () {

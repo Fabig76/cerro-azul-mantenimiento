@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>cargando</title>
+<link rel="stylesheet" href="../../web/css/tokens.css">
+<link rel="stylesheet" href="../../web/css/base.css">
+</head>
+<body>
+<div id="destino"></div>
+<script src="../../web/js/fotos.js"></script>
+<script>
+(function () {
+  const r = [];
+  function ok(b, t) { r.push((b ? 'OK   ' : 'FALLA') + ' · ' + t); }
+  try {
+    // El selector: dos caminos para la misma foto.
+    const sel = Fotos.selector({
+      camara: 'Tomar foto', galeria: 'Elegir de la galería', clase: 'btn primary',
+      alElegir: function (file) { window.__elegido = file.name; },
+    });
+    document.getElementById('destino').appendChild(sel.caja);
+
+    const botones = sel.caja.querySelectorAll('button');
+    ok(botones.length === 2, 'ofrece dos botones');
+    ok(botones[0].textContent === 'Tomar foto', 'el primero es la cámara');
+    ok(botones[1].textContent === 'Elegir de la galería', 'el segundo es la galería');
+
+    const campos = sel.caja.querySelectorAll('input[type=file]');
+    ok(campos.length === 2, 'cada botón tiene su campo de archivo');
+    ok(campos[0].getAttribute('capture') === 'environment', 'la cámara abre la cámara');
+    ok(!campos[1].hasAttribute('capture'), 'la galería NO abre la cámara (el problema que se arregla)');
+    ok(/image/.test(campos[1].getAttribute('accept')), 'solo acepta imágenes');
+
+    // Elegir en el de la galería entrega el archivo.
+    Object.defineProperty(campos[1], 'files', { value: [new File(['x'], 'foto.jpg', { type: 'image/jpeg' })] });
+    campos[1].dispatchEvent(new Event('change'));
+    ok(window.__elegido === 'foto.jpg', 'al elegir de la galería llega el archivo');
+
+    // Ocupar y liberar: mientras sube, no se puede volver a tocar.
+    sel.ocupar('Subiendo 120 KB…');
+    ok(botones[0].disabled && botones[0].textContent === 'Subiendo 120 KB…', 'ocupar bloquea y avisa');
+    sel.liberar();
+    ok(!botones[0].disabled && botones[0].textContent === 'Tomar foto', 'liberar devuelve los textos');
+
+    // Ocultar y mostrar.
+    sel.ocultar();
+    ok(sel.caja.classList.contains('oculto'), 'ocultar esconde el bloque');
+    sel.mostrar();
+    ok(!sel.caja.classList.contains('oculto'), 'mostrar lo devuelve');
+  } catch (e) { r.push('FALLA · excepción: ' + e.message); }
+  document.title = r.join(' | ');
+})();
+</script>
+</body></html>

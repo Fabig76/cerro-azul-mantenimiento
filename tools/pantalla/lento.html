@@ -17,9 +17,7 @@
 <div id="vistaActividad" hidden></div>
 <script>
 window.CFG = { API_URL: '', GOOGLE_CLIENT_ID: '' };
-window.Tema = { alternar: function () {}, aplicar: function () {} };
-window.Fotos = { preparar: function () { return Promise.resolve({}); } };
-window.__pedidos = [];
+window.Tema = { alternar: function () {}, aplicar: function () {} };window.__pedidos = [];
 window.__errores = [];
 window.addEventListener('error', function (e) { window.__errores.push('error: ' + e.message); });
 window.addEventListener('unhandledrejection', function (e) {
@@ -33,6 +31,7 @@ window.__demora = 400;
 <script src="../../web/js/asignacion.js"></script>
 <script src="../../web/js/sesion.js"></script>
 <script src="../../web/js/etapas.js"></script>
+<script src="../../web/js/fotos.js"></script>
 <script src="../../web/js/actividad.js"></script>
 <script src="../../web/js/propuestas.js"></script>
 <script src="../../web/js/novedades.js"></script>
